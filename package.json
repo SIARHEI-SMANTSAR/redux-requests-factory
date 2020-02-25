@@ -1,11 +1,15 @@
 {
   "name": "redux-requests-factory",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Redux requests factory",
-  "main": "index.js",
+  "main": "src/index.js",
+  "sideEffects": false,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "files": [
+    "src"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SIARHEI-SMANTSAR/redux-requests-factory.git"
