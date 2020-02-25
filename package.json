@@ -1,0 +1,30 @@
+{
+  "name": "redux-requests-factory",
+  "version": "0.0.0",
+  "description": "Redux requests factory",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SIARHEI-SMANTSAR/redux-requests-factory.git"
+  },
+  "keywords": [
+    "redux",
+    "api",
+    "middleware",
+    "requests",
+    "requests-factory",
+    "redux-middleware"
+  ],
+  "author": {
+    "name": "Siarhei Smantsar",
+    "email": "siarhei.smantsar@gmail.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/issues"
+  },
+  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory#readme"
+}
