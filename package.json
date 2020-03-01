@@ -2,14 +2,31 @@
   "name": "redux-requests-factory",
   "version": "0.0.1",
   "description": "Redux requests factory",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "module": "dist/mylib.esm.js",
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build"
   },
-  "files": [
-    "src"
-  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SIARHEI-SMANTSAR/redux-requests-factory.git"
@@ -30,5 +47,14 @@
   "bugs": {
     "url": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/issues"
   },
-  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory#readme"
+  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory#readme",
+  "peerDependencies": {},
+  "devDependencies": {
+    "@types/jest": "^25.1.3",
+    "husky": "^4.2.3",
+    "redux": "^4.0.5",
+    "tsdx": "^0.12.3",
+    "tslib": "^1.11.1",
+    "typescript": "^3.8.3"
+  }
 }
