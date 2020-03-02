@@ -37,7 +37,9 @@
     "middleware",
     "requests",
     "requests-factory",
-    "redux-middleware"
+    "api-factory",
+    "redux-middleware",
+    "flux"
   ],
   "author": {
     "name": "Siarhei Smantsar",
