@@ -1,1 +1,1 @@
-export const DEFAULT_STATE_API_KEY = 'api';
+export const DEFAULT_STATE_REQUESTS_KEY = 'requests';

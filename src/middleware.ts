@@ -1,18 +1,12 @@
 import { Middleware } from 'redux';
 
-import { DEFAULT_STATE_API_KEY } from './constants';
-
-type MiddlewareConfig = {
-  stateApiKey?: string;
-};
+import { PreparedConfig } from './types';
 
 export const createRequestsFactoryMiddleware = ({
-  stateApiKey = DEFAULT_STATE_API_KEY,
-}: MiddlewareConfig = {}): Middleware => {
+  stateRequestsKey,
+}: PreparedConfig): Middleware => {
   return _api => _next => _action => {
-    console.log(stateApiKey);
+    console.log(stateRequestsKey);
     // TODO
   };
 };
-
-export const requestsFactoryMiddleware = createRequestsFactoryMiddleware();

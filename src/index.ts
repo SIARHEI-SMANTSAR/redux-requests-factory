@@ -1,2 +1,25 @@
-export * from './factory';
-export * from './middleware';
+import { Config } from './types';
+import { createRequestsFactoryMiddleware } from './middleware';
+import prepareConfig from './prepare-config';
+import { createRequestsFactory } from './factory';
+import { createRequestsReducer } from './reducer';
+
+const createReduxRequestsFactory = (config?: Config) => {
+  const preparedConfig = prepareConfig(config);
+
+  return {
+    stateRequestsKey: preparedConfig.stateRequestsKey,
+    requestsFactoryMiddleware: createRequestsFactoryMiddleware(preparedConfig),
+    requestsFactory: createRequestsFactory(preparedConfig),
+    requestsReducer: createRequestsReducer(preparedConfig),
+  };
+};
+
+export const {
+  stateRequestsKey,
+  requestsFactoryMiddleware,
+  requestsFactory,
+  requestsReducer,
+} = createReduxRequestsFactory();
+
+export default createReduxRequestsFactory;
