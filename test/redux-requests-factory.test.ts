@@ -1,7 +1,7 @@
-import { reduxRequestsFactory } from '../src';
+import { requestsFactory } from '../src';
 
-describe('reduxRequestsFactory', () => {
+describe('requestsFactory', () => {
   it('works', () => {
-    expect(reduxRequestsFactory()).toEqual(undefined);
+    expect(requestsFactory()).toEqual(undefined);
   });
 });
