@@ -1,7 +1,22 @@
-import { PreparedConfig } from './types';
+import { Dispatch } from 'redux';
 
-export const createRequestsFactory = ({
-  stateRequestsKey,
-}: PreparedConfig) => () => {
-  console.log('redux-requests-factory', stateRequestsKey);
+import { PreparedConfig, RequestFactoryConfig } from './types';
+import { commonRequestStartAction } from './actions';
+
+export const createRequestsFactory = ({ stateRequestsKey }: PreparedConfig) => <
+  Response = any,
+  _Error = any,
+  Params = any
+>({
+  request,
+}: RequestFactoryConfig<Params, Response>) => {
+  return {
+    doRequestAction: (dispatch: Dispatch, _getState: () => any) => async (
+      params?: Params
+    ) => {
+      dispatch(commonRequestStartAction({ key: stateRequestsKey }));
+      const data = await request(params);
+      console.log(data);
+    },
+  };
 };

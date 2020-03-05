@@ -67,3 +67,7 @@ export type RequestsState = {
         [serializedKey: string]: RequestState;
       };
 };
+
+export type RequestFactoryConfig<P, T> = {
+  request: (params?: P) => Promise<T>;
+};
