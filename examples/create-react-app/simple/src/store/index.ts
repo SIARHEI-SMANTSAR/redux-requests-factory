@@ -1,12 +1,17 @@
 import { createStore, applyMiddleware, combineReducers } from 'redux';
 import { createLogger } from 'redux-logger';
+import {
+  stateRequestsKey,
+  requestsReducer,
+  requestsFactoryMiddleware,
+} from 'redux-requests-factory';
 
 const reducer = combineReducers({
-  api: (a = {}) => a,
+  [stateRequestsKey]: requestsReducer,
 });
 
 const logger = createLogger({ collapsed: true }); // log every action to see what's happening behind the scenes.
-const reduxMiddleware = applyMiddleware(logger);
+const reduxMiddleware = applyMiddleware(logger, requestsFactoryMiddleware);
 
 const store = createStore(reducer, reduxMiddleware);
 

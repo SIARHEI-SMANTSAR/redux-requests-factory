@@ -11,8 +11,9 @@ export const createRequestsFactory = ({ stateRequestsKey }: PreparedConfig) => <
   request,
 }: RequestFactoryConfig<Params, Response>) => {
   return {
-    doRequestAction: (dispatch: Dispatch, _getState: () => any) => async (
-      params?: Params
+    doRequestAction: (params?: Params) => async (
+      dispatch: Dispatch,
+      _getState: () => any
     ) => {
       dispatch(commonRequestStartAction({ key: stateRequestsKey }));
       const data = await request(params);
