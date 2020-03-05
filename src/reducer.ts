@@ -1,13 +1,11 @@
-import { Reducer } from 'redux';
-
 import {
   PreparedConfig,
-  CommonActions,
   CommonActionTypes,
   RequestsState,
   RequestsStatuses,
   CommonRequestActionMeta,
   RequestState,
+  RequestsReducer,
 } from './types';
 
 const getNewState = (
@@ -29,10 +27,10 @@ const getNewState = (
   },
 });
 
-export const createRequestsReducer = ({}: PreparedConfig): Reducer<
-  RequestsState,
-  CommonActions
-> => (state = {}, action) => {
+export const createRequestsReducer = ({}: PreparedConfig): RequestsReducer => (
+  state = {},
+  action
+) => {
   switch (action.type) {
     case CommonActionTypes.CommonRequestStart:
       return getNewState(state, action.meta, {

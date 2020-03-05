@@ -1,3 +1,5 @@
+import { Reducer, Middleware } from 'redux';
+
 export type Config = {
   stateRequestsKey?: string;
 };
@@ -68,6 +70,27 @@ export type RequestsState = {
       };
 };
 
+export type RequestsReducer = Reducer<RequestsState, CommonActions>;
+
 export type RequestFactoryConfig<P, T> = {
   request: (params?: P) => Promise<T>;
+};
+
+export type RequestsFactoryItem<Params> = {
+  doRequestAction: (params?: Params) => any;
+};
+
+export type RequestsFactory = <Response = any, _Error = any, Params = any>(
+  config: RequestFactoryConfig<Params, Response>
+) => RequestsFactoryItem<Params>;
+
+export type CreateRequestsFactory = (
+  preparedConfig: PreparedConfig
+) => RequestsFactory;
+
+export type ReduxRequestsFactory = {
+  stateRequestsKey: string;
+  requestsFactoryMiddleware: Middleware;
+  requestsFactory: RequestsFactory;
+  requestsReducer: RequestsReducer;
 };

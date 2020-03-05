@@ -1,10 +1,10 @@
-import { Config } from './types';
+import { Config, ReduxRequestsFactory } from './types';
 import { createRequestsFactoryMiddleware } from './middleware';
 import prepareConfig from './prepare-config';
 import { createRequestsFactory } from './factory';
 import { createRequestsReducer } from './reducer';
 
-const createReduxRequestsFactory = (config?: Config) => {
+const createReduxRequestsFactory = (config?: Config): ReduxRequestsFactory => {
   const preparedConfig = prepareConfig(config);
 
   return {

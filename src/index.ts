@@ -1,4 +1,5 @@
 import createReduxRequestsFactory from './create-redux-requests-factory';
+import { ReduxRequestsFactory } from 'types';
 
 export * from './types';
 
@@ -7,6 +8,6 @@ export const {
   requestsFactoryMiddleware,
   requestsFactory,
   requestsReducer,
-} = createReduxRequestsFactory();
+}: ReduxRequestsFactory = createReduxRequestsFactory();
 
 export default createReduxRequestsFactory;
