@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 
 import { loadUsersAction } from '../api/users';
@@ -9,6 +9,10 @@ const App = () => {
   const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [
     dispatch,
   ]);
+
+  useEffect(() => {
+    onLoadUsers();
+  }, [onLoadUsers]);
 
   return (
     <div className="app">
