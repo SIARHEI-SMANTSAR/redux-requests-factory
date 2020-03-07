@@ -1,5 +1,5 @@
 import { createStore, applyMiddleware, combineReducers } from "redux";
-// import { createLogger } from "redux-logger";
+import { createLogger } from "redux-logger";
 import { MakeStore } from "next-redux-wrapper";
 import {
   stateRequestsKey,
@@ -15,8 +15,8 @@ export type RootState = ReturnType<typeof reducer>;
 
 // @ts-ignore
 const makeStore: MakeStore = (initialState: RootState) => {
-  // const logger = createLogger({ collapsed: true });
-  const reduxMiddleware = applyMiddleware(requestsFactoryMiddleware);
+  const logger = createLogger({ collapsed: true });
+  const reduxMiddleware = applyMiddleware(requestsFactoryMiddleware, logger);
 
   return createStore(reducer, initialState, reduxMiddleware);
 };

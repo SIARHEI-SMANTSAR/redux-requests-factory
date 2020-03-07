@@ -1,18 +1,27 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { NextPage } from "next";
+import { useDispatch } from "react-redux";
 
 import { loadUsersAction } from "../api/users";
 
-const Home: NextPage<{ userAgent: string }> = ({ userAgent }) => {
-  return <h1>Hello world! - user agent: {userAgent}</h1>;
+const Home: NextPage<{}> = () => {
+  const dispatch = useDispatch();
+  const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [
+    dispatch
+  ]);
+
+  return (
+    <>
+      <h1>Hello world!</h1>
+      <button onClick={onLoadUsers}>Load Users</button>
+    </>
+  );
 };
 
-Home.getInitialProps = async ({ req, store }) => {
-  const userAgent = req ? req.headers["user-agent"] || "" : navigator.userAgent;
-
+Home.getInitialProps = async ({ store }) => {
   store.dispatch(loadUsersAction());
 
-  return { userAgent };
+  return {};
 };
 
 export default Home;
