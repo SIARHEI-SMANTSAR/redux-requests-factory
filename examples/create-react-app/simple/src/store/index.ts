@@ -1,13 +1,13 @@
-import { createStore, applyMiddleware, combineReducers } from "redux";
-import { createLogger } from "redux-logger";
+import { createStore, applyMiddleware, combineReducers } from 'redux';
+import { createLogger } from 'redux-logger';
 import {
   stateRequestsKey,
   requestsReducer,
-  requestsFactoryMiddleware
-} from "redux-requests-factory";
+  requestsFactoryMiddleware,
+} from 'redux-requests-factory';
 
 const reducer = combineReducers({
-  [stateRequestsKey]: requestsReducer
+  [stateRequestsKey]: requestsReducer,
 });
 
 const logger = createLogger({ collapsed: true });

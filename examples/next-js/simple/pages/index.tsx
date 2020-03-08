@@ -1,13 +1,13 @@
-import React, { useCallback } from "react";
-import { NextPage } from "next";
-import { useDispatch } from "react-redux";
+import React, { useCallback } from 'react';
+import { NextPage } from 'next';
+import { useDispatch } from 'react-redux';
 
-import { loadUsersAction } from "../api/users";
+import { loadUsersAction } from '../api/users';
 
 const Home: NextPage<{}> = () => {
   const dispatch = useDispatch();
   const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [
-    dispatch
+    dispatch,
   ]);
 
   return (

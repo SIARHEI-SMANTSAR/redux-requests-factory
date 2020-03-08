@@ -1,11 +1,13 @@
 import { Middleware } from 'redux';
 
-import { PreparedConfig } from './types';
+import { PreparedConfig, FactoryActionTypes } from './types';
 
 export const createRequestsFactoryMiddleware = ({}: PreparedConfig): Middleware => {
   return ({ dispatch, getState }) => next => async action => {
-    // TODO
-    if (typeof action === 'function') {
+    if (
+      typeof action === 'function' &&
+      Object.values(FactoryActionTypes).includes(action.type)
+    ) {
       return await action(dispatch, getState);
     }
 

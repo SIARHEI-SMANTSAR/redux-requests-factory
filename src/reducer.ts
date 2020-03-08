@@ -3,14 +3,14 @@ import {
   CommonActionTypes,
   RequestsState,
   RequestsStatuses,
-  CommonRequestActionMeta,
+  RequestActionMeta,
   RequestState,
   RequestsReducer,
 } from './types';
 
 const getNewState = (
   state: RequestsState,
-  { key, serializedKey }: CommonRequestActionMeta,
+  { key, serializedKey }: RequestActionMeta,
   data: RequestState
 ): RequestsState => ({
   ...state,

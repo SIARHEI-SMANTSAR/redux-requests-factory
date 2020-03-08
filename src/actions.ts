@@ -1,20 +1,20 @@
 import {
   CommonRequestStartAction,
   CommonActionTypes,
-  CommonRequestActionMeta,
+  RequestActionMeta,
   CommonRequestSuccessAction,
   CommonRequestErrorAction,
 } from './types';
 
 export const commonRequestStartAction = (
-  meta: CommonRequestActionMeta
+  meta: RequestActionMeta
 ): CommonRequestStartAction => ({
   type: CommonActionTypes.CommonRequestStart,
   meta,
 });
 
 export const commonRequestSuccessAction = (
-  meta: CommonRequestActionMeta,
+  meta: RequestActionMeta,
   response: any
 ): CommonRequestSuccessAction => ({
   type: CommonActionTypes.CommonRequestSuccess,
@@ -23,7 +23,7 @@ export const commonRequestSuccessAction = (
 });
 
 export const commonRequestErrorAction = (
-  meta: CommonRequestActionMeta,
+  meta: RequestActionMeta,
   error: any
 ): CommonRequestErrorAction => ({
   type: CommonActionTypes.CommonRequestError,

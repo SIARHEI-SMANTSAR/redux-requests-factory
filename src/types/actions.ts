@@ -5,31 +5,31 @@ export enum CommonActionTypes {
   CommonRequestCancel = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/CANCEL',
 }
 
-export type CommonRequestActionMeta = {
+export type RequestActionMeta = {
   key: string;
   serializedKey?: string;
 };
 
 export type CommonRequestStartAction = {
   type: CommonActionTypes.CommonRequestStart;
-  meta: CommonRequestActionMeta;
+  meta: RequestActionMeta;
 };
 
 export type CommonRequestSuccessAction = {
   type: CommonActionTypes.CommonRequestSuccess;
-  meta: CommonRequestActionMeta;
+  meta: RequestActionMeta;
   payload: { response: any };
 };
 
 export type CommonRequestErrorAction = {
   type: CommonActionTypes.CommonRequestError;
-  meta: CommonRequestActionMeta;
+  meta: RequestActionMeta;
   payload: { error: any };
 };
 
 export type CommonRequestCancelAction = {
   type: CommonActionTypes.CommonRequestCancel;
-  meta: CommonRequestActionMeta;
+  meta: RequestActionMeta;
 };
 
 export type CommonActions =

@@ -1,17 +1,7 @@
-import { PreparedConfig } from './config';
-
-export type RequestFactoryConfig<Response, Params> = {
-  request: (params?: Params) => Promise<Response>;
-  stateRequestKey: string;
-};
-
-export type RequestsFactoryItemActions<_Response, _Error, Params> = {
-  doRequestAction: (params?: Params) => any;
-};
-
-export type RequestsFactoryItemSelectors<Response, _Error, _Params, State> = {
-  responseSelector: (state: State) => Response | null;
-};
+import { PreparedConfig } from '../config';
+import { RequestsFactoryItemActions } from './actions';
+import { RequestsFactoryItemSelectors } from './selectors';
+import { RequestFactoryConfig } from './config';
 
 export type RequestsFactoryItem<
   Response,
