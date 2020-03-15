@@ -9,6 +9,8 @@ import {
   DoRequestAction,
   CancelRequestAction,
   GetActionConfig,
+  ForcedLoadDataAction,
+  LoadDataAction,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -21,10 +23,11 @@ import {
   getRequestKey,
   getSerializedKey,
   memoizeDebounce,
+  isNeedLoadData,
 } from './helpers';
 
 const createActions = <Response, Error, Params, State>(
-  _config: PreparedConfig,
+  config: PreparedConfig,
   factoryConfig: RequestFactoryConfig<Response, Params>
 ): RequestsFactoryItemActions<Response, Error, Params> => {
   const {
@@ -50,6 +53,9 @@ const createActions = <Response, Error, Params, State>(
     meta: RequestActionMeta;
     requestKey: string;
   }) => {
+    cancelMapByKey[requestKey] = false;
+    doRequestMapByKey[requestKey] = true;
+
     dispatch(commonRequestStartAction(meta));
     try {
       const response = await request(params);
@@ -79,21 +85,22 @@ const createActions = <Response, Error, Params, State>(
     },
   });
 
-  const getDoRequestAction = ({
+  const getDoRequestAction = (isForced: boolean = true) => ({
     params,
     meta,
     requestKey,
-  }: GetActionConfig<Params>) => {
-    cancelMapByKey[requestKey] = false;
-    doRequestMapByKey[requestKey] = true;
-
-    return async (dispatch: Dispatch, _getState: () => State) =>
-      await (useDebounce ? memoizedDoRequest : doRequest)({
+  }: GetActionConfig<Params>) => async (
+    dispatch: Dispatch,
+    getState: () => State
+  ) => {
+    if (isForced || isNeedLoadData(config, meta, getState())) {
+      return await (useDebounce ? memoizedDoRequest : doRequest)({
         params,
         dispatch,
         meta,
         requestKey,
       });
+    }
   };
 
   const createAction = <Action = any>(
@@ -134,7 +141,15 @@ const createActions = <Response, Error, Params, State>(
   return {
     doRequestAction: createAction<DoRequestAction<Params>>(
       `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
-      getDoRequestAction
+      getDoRequestAction()
+    ),
+    forcedLoadDataAction: createAction<ForcedLoadDataAction<Params>>(
+      `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
+      getDoRequestAction()
+    ),
+    loadDataAction: createAction<LoadDataAction<Params>>(
+      `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
+      getDoRequestAction(false)
     ),
     cancelRequestAction: createAction<CancelRequestAction<Params>>(
       `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,

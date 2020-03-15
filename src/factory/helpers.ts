@@ -5,6 +5,8 @@ import {
   RequestFactoryConfig,
   RequestFactoryConfigWithSerialize,
   RequestActionMeta,
+  RequestsStatuses,
+  PreparedConfig,
 } from '../types';
 import registerRequestKey from './register-request-key';
 
@@ -22,13 +24,13 @@ export const isWithSerialize = <Response, Params>(
   (config as RequestFactoryConfigWithSerialize<Response, Params>)
     .serializeRequestParameters !== undefined;
 
-export const getByPath = <Value = any, Object = any>(...keys: string[]) => (
-  obj: Object
-): Value | null =>
+export const getByPath = <Value = any, Object = any>(
+  ...keys: (string | undefined)[]
+) => (obj: Object): Value | null =>
   keys
     .filter(Boolean)
     .reduce<Value | null>(
-      (value: any, key) => (value ? value[key] : null),
+      (value: any, key) => (value ? value[key as string] : null),
       obj as any
     );
 
@@ -71,3 +73,20 @@ export const patchConfig = <
   ...config,
   stateRequestKey: registerRequestKey(config.stateRequestKey),
 });
+
+export const isNeedLoadData = <State>(
+  { stateRequestsKey }: PreparedConfig,
+  { key, serializedKey }: RequestActionMeta,
+  state: State
+) => {
+  const status = getByPath<RequestsStatuses, State>(
+    stateRequestsKey,
+    key,
+    serializedKey,
+    'status'
+  )(state);
+
+  return !(
+    status === RequestsStatuses.Loading || status === RequestsStatuses.Success
+  );
+};

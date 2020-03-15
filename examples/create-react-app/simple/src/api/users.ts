@@ -4,7 +4,8 @@ const loadUsersRequest = () =>
   fetch('https://jsonplaceholder.typicode.com/users').then(res => res.json());
 
 export const {
-  doRequestAction: loadUsersAction,
+  loadDataAction: loadUsersAction,
+  forcedLoadDataAction: forcedLoadUsersAction,
   cancelRequestAction: cancelLoadUsersAction,
 } = requestsFactory({
   request: loadUsersRequest,
