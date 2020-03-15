@@ -6,23 +6,30 @@ import {
   RequestFactoryConfig,
   RequestActionMeta,
   FactoryActionTypes,
-  DoRequestAction,
 } from '../types';
 import {
   commonRequestStartAction,
   commonRequestSuccessAction,
   commonRequestErrorAction,
 } from '../actions';
-import { actionToString } from './helpers';
+import { actionToString, isWithSerialize } from './helpers';
 
 const createActions = <Response, Error, Params, _State>(
   _preparedConfig: PreparedConfig,
-  { request, stateRequestKey }: RequestFactoryConfig<Response, Params>
+  factoryConfig: RequestFactoryConfig<Response, Params>
 ): RequestsFactoryItemActions<Response, Error, Params> => {
-  const meta: RequestActionMeta = { key: stateRequestKey };
+  const { request, stateRequestKey } = factoryConfig;
+
+  // const cancelMapByKey: { [key: string]: boolean } = {};
 
   return {
-    doRequestAction: params => {
+    doRequestAction: (params?: Params) => {
+      const meta: RequestActionMeta = { key: stateRequestKey };
+
+      if (isWithSerialize<Response, Params>(factoryConfig)) {
+        meta.serializedKey = factoryConfig.serializeRequestParameters(params);
+      }
+
       const doRequest = async (dispatch: Dispatch, _getState: () => any) => {
         dispatch(commonRequestStartAction(meta));
         try {
@@ -39,7 +46,7 @@ const createActions = <Response, Error, Params, _State>(
 
       doRequest.toString = actionToString;
 
-      return doRequest as DoRequestAction<Params>;
+      return doRequest;
     },
   };
 };

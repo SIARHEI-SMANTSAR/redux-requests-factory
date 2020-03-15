@@ -7,7 +7,7 @@ export enum FactoryActionTypes {
 export type DoRequestAction<Params> = {
   type: FactoryActionTypes.DoRequest;
   meta: RequestActionMeta;
-  payload: Params;
+  payload?: Params;
 };
 
 export type FactoryActions<_Response, _Error, Params> = DoRequestAction<Params>;

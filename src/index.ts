@@ -1,5 +1,5 @@
 import createReduxRequestsFactory from './create-redux-requests-factory';
-import { ReduxRequestsFactory } from 'types';
+import { ReduxRequestsFactory } from './types';
 
 export * from './types';
 
