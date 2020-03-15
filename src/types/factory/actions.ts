@@ -6,22 +6,24 @@ export enum FactoryActionTypes {
 }
 
 export type DoRequestAction<Params> = {
-  type: FactoryActionTypes.DoRequest;
+  type: string;
   meta: RequestActionMeta;
   payload?: Params;
 };
 
 export type CancelRequestAction<Params> = {
-  type: FactoryActionTypes.CancelRequest;
+  type: string;
   meta: RequestActionMeta;
   payload?: Params;
 };
 
-export type FactoryActions<_Response, _Error, Params> =
-  | DoRequestAction<Params>
-  | CancelRequestAction<Params>;
-
 export type RequestsFactoryItemActions<_Response, _Error, Params> = {
   doRequestAction: (params?: Params) => DoRequestAction<Params>;
   cancelRequestAction: (params?: Params) => CancelRequestAction<Params>;
+};
+
+export type GetActionConfig<Params> = {
+  params?: Params;
+  meta: RequestActionMeta;
+  requestKey: string;
 };

@@ -1,4 +1,7 @@
+import { OutputSelector } from 'reselect';
+
 import { RequestFactoryConfigWithSerialize } from './config';
+import { RequestsState } from '../../types';
 
 export type RequestsFactoryItemSelectorsWithoutSerialize<
   Response,
@@ -6,7 +9,11 @@ export type RequestsFactoryItemSelectorsWithoutSerialize<
   _Params,
   State
 > = {
-  responseSelector: (state: State) => Response | null;
+  responseSelector: OutputSelector<
+    State,
+    Response | null,
+    (res: RequestsState | null) => Response | null
+  >;
 };
 
 export type RequestsFactoryItemSelectorsWithSerialize<
@@ -15,7 +22,11 @@ export type RequestsFactoryItemSelectorsWithSerialize<
   Params,
   State
 > = {
-  responseSelector: (state: State) => (params?: Params) => Response | null;
+  responseSelector: OutputSelector<
+    State,
+    (params?: Params) => Response | null,
+    (res: RequestsState | null) => (params?: Params) => Response | null
+  >;
 };
 
 export type RequestsFactoryItemSelectors<
