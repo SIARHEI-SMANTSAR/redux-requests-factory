@@ -1,6 +1,6 @@
 {
   "name": "redux-requests-factory",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Redux requests factory",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
