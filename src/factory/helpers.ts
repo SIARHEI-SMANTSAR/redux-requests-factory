@@ -20,3 +20,13 @@ export const getByPath = <Value = any, Object = any>(...keys: string[]) => (
     (value: any, key) => (value ? value[key] : null),
     obj as any
   );
+
+export const getRequestKey = <Response, Params>(
+  factoryConfig: RequestFactoryConfig<Response, Params>,
+  params?: Params
+): string =>
+  isWithSerialize(factoryConfig)
+    ? `${
+        factoryConfig.stateRequestKey
+      }_${factoryConfig.serializeRequestParameters(params)}`
+    : factoryConfig.stateRequestKey;

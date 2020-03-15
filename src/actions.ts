@@ -4,6 +4,7 @@ import {
   RequestActionMeta,
   CommonRequestSuccessAction,
   CommonRequestErrorAction,
+  CommonRequestCancelAction,
 } from './types';
 
 export const commonRequestStartAction = (
@@ -29,4 +30,11 @@ export const commonRequestErrorAction = (
   type: CommonActionTypes.CommonRequestError,
   meta,
   payload: { error },
+});
+
+export const commonRequestCancelAction = (
+  meta: RequestActionMeta
+): CommonRequestCancelAction => ({
+  type: CommonActionTypes.CommonRequestCancel,
+  meta,
 });

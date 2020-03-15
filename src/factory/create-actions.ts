@@ -6,37 +6,51 @@ import {
   RequestFactoryConfig,
   RequestActionMeta,
   FactoryActionTypes,
+  DoRequestAction,
+  CancelRequestAction,
 } from '../types';
 import {
   commonRequestStartAction,
   commonRequestSuccessAction,
   commonRequestErrorAction,
+  commonRequestCancelAction,
 } from '../actions';
-import { actionToString, isWithSerialize } from './helpers';
+import { actionToString, isWithSerialize, getRequestKey } from './helpers';
 
-const createActions = <Response, Error, Params, _State>(
+const createActions = <Response, Error, Params, State>(
   _preparedConfig: PreparedConfig,
   factoryConfig: RequestFactoryConfig<Response, Params>
 ): RequestsFactoryItemActions<Response, Error, Params> => {
   const { request, stateRequestKey } = factoryConfig;
 
-  // const cancelMapByKey: { [key: string]: boolean } = {};
+  const cancelMapByKey: { [key: string]: boolean } = {};
+  const doRequestMapByKey: { [key: string]: boolean } = {};
 
   return {
     doRequestAction: (params?: Params) => {
       const meta: RequestActionMeta = { key: stateRequestKey };
+      const requestKey = getRequestKey(factoryConfig, params);
+
+      cancelMapByKey[requestKey] = false;
+      doRequestMapByKey[requestKey] = true;
 
       if (isWithSerialize<Response, Params>(factoryConfig)) {
         meta.serializedKey = factoryConfig.serializeRequestParameters(params);
       }
 
-      const doRequest = async (dispatch: Dispatch, _getState: () => any) => {
+      const doRequest = async (dispatch: Dispatch, _getState: () => State) => {
         dispatch(commonRequestStartAction(meta));
         try {
           const response = await request(params);
-          dispatch(commonRequestSuccessAction(meta, response));
+          if (!cancelMapByKey[requestKey]) {
+            dispatch(commonRequestSuccessAction(meta, response));
+          }
         } catch (error) {
-          dispatch(commonRequestErrorAction(meta, error));
+          if (!cancelMapByKey[requestKey]) {
+            dispatch(commonRequestErrorAction(meta, error));
+          }
+        } finally {
+          doRequestMapByKey[requestKey] = false;
         }
       };
 
@@ -46,7 +60,36 @@ const createActions = <Response, Error, Params, _State>(
 
       doRequest.toString = actionToString;
 
-      return doRequest;
+      return doRequest as DoRequestAction<Params>;
+    },
+    cancelRequestAction: (params?: Params) => {
+      const meta: RequestActionMeta = { key: stateRequestKey };
+      const requestKey = getRequestKey(factoryConfig, params);
+
+      if (doRequestMapByKey[requestKey]) {
+        cancelMapByKey[requestKey] = true;
+      }
+
+      if (isWithSerialize<Response, Params>(factoryConfig)) {
+        meta.serializedKey = factoryConfig.serializeRequestParameters(params);
+      }
+
+      const cancelRequest = async (
+        dispatch: Dispatch,
+        _getState: () => State
+      ) => {
+        if (doRequestMapByKey[requestKey]) {
+          dispatch(commonRequestCancelAction(meta));
+        }
+      };
+
+      cancelRequest.type = FactoryActionTypes.CancelRequest;
+      cancelRequest.meta = meta;
+      cancelRequest.payload = params;
+
+      cancelRequest.toString = actionToString;
+
+      return cancelRequest as CancelRequestAction<Params>;
     },
   };
 };
