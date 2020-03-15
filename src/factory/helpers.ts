@@ -6,6 +6,7 @@ import {
   RequestFactoryConfigWithSerialize,
   RequestActionMeta,
 } from '../types';
+import registerRequestKey from './register-request-key';
 
 export const actionToString = function toString(this: any) {
   return JSON.stringify({
@@ -59,3 +60,14 @@ export const memoizeDebounce = function<
     mem.apply(this, arguments).apply(this, arguments);
   } as Func;
 };
+
+export const patchConfig = <
+  Response,
+  Params,
+  Config extends RequestFactoryConfig<Response, Params>
+>(
+  config: Config
+): Config => ({
+  ...config,
+  stateRequestKey: registerRequestKey(config.stateRequestKey),
+});

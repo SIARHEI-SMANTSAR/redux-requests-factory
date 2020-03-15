@@ -7,6 +7,7 @@ import {
 } from '../types';
 import createActions from './create-actions';
 import createSelectors from './create-selectors';
+import { patchConfig } from './helpers';
 
 export const createRequestsFactory = (
   preparedConfig: PreparedConfig
@@ -22,11 +23,16 @@ export const createRequestsFactory = (
 >(
   config: Config
 ): RequestsFactoryItem<Response, Error, Params, State, Config> => {
+  const patchedConfig = patchConfig<Response, Params, Config>(config);
+
   return {
-    ...createActions<Response, Error, Params, State>(preparedConfig, config),
+    ...createActions<Response, Error, Params, State>(
+      preparedConfig,
+      patchedConfig
+    ),
     ...createSelectors<Response, Error, Params, State, Config>(
       preparedConfig,
-      config
+      patchedConfig
     ),
   } as RequestsFactoryItem<Response, Error, Params, State, Config>;
 };
