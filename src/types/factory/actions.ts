@@ -5,6 +5,7 @@ export enum FactoryActionTypes {
   CancelRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/CANCEL',
   ForcedLoadData = '@@REDUX_REQUESTS_FACTORY/FORCED_LOAD',
   LoadData = '@@REDUX_REQUESTS_FACTORY/LOAD',
+  RequestFulfilled = '@@REDUX_REQUESTS_FACTORY/REQUEST/FULFILLED',
 }
 
 export type DoRequestAction<Params> = {
@@ -31,11 +32,44 @@ export type CancelRequestAction<Params> = {
   payload?: Params;
 };
 
-export type RequestsFactoryItemActions<_Response, _Error, Params> = {
-  doRequestAction: (params?: Params) => DoRequestAction<Params>;
-  forcedLoadDataAction: (params?: Params) => ForcedLoadDataAction<Params>;
-  loadDataAction: (params?: Params) => LoadDataAction<Params>;
-  cancelRequestAction: (params?: Params) => CancelRequestAction<Params>;
+export type RequestFulfilledAction<Response, Params> = {
+  type: string;
+  meta: RequestActionMeta;
+  payload: {
+    response: Response;
+    params?: Params;
+  };
+};
+
+export type RequestsFactoryItemActions<Response, _Error, Params> = {
+  doRequestAction: {
+    (params?: Params): DoRequestAction<Params>;
+    type: string;
+    toString(): string;
+  };
+  forcedLoadDataAction: {
+    (params?: Params): ForcedLoadDataAction<Params>;
+    type: string;
+    toString(): string;
+  };
+  loadDataAction: {
+    (params?: Params): LoadDataAction<Params>;
+    type: string;
+    toString(): string;
+  };
+  cancelRequestAction: {
+    (params?: Params): CancelRequestAction<Params>;
+    type: string;
+    toString(): string;
+  };
+  requestFulfilledAction: {
+    (data: any, meta: RequestActionMeta): RequestFulfilledAction<
+      Response,
+      Params
+    >;
+    type: string;
+    toString(): string;
+  };
 };
 
 export type GetActionConfig<Params> = {

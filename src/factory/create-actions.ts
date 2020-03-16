@@ -11,6 +11,7 @@ import {
   GetActionConfig,
   ForcedLoadDataAction,
   LoadDataAction,
+  RequestFulfilledAction,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -42,6 +43,62 @@ const createActions = <Response, Error, Params, State>(
   const cancelMapByKey: { [key: string]: boolean } = {};
   const doRequestMapByKey: { [key: string]: boolean } = {};
 
+  const createSyncAction = <
+    Data,
+    Action extends { type: string; meta: RequestActionMeta; payload: Data }
+  >(
+    type: string
+  ) => {
+    const syncAction = (data: Data, meta: RequestActionMeta): Action => {
+      return { type, meta, payload: data } as Action;
+    };
+
+    syncAction.type = type;
+    syncAction.toString = () => type;
+
+    return syncAction;
+  };
+
+  const createAsyncAction = <Action = any>(
+    type: string,
+    getAction: (config: GetActionConfig<Params>) => any
+  ) => {
+    const asyncAction = (params?: Params): Action => {
+      const meta: RequestActionMeta = {
+        key: stateRequestKey,
+        serializedKey: getSerializedKey<Response, Params>(
+          factoryConfig,
+          params
+        ),
+      };
+      const requestKey = getRequestKey(meta);
+
+      const action = getAction({
+        params,
+        meta,
+        requestKey,
+      });
+
+      action.type = type;
+      action.meta = meta;
+      action.payload = params;
+
+      action.toString = actionToString;
+
+      return action as Action;
+    };
+
+    asyncAction.type = type;
+    asyncAction.toString = () => type;
+
+    return asyncAction;
+  };
+
+  const requestFulfilledAction = createSyncAction<
+    { params?: Params; response: Response },
+    RequestFulfilledAction<Response, Params>
+  >(`${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`);
+
   const doRequest = async ({
     params,
     dispatch,
@@ -61,6 +118,7 @@ const createActions = <Response, Error, Params, State>(
       const response = await request(params);
       if (!cancelMapByKey[requestKey]) {
         dispatch(commonRequestSuccessAction(meta, response));
+        dispatch(requestFulfilledAction({ params, response }, meta));
       }
     } catch (error) {
       if (!cancelMapByKey[requestKey]) {
@@ -103,55 +161,20 @@ const createActions = <Response, Error, Params, State>(
     }
   };
 
-  const createAction = <Action = any>(
-    type: string,
-    getAction: (config: GetActionConfig<Params>) => any
-  ) => {
-    const doRequestAction = (params?: Params): Action => {
-      const meta: RequestActionMeta = {
-        key: stateRequestKey,
-        serializedKey: getSerializedKey<Response, Params>(
-          factoryConfig,
-          params
-        ),
-      };
-      const requestKey = getRequestKey(meta);
-
-      const action = getAction({
-        params,
-        meta,
-        requestKey,
-      });
-
-      action.type = type;
-      action.meta = meta;
-      action.payload = params;
-
-      action.toString = actionToString;
-
-      return action as Action;
-    };
-
-    doRequestAction.type = type;
-    doRequestAction.toString = () => type;
-
-    return doRequestAction;
-  };
-
   return {
-    doRequestAction: createAction<DoRequestAction<Params>>(
+    doRequestAction: createAsyncAction<DoRequestAction<Params>>(
       `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
       getDoRequestAction()
     ),
-    forcedLoadDataAction: createAction<ForcedLoadDataAction<Params>>(
+    forcedLoadDataAction: createAsyncAction<ForcedLoadDataAction<Params>>(
       `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
       getDoRequestAction()
     ),
-    loadDataAction: createAction<LoadDataAction<Params>>(
+    loadDataAction: createAsyncAction<LoadDataAction<Params>>(
       `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
       getDoRequestAction(false)
     ),
-    cancelRequestAction: createAction<CancelRequestAction<Params>>(
+    cancelRequestAction: createAsyncAction<CancelRequestAction<Params>>(
       `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
       ({ meta, requestKey }: GetActionConfig<Params>) => {
         if (doRequestMapByKey[requestKey]) {
@@ -165,6 +188,7 @@ const createActions = <Response, Error, Params, State>(
         };
       }
     ),
+    requestFulfilledAction,
   };
 };
 
