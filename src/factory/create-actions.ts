@@ -12,12 +12,17 @@ import {
   ForcedLoadDataAction,
   LoadDataAction,
   RequestFulfilledAction,
+  RequestRejectedAction,
+  SetErrorAction,
+  SetResponseAction,
+  ResetRequestAction,
 } from '../types';
 import {
   commonRequestStartAction,
   commonRequestSuccessAction,
   commonRequestErrorAction,
   commonRequestCancelAction,
+  commonRequestResetAction,
 } from '../actions';
 import {
   actionToString,
@@ -25,12 +30,13 @@ import {
   getSerializedKey,
   memoizeDebounce,
   isNeedLoadData,
+  identity,
 } from './helpers';
 
-const createActions = <Response, Error, Params, State>(
+const createActions = <Resp, Err, Params, State>(
   config: PreparedConfig,
-  factoryConfig: RequestFactoryConfig<Response, Params>
-): RequestsFactoryItemActions<Response, Error, Params> => {
+  factoryConfig: RequestFactoryConfig<Resp, Params>
+): RequestsFactoryItemActions<Resp, Err, Params> => {
   const {
     request,
     stateRequestKey,
@@ -59,17 +65,16 @@ const createActions = <Response, Error, Params, State>(
     return syncAction;
   };
 
-  const createAsyncAction = <Action = any>(
+  const createAsyncAction = <Action = any, Data = Params | undefined>(
     type: string,
-    getAction: (config: GetActionConfig<Params>) => any
+    getAction: (config: GetActionConfig<Params, Data>) => any,
+    getPramsFromData: (data: Data) => Params | undefined
   ) => {
-    const asyncAction = (params?: Params): Action => {
+    const asyncAction = (data: Data): Action => {
+      const params: Params | undefined = getPramsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
-        serializedKey: getSerializedKey<Response, Params>(
-          factoryConfig,
-          params
-        ),
+        serializedKey: getSerializedKey<Resp, Params>(factoryConfig, params),
       };
       const requestKey = getRequestKey(meta);
 
@@ -77,11 +82,12 @@ const createActions = <Response, Error, Params, State>(
         params,
         meta,
         requestKey,
+        data,
       });
 
       action.type = type;
       action.meta = meta;
-      action.payload = params;
+      action.payload = data;
 
       action.toString = actionToString;
 
@@ -95,9 +101,14 @@ const createActions = <Response, Error, Params, State>(
   };
 
   const requestFulfilledAction = createSyncAction<
-    { params?: Params; response: Response },
-    RequestFulfilledAction<Response, Params>
+    { params?: Params; response: Resp },
+    RequestFulfilledAction<Resp, Params>
   >(`${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`);
+
+  const requestRejectedAction = createSyncAction<
+    { params?: Params; error: Err },
+    RequestRejectedAction<Err, Params>
+  >(`${FactoryActionTypes.RequestRejected}/${stateRequestKey}`);
 
   const doRequest = async ({
     params,
@@ -123,6 +134,7 @@ const createActions = <Response, Error, Params, State>(
     } catch (error) {
       if (!cancelMapByKey[requestKey]) {
         dispatch(commonRequestErrorAction(meta, error));
+        dispatch(requestRejectedAction({ params, error }, meta));
       }
     } finally {
       doRequestMapByKey[requestKey] = false;
@@ -164,15 +176,18 @@ const createActions = <Response, Error, Params, State>(
   return {
     doRequestAction: createAsyncAction<DoRequestAction<Params>>(
       `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
-      getDoRequestAction()
+      getDoRequestAction(),
+      identity
     ),
     forcedLoadDataAction: createAsyncAction<ForcedLoadDataAction<Params>>(
       `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
-      getDoRequestAction()
+      getDoRequestAction(),
+      identity
     ),
     loadDataAction: createAsyncAction<LoadDataAction<Params>>(
       `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
-      getDoRequestAction(false)
+      getDoRequestAction(false),
+      identity
     ),
     cancelRequestAction: createAsyncAction<CancelRequestAction<Params>>(
       `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
@@ -186,9 +201,54 @@ const createActions = <Response, Error, Params, State>(
             dispatch(commonRequestCancelAction(meta));
           }
         };
-      }
+      },
+      identity
+    ),
+    setErrorAction: createAsyncAction<
+      SetErrorAction<Err, Params>,
+      { error: Err; params?: Params }
+    >(
+      `${FactoryActionTypes.SetError}/${stateRequestKey}`,
+      ({
+        meta,
+        data: { error },
+        params,
+      }: GetActionConfig<Params, { error: Err; params?: Params }>) => {
+        return async (dispatch: Dispatch) => {
+          dispatch(commonRequestErrorAction(meta, error));
+          dispatch(requestRejectedAction({ params, error }, meta));
+        };
+      },
+      ({ params }) => params
+    ),
+    setResponseAction: createAsyncAction<
+      SetResponseAction<Resp, Params>,
+      { response: Resp; params?: Params }
+    >(
+      `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
+      ({
+        meta,
+        data: { response },
+        params,
+      }: GetActionConfig<Params, { response: Resp; params?: Params }>) => {
+        return async (dispatch: Dispatch) => {
+          dispatch(commonRequestSuccessAction(meta, response));
+          dispatch(requestFulfilledAction({ params, response }, meta));
+        };
+      },
+      ({ params }) => params
+    ),
+    resetRequestAction: createAsyncAction<ResetRequestAction<Params>>(
+      `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
+      ({ meta }: GetActionConfig<Params>) => {
+        return async (dispatch: Dispatch) => {
+          dispatch(commonRequestResetAction(meta));
+        };
+      },
+      identity
     ),
     requestFulfilledAction,
+    requestRejectedAction,
   };
 };
 

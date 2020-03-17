@@ -11,43 +11,43 @@ import {
 } from './config';
 
 export type RequestsFactoryItemWithoutSerialize<
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State
-> = RequestsFactoryItemActions<Response, Error, Params> &
-  RequestsFactoryItemSelectorsWithoutSerialize<Response, Error, Params, State>;
+> = RequestsFactoryItemActions<Resp, Err, Params> &
+  RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
 
 export type RequestsFactoryItemWithSerialize<
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State
-> = RequestsFactoryItemActions<Response, Error, Params> &
-  RequestsFactoryItemSelectorsWithSerialize<Response, Error, Params, State>;
+> = RequestsFactoryItemActions<Resp, Err, Params> &
+  RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>;
 
 export type RequestsFactoryItem<
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State,
   Config
-> = Config extends RequestFactoryConfigWithSerialize<Response, Params>
-  ? RequestsFactoryItemWithSerialize<Response, Error, Params, State>
-  : RequestsFactoryItemWithoutSerialize<Response, Error, Params, State>;
+> = Config extends RequestFactoryConfigWithSerialize<Resp, Params>
+  ? RequestsFactoryItemWithSerialize<Resp, Err, Params, State>
+  : RequestsFactoryItemWithoutSerialize<Resp, Err, Params, State>;
 
 export type RequestsFactory = <
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State,
   Config extends RequestFactoryConfig<
-    Response,
+    Resp,
     Params
-  > = RequestFactoryConfigWithoutSerialize<Response, Params>
+  > = RequestFactoryConfigWithoutSerialize<Resp, Params>
 >(
   config: Config
-) => RequestsFactoryItem<Response, Error, Params, State, Config>;
+) => RequestsFactoryItem<Resp, Err, Params, State, Config>;
 
 export type CreateRequestsFactory = (
   preparedConfig: PreparedConfig

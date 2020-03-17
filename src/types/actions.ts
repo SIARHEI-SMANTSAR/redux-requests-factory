@@ -3,6 +3,7 @@ export enum CommonActionTypes {
   CommonRequestSuccess = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/SUCCESS',
   CommonRequestError = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/ERROR',
   CommonRequestCancel = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/CANCEL',
+  CommonRequestReset = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/RESET',
 }
 
 export type RequestActionMeta = {
@@ -32,8 +33,14 @@ export type CommonRequestCancelAction = {
   meta: RequestActionMeta;
 };
 
+export type CommonRequestResetAction = {
+  type: CommonActionTypes.CommonRequestReset;
+  meta: RequestActionMeta;
+};
+
 export type CommonActions =
   | CommonRequestStartAction
   | CommonRequestSuccessAction
   | CommonRequestErrorAction
-  | CommonRequestCancelAction;
+  | CommonRequestCancelAction
+  | CommonRequestResetAction;

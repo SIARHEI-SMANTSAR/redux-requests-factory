@@ -5,6 +5,7 @@ import {
   CommonRequestSuccessAction,
   CommonRequestErrorAction,
   CommonRequestCancelAction,
+  CommonRequestResetAction,
 } from './types';
 
 export const commonRequestStartAction = (
@@ -36,5 +37,12 @@ export const commonRequestCancelAction = (
   meta: RequestActionMeta
 ): CommonRequestCancelAction => ({
   type: CommonActionTypes.CommonRequestCancel,
+  meta,
+});
+
+export const commonRequestResetAction = (
+  meta: RequestActionMeta
+): CommonRequestResetAction => ({
+  type: CommonActionTypes.CommonRequestReset,
   meta,
 });

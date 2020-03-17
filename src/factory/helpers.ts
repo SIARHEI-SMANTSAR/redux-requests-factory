@@ -18,10 +18,10 @@ export const actionToString = function toString(this: any) {
   });
 };
 
-export const isWithSerialize = <Response, Params>(
-  config: RequestFactoryConfig<Response, Params>
-): config is RequestFactoryConfigWithSerialize<Response, Params> =>
-  (config as RequestFactoryConfigWithSerialize<Response, Params>)
+export const isWithSerialize = <Resp, Params>(
+  config: RequestFactoryConfig<Resp, Params>
+): config is RequestFactoryConfigWithSerialize<Resp, Params> =>
+  (config as RequestFactoryConfigWithSerialize<Resp, Params>)
     .serializeRequestParameters !== undefined;
 
 export const getByPath = <Value = any, Object = any>(
@@ -39,8 +39,8 @@ export const getRequestKey = ({
   serializedKey,
 }: RequestActionMeta): string => `${key}_${serializedKey || ''}`;
 
-export const getSerializedKey = <Response, Params>(
-  factoryConfig: RequestFactoryConfig<Response, Params>,
+export const getSerializedKey = <Resp, Params>(
+  factoryConfig: RequestFactoryConfig<Resp, Params>,
   params?: Params
 ): string | undefined =>
   isWithSerialize(factoryConfig)
@@ -64,9 +64,9 @@ export const memoizeDebounce = function<
 };
 
 export const patchConfig = <
-  Response,
+  Resp,
   Params,
-  Config extends RequestFactoryConfig<Response, Params>
+  Config extends RequestFactoryConfig<Resp, Params>
 >(
   config: Config
 ): Config => ({
@@ -90,3 +90,5 @@ export const isNeedLoadData = <State>(
     status === RequestsStatuses.Loading || status === RequestsStatuses.Success
   );
 };
+
+export const identity = <T>(a: T): T => a;

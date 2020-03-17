@@ -6,6 +6,10 @@ export enum FactoryActionTypes {
   ForcedLoadData = '@@REDUX_REQUESTS_FACTORY/FORCED_LOAD',
   LoadData = '@@REDUX_REQUESTS_FACTORY/LOAD',
   RequestFulfilled = '@@REDUX_REQUESTS_FACTORY/REQUEST/FULFILLED',
+  RequestRejected = '@@REDUX_REQUESTS_FACTORY/REQUEST/REJECTED',
+  SetError = '@@REDUX_REQUESTS_FACTORY/REQUEST/SET/ERROR',
+  SetResponse = '@@REDUX_REQUESTS_FACTORY/REQUEST/SET/RESPONSE',
+  ResetRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/RESET',
 }
 
 export type DoRequestAction<Params> = {
@@ -32,16 +36,49 @@ export type CancelRequestAction<Params> = {
   payload?: Params;
 };
 
-export type RequestFulfilledAction<Response, Params> = {
+export type RequestFulfilledAction<Resp, Params> = {
   type: string;
   meta: RequestActionMeta;
   payload: {
-    response: Response;
+    response: Resp;
     params?: Params;
   };
 };
 
-export type RequestsFactoryItemActions<Response, _Error, Params> = {
+export type RequestRejectedAction<Err, Params> = {
+  type: string;
+  meta: RequestActionMeta;
+  payload: {
+    error: Err;
+    params?: Params;
+  };
+};
+
+export type SetErrorAction<Err, Params> = {
+  type: string;
+  meta: RequestActionMeta;
+  payload: {
+    error: Err;
+    params?: Params;
+  };
+};
+
+export type SetResponseAction<Resp, Params> = {
+  type: string;
+  meta: RequestActionMeta;
+  payload: {
+    response: Resp;
+    params?: Params;
+  };
+};
+
+export type ResetRequestAction<Params> = {
+  type: string;
+  meta: RequestActionMeta;
+  payload?: Params;
+};
+
+export type RequestsFactoryItemActions<Resp, Err, Params> = {
   doRequestAction: {
     (params?: Params): DoRequestAction<Params>;
     type: string;
@@ -63,17 +100,38 @@ export type RequestsFactoryItemActions<Response, _Error, Params> = {
     toString(): string;
   };
   requestFulfilledAction: {
-    (data: any, meta: RequestActionMeta): RequestFulfilledAction<
-      Response,
+    (data: any, meta: RequestActionMeta): RequestFulfilledAction<Resp, Params>;
+    type: string;
+    toString(): string;
+  };
+  requestRejectedAction: {
+    (data: any, meta: RequestActionMeta): RequestRejectedAction<Err, Params>;
+    type: string;
+    toString(): string;
+  };
+  setErrorAction: {
+    (data: { error: Err; params?: Params }): SetErrorAction<Err, Params>;
+    type: string;
+    toString(): string;
+  };
+  setResponseAction: {
+    (data: { response: Resp; params?: Params }): SetResponseAction<
+      Resp,
       Params
     >;
     type: string;
     toString(): string;
   };
+  resetRequestAction: {
+    (params?: Params): ResetRequestAction<Params>;
+    type: string;
+    toString(): string;
+  };
 };
 
-export type GetActionConfig<Params> = {
+export type GetActionConfig<Params, Data = Params | undefined> = {
   params?: Params;
   meta: RequestActionMeta;
   requestKey: string;
+  data: Data;
 };

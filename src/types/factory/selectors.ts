@@ -4,42 +4,37 @@ import { RequestFactoryConfigWithSerialize } from './config';
 import { RequestsState } from '../../types';
 
 export type RequestsFactoryItemSelectorsWithoutSerialize<
-  Response,
-  _Error,
+  Resp,
+  _Err,
   _Params,
   State
 > = {
   responseSelector: OutputSelector<
     State,
-    Response | null,
-    (res: RequestsState | null) => Response | null
+    Resp | null,
+    (res: RequestsState | null) => Resp | null
   >;
 };
 
 export type RequestsFactoryItemSelectorsWithSerialize<
-  Response,
-  _Error,
+  Resp,
+  _Err,
   Params,
   State
 > = {
   responseSelector: OutputSelector<
     State,
-    (params?: Params) => Response | null,
-    (res: RequestsState | null) => (params?: Params) => Response | null
+    (params?: Params) => Resp | null,
+    (res: RequestsState | null) => (params?: Params) => Resp | null
   >;
 };
 
 export type RequestsFactoryItemSelectors<
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State,
   Config
-> = Config extends RequestFactoryConfigWithSerialize<Response, Params>
-  ? RequestsFactoryItemSelectorsWithSerialize<Response, Error, Params, State>
-  : RequestsFactoryItemSelectorsWithoutSerialize<
-      Response,
-      Error,
-      Params,
-      State
-    >;
+> = Config extends RequestFactoryConfigWithSerialize<Resp, Params>
+  ? RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>
+  : RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;

@@ -9,38 +9,38 @@ import {
 import { isWithSerialize, getByPath } from './helpers';
 
 const createSelectors = <
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State,
-  Config extends RequestFactoryConfig<Response, Params>
+  Config extends RequestFactoryConfig<Resp, Params>
 >(
   { stateRequestsKey }: PreparedConfig,
   factoryConfig: Config
-): RequestsFactoryItemSelectors<Response, Error, Params, State, Config> => {
+): RequestsFactoryItemSelectors<Resp, Err, Params, State, Config> => {
   const getCommonSate = getByPath<RequestsState, State>(
     stateRequestsKey,
     factoryConfig.stateRequestKey
   );
-  if (isWithSerialize<Response, Params>(factoryConfig)) {
+  if (isWithSerialize<Resp, Params>(factoryConfig)) {
     const { serializeRequestParameters } = factoryConfig;
     return {
       responseSelector: createSelector(
         [getCommonSate],
         commonSate => (params?: Params) =>
-          getByPath<Response, RequestsState | null>(
+          getByPath<Resp, RequestsState | null>(
             serializeRequestParameters(params),
             'response'
           )(commonSate)
       ),
-    } as RequestsFactoryItemSelectors<Response, Error, Params, State, Config>;
+    } as RequestsFactoryItemSelectors<Resp, Err, Params, State, Config>;
   } else {
     return {
       responseSelector: createSelector(
         [getCommonSate],
-        getByPath<Response, RequestsState | null>('response')
+        getByPath<Resp, RequestsState | null>('response')
       ),
-    } as RequestsFactoryItemSelectors<Response, Error, Params, State, Config>;
+    } as RequestsFactoryItemSelectors<Resp, Err, Params, State, Config>;
   }
 };
 

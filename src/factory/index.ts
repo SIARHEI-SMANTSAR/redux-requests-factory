@@ -12,27 +12,24 @@ import { patchConfig } from './helpers';
 export const createRequestsFactory = (
   preparedConfig: PreparedConfig
 ): RequestsFactory => <
-  Response,
-  Error,
+  Resp,
+  Err,
   Params,
   State,
   Config extends RequestFactoryConfig<
-    Response,
+    Resp,
     Params
-  > = RequestFactoryConfigWithoutSerialize<Response, Params>
+  > = RequestFactoryConfigWithoutSerialize<Resp, Params>
 >(
   config: Config
-): RequestsFactoryItem<Response, Error, Params, State, Config> => {
-  const patchedConfig = patchConfig<Response, Params, Config>(config);
+): RequestsFactoryItem<Resp, Err, Params, State, Config> => {
+  const patchedConfig = patchConfig<Resp, Params, Config>(config);
 
   return {
-    ...createActions<Response, Error, Params, State>(
+    ...createActions<Resp, Err, Params, State>(preparedConfig, patchedConfig),
+    ...createSelectors<Resp, Err, Params, State, Config>(
       preparedConfig,
       patchedConfig
     ),
-    ...createSelectors<Response, Error, Params, State, Config>(
-      preparedConfig,
-      patchedConfig
-    ),
-  } as RequestsFactoryItem<Response, Error, Params, State, Config>;
+  } as RequestsFactoryItem<Resp, Err, Params, State, Config>;
 };

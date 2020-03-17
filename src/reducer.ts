@@ -43,11 +43,17 @@ export const createRequestsReducer = (
     case CommonActionTypes.CommonRequestError:
       return getNewState(state, action.meta, {
         status: RequestsStatuses.Failed,
-        response: action.payload.error,
+        error: action.payload.error,
       });
     case CommonActionTypes.CommonRequestCancel:
       return getNewState(state, action.meta, {
         status: RequestsStatuses.Canceled,
+      });
+    case CommonActionTypes.CommonRequestReset:
+      return getNewState(state, action.meta, {
+        status: RequestsStatuses.None,
+        response: null,
+        error: null,
       });
 
     default:

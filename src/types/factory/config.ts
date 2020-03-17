@@ -1,5 +1,5 @@
-export interface RequestFactoryConfigWithoutSerialize<Response, Params> {
-  request: (params?: Params) => Promise<Response>;
+export interface RequestFactoryConfigWithoutSerialize<Resp, Params> {
+  request: (params?: Params) => Promise<Resp>;
   stateRequestKey: string;
   useDebounce?: boolean;
   debounceWait?: number;
@@ -11,11 +11,11 @@ export interface RequestFactoryConfigWithoutSerialize<Response, Params> {
   stringifyParamsForDebounce?: (params?: Params) => string;
 }
 
-export interface RequestFactoryConfigWithSerialize<Response, Params>
-  extends RequestFactoryConfigWithoutSerialize<Response, Params> {
+export interface RequestFactoryConfigWithSerialize<Resp, Params>
+  extends RequestFactoryConfigWithoutSerialize<Resp, Params> {
   serializeRequestParameters: (params?: Params) => string;
 }
 
-export type RequestFactoryConfig<Response, Params> =
-  | RequestFactoryConfigWithoutSerialize<Response, Params>
-  | RequestFactoryConfigWithSerialize<Response, Params>;
+export type RequestFactoryConfig<Resp, Params> =
+  | RequestFactoryConfigWithoutSerialize<Resp, Params>
+  | RequestFactoryConfigWithSerialize<Resp, Params>;
