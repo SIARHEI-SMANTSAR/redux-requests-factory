@@ -5,7 +5,7 @@ import { RequestsState } from '../../types';
 
 export type RequestsFactoryItemSelectorsWithoutSerialize<
   Resp,
-  _Err,
+  Err,
   _Params,
   State
 > = {
@@ -14,11 +14,16 @@ export type RequestsFactoryItemSelectorsWithoutSerialize<
     Resp | null,
     (res: RequestsState | null) => Resp | null
   >;
+  errrorSelector: OutputSelector<
+    State,
+    Err | null,
+    (res: RequestsState | null) => Err | null
+  >;
 };
 
 export type RequestsFactoryItemSelectorsWithSerialize<
   Resp,
-  _Err,
+  Err,
   Params,
   State
 > = {
@@ -26,6 +31,11 @@ export type RequestsFactoryItemSelectorsWithSerialize<
     State,
     (params?: Params) => Resp | null,
     (res: RequestsState | null) => (params?: Params) => Resp | null
+  >;
+  errrorSelector: OutputSelector<
+    State,
+    (params?: Params) => Err | null,
+    (res: RequestsState | null) => (params?: Params) => Err | null
   >;
 };
 

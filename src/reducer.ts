@@ -27,8 +27,8 @@ const getNewState = (
   },
 });
 
-export const createRequestsReducer = (
-  _config: PreparedConfig
+export const createRequestsReducer = <Key>(
+  _config: PreparedConfig<Key>
 ): RequestsReducer => (state = {}, action) => {
   switch (action.type) {
     case CommonActionTypes.CommonRequestStart:

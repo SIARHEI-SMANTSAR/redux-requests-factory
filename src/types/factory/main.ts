@@ -1,4 +1,4 @@
-import { PreparedConfig } from '../config';
+import { RequestsState } from '../reducer';
 import { RequestsFactoryItemActions } from './actions';
 import {
   RequestsFactoryItemSelectorsWithSerialize,
@@ -9,6 +9,10 @@ import {
   RequestFactoryConfigWithoutSerialize,
   RequestFactoryConfig,
 } from './config';
+
+export type RootSate = {
+  [key: string]: RequestsState;
+};
 
 export type RequestsFactoryItemWithoutSerialize<
   Resp,
@@ -40,7 +44,7 @@ export type RequestsFactory = <
   Resp,
   Err,
   Params,
-  State,
+  State extends RootSate,
   Config extends RequestFactoryConfig<
     Resp,
     Params
@@ -48,7 +52,3 @@ export type RequestsFactory = <
 >(
   config: Config
 ) => RequestsFactoryItem<Resp, Err, Params, State, Config>;
-
-export type CreateRequestsFactory = (
-  preparedConfig: PreparedConfig
-) => RequestsFactory;

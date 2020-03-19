@@ -1,17 +1,24 @@
-import { Config, ReduxRequestsFactory } from './types';
+import { CreateConfig, ReduxRequestsFactory } from './types';
 import { createRequestsFactoryMiddleware } from './middleware';
 import prepareConfig from './prepare-config';
 import { createRequestsFactory } from './factory';
 import { createRequestsReducer } from './reducer';
+import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
 
-const createReduxRequestsFactory = (config?: Config): ReduxRequestsFactory => {
-  const preparedConfig = prepareConfig(config);
+const createReduxRequestsFactory = <
+  Key extends string = typeof DEFAULT_STATE_REQUESTS_KEY
+>(
+  config?: CreateConfig<Key>
+): ReduxRequestsFactory<Key> => {
+  const preparedConfig = prepareConfig<Key>(config);
 
   return {
     stateRequestsKey: preparedConfig.stateRequestsKey,
-    requestsFactoryMiddleware: createRequestsFactoryMiddleware(preparedConfig),
-    requestsFactory: createRequestsFactory(preparedConfig),
-    requestsReducer: createRequestsReducer(preparedConfig),
+    requestsFactoryMiddleware: createRequestsFactoryMiddleware<Key>(
+      preparedConfig
+    ),
+    requestsFactory: createRequestsFactory<Key>(preparedConfig),
+    requestsReducer: createRequestsReducer<Key>(preparedConfig),
   };
 };
 

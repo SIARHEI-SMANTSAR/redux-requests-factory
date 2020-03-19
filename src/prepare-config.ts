@@ -1,8 +1,10 @@
-import { Config, PreparedConfig } from './types';
+import { CreateConfig, PreparedConfig } from './types';
 import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
 
-const prepareConfig = (config?: Config): PreparedConfig => ({
-  stateRequestsKey: DEFAULT_STATE_REQUESTS_KEY,
+const prepareConfig = <Key extends string>(
+  config?: CreateConfig<Key>
+): PreparedConfig<Key> => ({
+  stateRequestsKey: DEFAULT_STATE_REQUESTS_KEY as Key,
   ...config,
 });
 

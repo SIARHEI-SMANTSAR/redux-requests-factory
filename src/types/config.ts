@@ -1,7 +1,7 @@
-export type Config = {
-  stateRequestsKey?: string;
+export type CreateConfig<Key> = {
+  stateRequestsKey?: Key;
 };
 
-export type PreparedConfig = {
-  stateRequestsKey: string;
+export type PreparedConfig<Key> = {
+  stateRequestsKey: Key;
 };

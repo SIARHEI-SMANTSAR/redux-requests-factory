@@ -33,8 +33,8 @@ import {
   identity,
 } from './helpers';
 
-const createActions = <Resp, Err, Params, State>(
-  config: PreparedConfig,
+const createActions = <Resp, Err, Params, State, Key extends string>(
+  config: PreparedConfig<Key>,
   factoryConfig: RequestFactoryConfig<Resp, Params>
 ): RequestsFactoryItemActions<Resp, Err, Params> => {
   const {

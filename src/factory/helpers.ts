@@ -74,8 +74,8 @@ export const patchConfig = <
   stateRequestKey: registerRequestKey(config.stateRequestKey),
 });
 
-export const isNeedLoadData = <State>(
-  { stateRequestsKey }: PreparedConfig,
+export const isNeedLoadData = <State, Key extends string>(
+  { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
   state: State
 ) => {

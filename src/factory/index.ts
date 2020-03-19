@@ -4,18 +4,19 @@ import {
   RequestFactoryConfigWithoutSerialize,
   RequestsFactoryItem,
   RequestsFactory,
+  RootSate,
 } from '../types';
 import createActions from './create-actions';
 import createSelectors from './create-selectors';
 import { patchConfig } from './helpers';
 
-export const createRequestsFactory = (
-  preparedConfig: PreparedConfig
+export const createRequestsFactory = <Key extends string>(
+  preparedConfig: PreparedConfig<Key>
 ): RequestsFactory => <
   Resp,
   Err,
   Params,
-  State,
+  State extends RootSate,
   Config extends RequestFactoryConfig<
     Resp,
     Params
@@ -26,8 +27,11 @@ export const createRequestsFactory = (
   const patchedConfig = patchConfig<Resp, Params, Config>(config);
 
   return {
-    ...createActions<Resp, Err, Params, State>(preparedConfig, patchedConfig),
-    ...createSelectors<Resp, Err, Params, State, Config>(
+    ...createActions<Resp, Err, Params, State, Key>(
+      preparedConfig,
+      patchedConfig
+    ),
+    ...createSelectors<Resp, Err, Params, State, Config, Key>(
       preparedConfig,
       patchedConfig
     ),

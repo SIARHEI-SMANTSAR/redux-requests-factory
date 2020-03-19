@@ -6,7 +6,7 @@ import {
   requestsFactoryMiddleware,
 } from 'redux-requests-factory';
 
-const reducer = combineReducers({
+export const reducer = combineReducers({
   [stateRequestsKey]: requestsReducer,
 });
 

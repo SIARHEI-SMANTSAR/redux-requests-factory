@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import {
   loadUsersAction,
   forcedLoadUsersAction,
   cancelLoadUsersAction,
+  usersSelector,
 } from '../api/users';
 import './App.css';
 
 const App = () => {
+  const users = useSelector(usersSelector);
   const dispatch = useDispatch();
   const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [
     dispatch,
@@ -37,6 +39,7 @@ const App = () => {
       <button onClick={onCancelLoadUsers} className="app__cancel-load-button">
         Cancel Load Users
       </button>
+      <ul>{users && users.map(({ id, name }) => <li key={id}>{name}</li>)}</ul>
     </div>
   );
 };
