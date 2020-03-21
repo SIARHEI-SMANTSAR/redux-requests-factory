@@ -18,7 +18,12 @@ const makeStore: MakeStore = (initialState: RootState) => {
   const logger = createLogger({ collapsed: true });
   const reduxMiddleware = applyMiddleware(logger, requestsFactoryMiddleware);
 
-  return createStore(reducer, initialState, reduxMiddleware);
+  const store = createStore(reducer, initialState, reduxMiddleware);
+
+  // @ts-ignore
+  store.requests = requestsFactoryMiddleware.toPromise;
+
+  return store;
 };
 
 export default makeStore;

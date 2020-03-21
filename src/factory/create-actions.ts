@@ -1,21 +1,11 @@
 import { Dispatch } from 'redux';
 
 import {
-  RequestsFactoryItemActions,
   PreparedConfig,
   RequestFactoryConfig,
   RequestActionMeta,
   FactoryActionTypes,
-  DoRequestAction,
-  CancelRequestAction,
-  GetActionConfig,
-  ForcedLoadDataAction,
-  LoadDataAction,
-  RequestFulfilledAction,
-  RequestRejectedAction,
-  SetErrorAction,
-  SetResponseAction,
-  ResetRequestAction,
+  RequestsFactoryItemActions,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -65,13 +55,13 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     return syncAction;
   };
 
-  const createAsyncAction = <Action = any, Data = Params | undefined>(
+  const createAsyncAction = <Action = any, Data = Params>(
     type: string,
-    getAction: (config: GetActionConfig<Params, Data>) => any,
-    getPramsFromData: (data: Data) => Params | undefined
+    getAction: (config: any) => any,
+    getPramsFromData: (data: Data) => Params
   ) => {
     const asyncAction = (data: Data): Action => {
-      const params: Params | undefined = getPramsFromData(data);
+      const params: Params = getPramsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
         serializedKey: getSerializedKey<Resp, Params>(factoryConfig, params),
@@ -100,15 +90,13 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     return asyncAction;
   };
 
-  const requestFulfilledAction = createSyncAction<
-    { params?: Params; response: Resp },
-    RequestFulfilledAction<Resp, Params>
-  >(`${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`);
+  const requestFulfilledAction = createSyncAction(
+    `${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`
+  );
 
-  const requestRejectedAction = createSyncAction<
-    { params?: Params; error: Err },
-    RequestRejectedAction<Err, Params>
-  >(`${FactoryActionTypes.RequestRejected}/${stateRequestKey}`);
+  const requestRejectedAction = createSyncAction(
+    `${FactoryActionTypes.RequestRejected}/${stateRequestKey}`
+  );
 
   const doRequest = async ({
     params,
@@ -116,7 +104,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     meta,
     requestKey,
   }: {
-    params?: Params;
+    params: Params;
     dispatch: Dispatch;
     meta: RequestActionMeta;
     requestKey: string;
@@ -159,10 +147,11 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     params,
     meta,
     requestKey,
-  }: GetActionConfig<Params>) => async (
-    dispatch: Dispatch,
-    getState: () => State
-  ) => {
+  }: {
+    params: Params;
+    requestKey: string;
+    meta: RequestActionMeta;
+  }) => async (dispatch: Dispatch, getState: () => State) => {
     if (isForced || isNeedLoadData(config, meta, getState())) {
       return await (useDebounce ? memoizedDoRequest : doRequest)({
         params,
@@ -174,24 +163,24 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
   };
 
   return {
-    doRequestAction: createAsyncAction<DoRequestAction<Params>>(
+    doRequestAction: createAsyncAction(
       `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
       getDoRequestAction(),
       identity
     ),
-    forcedLoadDataAction: createAsyncAction<ForcedLoadDataAction<Params>>(
+    forcedLoadDataAction: createAsyncAction(
       `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
       getDoRequestAction(),
       identity
     ),
-    loadDataAction: createAsyncAction<LoadDataAction<Params>>(
+    loadDataAction: createAsyncAction(
       `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
       getDoRequestAction(false),
       identity
     ),
-    cancelRequestAction: createAsyncAction<CancelRequestAction<Params>>(
+    cancelRequestAction: createAsyncAction(
       `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
-      ({ meta, requestKey }: GetActionConfig<Params>) => {
+      ({ meta, requestKey }) => {
         if (doRequestMapByKey[requestKey]) {
           cancelMapByKey[requestKey] = true;
         }
@@ -204,16 +193,9 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
       },
       identity
     ),
-    setErrorAction: createAsyncAction<
-      SetErrorAction<Err, Params>,
-      { error: Err; params?: Params }
-    >(
+    setErrorAction: createAsyncAction(
       `${FactoryActionTypes.SetError}/${stateRequestKey}`,
-      ({
-        meta,
-        data: { error },
-        params,
-      }: GetActionConfig<Params, { error: Err; params?: Params }>) => {
+      ({ meta, data: { error }, params }) => {
         return async (dispatch: Dispatch) => {
           dispatch(commonRequestErrorAction(meta, error));
           dispatch(requestRejectedAction({ params, error }, meta));
@@ -221,16 +203,9 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
       },
       ({ params }) => params
     ),
-    setResponseAction: createAsyncAction<
-      SetResponseAction<Resp, Params>,
-      { response: Resp; params?: Params }
-    >(
+    setResponseAction: createAsyncAction(
       `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
-      ({
-        meta,
-        data: { response },
-        params,
-      }: GetActionConfig<Params, { response: Resp; params?: Params }>) => {
+      ({ meta, data: { response }, params }) => {
         return async (dispatch: Dispatch) => {
           dispatch(commonRequestSuccessAction(meta, response));
           dispatch(requestFulfilledAction({ params, response }, meta));
@@ -238,9 +213,9 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
       },
       ({ params }) => params
     ),
-    resetRequestAction: createAsyncAction<ResetRequestAction<Params>>(
+    resetRequestAction: createAsyncAction(
       `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
-      ({ meta }: GetActionConfig<Params>) => {
+      ({ meta }) => {
         return async (dispatch: Dispatch) => {
           dispatch(commonRequestResetAction(meta));
         };
@@ -249,7 +224,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     ),
     requestFulfilledAction,
     requestRejectedAction,
-  };
+  } as RequestsFactoryItemActions<Resp, Err, Params>;
 };
 
 export default createActions;

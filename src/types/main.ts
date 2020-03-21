@@ -5,7 +5,7 @@ import { RequestsReducer } from './reducer';
 
 export type ReduxRequestsFactory<Key> = {
   stateRequestsKey: Key;
-  requestsFactoryMiddleware: Middleware;
+  requestsFactoryMiddleware: Middleware & { toPromise: () => Promise<void> };
   requestsFactory: RequestsFactory;
   requestsReducer: RequestsReducer;
 };

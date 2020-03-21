@@ -1,9 +1,4 @@
-import {
-  requestsFactory,
-  RequestFactoryConfigWithSerialize,
-} from 'redux-requests-factory';
-
-import { RootState } from '../types';
+import { requestsFactory } from 'redux-requests-factory';
 
 interface Post {
   id: number;
@@ -21,14 +16,8 @@ const loadUserPostsRequest = ({ userId }: Params): Promise<Post[]> =>
 
 export const {
   loadDataAction: loadUserPostsAction,
-  responseSelector: UserPostsSelector,
-} = requestsFactory<
-  Post[],
-  null,
-  Params,
-  RootState,
-  RequestFactoryConfigWithSerialize<Post[], Params>
->({
+  responseSelector: userPostsSelector,
+} = requestsFactory({
   request: loadUserPostsRequest,
   stateRequestKey: 'user-posts',
   serializeRequestParameters: ({ userId }: Params) => `${userId}`,

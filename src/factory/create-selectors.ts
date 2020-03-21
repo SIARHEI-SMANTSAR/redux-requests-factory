@@ -8,17 +8,10 @@ import {
 } from '../types';
 import { isWithSerialize, getByPath } from './helpers';
 
-const createSelectors = <
-  Resp,
-  Err,
-  Params,
-  State,
-  Config extends RequestFactoryConfig<Resp, Params>,
-  Key extends string
->(
+const createSelectors = <Resp, Err, Params, State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
-  factoryConfig: Config
-): RequestsFactoryItemSelectors<Resp, Err, Params, State, Config> => {
+  factoryConfig: RequestFactoryConfig<Resp, Params>
+): RequestsFactoryItemSelectors<Resp, Err, Params, State> => {
   const getCommonSate = getByPath<RequestsState, State>(
     stateRequestsKey,
     factoryConfig.stateRequestKey
@@ -28,7 +21,7 @@ const createSelectors = <
     return {
       responseSelector: createSelector(
         [getCommonSate],
-        commonSate => (params?: Params) =>
+        commonSate => (params: Params) =>
           getByPath<Resp, RequestsState | null>(
             serializeRequestParameters(params),
             'response'
@@ -36,13 +29,13 @@ const createSelectors = <
       ),
       errrorSelector: createSelector(
         [getCommonSate],
-        commonSate => (params?: Params) =>
+        commonSate => (params: Params) =>
           getByPath<Err, RequestsState | null>(
             serializeRequestParameters(params),
             'error'
           )(commonSate)
       ),
-    } as RequestsFactoryItemSelectors<Resp, Err, Params, State, Config>;
+    };
   } else {
     return {
       responseSelector: createSelector(
@@ -53,7 +46,7 @@ const createSelectors = <
         [getCommonSate],
         getByPath<Err, RequestsState | null>('error')
       ),
-    } as RequestsFactoryItemSelectors<Resp, Err, Params, State, Config>;
+    };
   }
 };
 

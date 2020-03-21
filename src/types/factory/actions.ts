@@ -12,126 +12,259 @@ export enum FactoryActionTypes {
   ResetRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/RESET',
 }
 
-export type DoRequestAction<Params> = {
+export interface RequestFactoryActionCommon {
   type: string;
-  meta: RequestActionMeta;
-  payload?: Params;
+  toString(): string;
+}
+
+export interface RequestFactoryActionCommonWithSerializeReturnType {
+  type: string;
+  meta: {
+    key: string;
+    serializedKey: string;
+  };
+}
+
+export interface RequestFactoryActionCommonWithoutSerializeReturnType {
+  type: string;
+  meta: {
+    key: string;
+  };
+}
+
+export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
+  Resp,
+  Err,
+  Params
+> = {
+  doRequestAction: RequestFactoryActionCommon & {
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
+    };
+  };
+  forcedLoadDataAction: RequestFactoryActionCommon & {
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
+    };
+  };
+  loadDataAction: RequestFactoryActionCommon & {
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
+    };
+  };
+  cancelRequestAction: RequestFactoryActionCommon & {
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
+    };
+  };
+  requestFulfilledAction: RequestFactoryActionCommon & {
+    (
+      data: any,
+      meta: RequestActionMeta
+    ): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        response: Resp;
+        params?: Params;
+      };
+    };
+  };
+  requestRejectedAction: RequestFactoryActionCommon & {
+    (
+      data: any,
+      meta: RequestActionMeta
+    ): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        error: Err;
+        params?: Params;
+      };
+    };
+  };
+  setErrorAction: RequestFactoryActionCommon & {
+    (data: {
+      error: Err;
+      params?: Params;
+    }): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        error: Err;
+        params?: Params;
+      };
+    };
+  };
+  setResponseAction: RequestFactoryActionCommon & {
+    (data: {
+      response: Resp;
+      params?: Params;
+    }): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        response: Resp;
+        params?: Params;
+      };
+    };
+  };
+  resetRequestAction: RequestFactoryActionCommon & {
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
+    };
+  };
 };
 
-export type ForcedLoadDataAction<Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload?: Params;
-};
-
-export type LoadDataAction<Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload?: Params;
-};
-
-export type CancelRequestAction<Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload?: Params;
-};
-
-export type RequestFulfilledAction<Resp, Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload: {
-    response: Resp;
-    params?: Params;
+export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
+  Resp,
+  Err,
+  Params
+> = {
+  doRequestAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  forcedLoadDataAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  loadDataAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  cancelRequestAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  requestFulfilledAction: RequestFactoryActionCommon & {
+    (
+      data: any,
+      meta: RequestActionMeta
+    ): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        response: Resp;
+        params: Params;
+      };
+    };
+  };
+  requestRejectedAction: RequestFactoryActionCommon & {
+    (
+      data: any,
+      meta: RequestActionMeta
+    ): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        error: Err;
+        params: Params;
+      };
+    };
+  };
+  setErrorAction: RequestFactoryActionCommon & {
+    (data: {
+      error: Err;
+      params: Params;
+    }): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        error: Err;
+        params: Params;
+      };
+    };
+  };
+  setResponseAction: RequestFactoryActionCommon & {
+    (data: {
+      response: Resp;
+      params: Params;
+    }): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: {
+        response: Resp;
+        params: Params;
+      };
+    };
+  };
+  resetRequestAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload: Params;
+    };
   };
 };
 
-export type RequestRejectedAction<Err, Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload: {
-    error: Err;
-    params?: Params;
+export type RequestsFactoryItemActionsWithParamsWithSerialize<
+  Resp,
+  Err,
+  Params
+> = {
+  doRequestAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  forcedLoadDataAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  loadDataAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  cancelRequestAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: Params;
+    };
+  };
+  requestFulfilledAction: RequestFactoryActionCommon & {
+    (
+      data: any,
+      meta: RequestActionMeta
+    ): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: {
+        response: Resp;
+        params: Params;
+      };
+    };
+  };
+  requestRejectedAction: RequestFactoryActionCommon & {
+    (
+      data: any,
+      meta: RequestActionMeta
+    ): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: {
+        error: Err;
+        params: Params;
+      };
+    };
+  };
+  setErrorAction: RequestFactoryActionCommon & {
+    (data: {
+      error: Err;
+      params: Params;
+    }): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: {
+        error: Err;
+        params: Params;
+      };
+    };
+  };
+  setResponseAction: RequestFactoryActionCommon & {
+    (data: {
+      response: Resp;
+      params: Params;
+    }): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: {
+        response: Resp;
+        params: Params;
+      };
+    };
+  };
+  resetRequestAction: RequestFactoryActionCommon & {
+    (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
+      payload: Params;
+    };
   };
 };
 
-export type SetErrorAction<Err, Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload: {
-    error: Err;
-    params?: Params;
-  };
-};
-
-export type SetResponseAction<Resp, Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload: {
-    response: Resp;
-    params?: Params;
-  };
-};
-
-export type ResetRequestAction<Params> = {
-  type: string;
-  meta: RequestActionMeta;
-  payload?: Params;
-};
-
-export type RequestsFactoryItemActions<Resp, Err, Params> = {
-  doRequestAction: {
-    (params?: Params): DoRequestAction<Params>;
-    type: string;
-    toString(): string;
-  };
-  forcedLoadDataAction: {
-    (params?: Params): ForcedLoadDataAction<Params>;
-    type: string;
-    toString(): string;
-  };
-  loadDataAction: {
-    (params?: Params): LoadDataAction<Params>;
-    type: string;
-    toString(): string;
-  };
-  cancelRequestAction: {
-    (params?: Params): CancelRequestAction<Params>;
-    type: string;
-    toString(): string;
-  };
-  requestFulfilledAction: {
-    (data: any, meta: RequestActionMeta): RequestFulfilledAction<Resp, Params>;
-    type: string;
-    toString(): string;
-  };
-  requestRejectedAction: {
-    (data: any, meta: RequestActionMeta): RequestRejectedAction<Err, Params>;
-    type: string;
-    toString(): string;
-  };
-  setErrorAction: {
-    (data: { error: Err; params?: Params }): SetErrorAction<Err, Params>;
-    type: string;
-    toString(): string;
-  };
-  setResponseAction: {
-    (data: { response: Resp; params?: Params }): SetResponseAction<
+export type RequestsFactoryItemActions<Resp, Err, Params> =
+  | RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       Resp,
+      Err,
       Params
-    >;
-    type: string;
-    toString(): string;
-  };
-  resetRequestAction: {
-    (params?: Params): ResetRequestAction<Params>;
-    type: string;
-    toString(): string;
-  };
-};
-
-export type GetActionConfig<Params, Data = Params | undefined> = {
-  params?: Params;
-  meta: RequestActionMeta;
-  requestKey: string;
-  data: Data;
-};
+    >
+  | RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params>
+  | RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params>;

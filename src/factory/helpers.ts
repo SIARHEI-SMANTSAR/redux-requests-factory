@@ -3,10 +3,11 @@ import debounce from 'lodash.debounce';
 
 import {
   RequestFactoryConfig,
-  RequestFactoryConfigWithSerialize,
+  RequestFactoryConfigCommon,
   RequestActionMeta,
   RequestsStatuses,
   PreparedConfig,
+  RequestFactoryConfigWithParamsWithSerialize,
 } from '../types';
 import registerRequestKey from './register-request-key';
 
@@ -20,8 +21,8 @@ export const actionToString = function toString(this: any) {
 
 export const isWithSerialize = <Resp, Params>(
   config: RequestFactoryConfig<Resp, Params>
-): config is RequestFactoryConfigWithSerialize<Resp, Params> =>
-  (config as RequestFactoryConfigWithSerialize<Resp, Params>)
+): config is RequestFactoryConfigWithParamsWithSerialize<Resp, Params> =>
+  (config as RequestFactoryConfigWithParamsWithSerialize<Resp, Params>)
     .serializeRequestParameters !== undefined;
 
 export const getByPath = <Value = any, Object = any>(
@@ -41,7 +42,7 @@ export const getRequestKey = ({
 
 export const getSerializedKey = <Resp, Params>(
   factoryConfig: RequestFactoryConfig<Resp, Params>,
-  params?: Params
+  params: Params
 ): string | undefined =>
   isWithSerialize(factoryConfig)
     ? factoryConfig.serializeRequestParameters(params)
@@ -63,11 +64,7 @@ export const memoizeDebounce = function<
   } as Func;
 };
 
-export const patchConfig = <
-  Resp,
-  Params,
-  Config extends RequestFactoryConfig<Resp, Params>
->(
+export const patchConfig = <Config extends RequestFactoryConfigCommon>(
   config: Config
 ): Config => ({
   ...config,
