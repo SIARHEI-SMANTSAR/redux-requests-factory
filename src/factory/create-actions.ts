@@ -6,6 +6,7 @@ import {
   RequestActionMeta,
   FactoryActionTypes,
   RequestsFactoryItemActions,
+  ActionPropsFromMiddleware,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -55,12 +56,22 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     return syncAction;
   };
 
-  const createAsyncAction = <Action = any, Data = Params>(
+  const createAsyncAction = <Data = Params>(
     type: string,
-    getAction: (config: any) => any,
+    getAction: (config: {
+      params: Params;
+      meta: RequestActionMeta;
+      requestKey: string;
+      data: Data;
+    }) => {
+      (props: ActionPropsFromMiddleware<State>): void;
+      type?: string;
+      meta?: RequestActionMeta;
+      payload?: Data;
+    },
     getPramsFromData: (data: Data) => Params
   ) => {
-    const asyncAction = (data: Data): Action => {
+    const asyncAction = (data: Data) => {
       const params: Params = getPramsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
@@ -81,7 +92,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
 
       action.toString = actionToString;
 
-      return action as Action;
+      return action;
     };
 
     asyncAction.type = type;
@@ -151,7 +162,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     params: Params;
     requestKey: string;
     meta: RequestActionMeta;
-  }) => async (dispatch: Dispatch, getState: () => State) => {
+  }) => async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
     if (isForced || isNeedLoadData(config, meta, getState())) {
       return await (useDebounce ? memoizedDoRequest : doRequest)({
         params,
@@ -185,7 +196,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
           cancelMapByKey[requestKey] = true;
         }
 
-        return async (dispatch: Dispatch) => {
+        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
           if (doRequestMapByKey[requestKey]) {
             dispatch(commonRequestCancelAction(meta));
           }
@@ -196,7 +207,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     setErrorAction: createAsyncAction(
       `${FactoryActionTypes.SetError}/${stateRequestKey}`,
       ({ meta, data: { error }, params }) => {
-        return async (dispatch: Dispatch) => {
+        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
           dispatch(commonRequestErrorAction(meta, error));
           dispatch(requestRejectedAction({ params, error }, meta));
         };
@@ -206,7 +217,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     setResponseAction: createAsyncAction(
       `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
       ({ meta, data: { response }, params }) => {
-        return async (dispatch: Dispatch) => {
+        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
           dispatch(commonRequestSuccessAction(meta, response));
           dispatch(requestFulfilledAction({ params, response }, meta));
         };
@@ -216,7 +227,7 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
     resetRequestAction: createAsyncAction(
       `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
       ({ meta }) => {
-        return async (dispatch: Dispatch) => {
+        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
           dispatch(commonRequestResetAction(meta));
         };
       },

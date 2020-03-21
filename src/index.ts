@@ -6,7 +6,7 @@ export * from './types';
 
 export const {
   stateRequestsKey,
-  requestsFactoryMiddleware,
+  createRequestsFactoryMiddleware,
   requestsFactory,
   requestsReducer,
 }: ReduxRequestsFactory<typeof DEFAULT_STATE_REQUESTS_KEY> = createReduxRequestsFactory();

@@ -5,3 +5,7 @@ export type CreateConfig<Key> = {
 export type PreparedConfig<Key> = {
   stateRequestsKey: Key;
 };
+
+export type MiddlewareConfig = {
+  isServer?: boolean;
+};

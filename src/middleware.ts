@@ -1,31 +1,45 @@
 import { Middleware } from 'redux';
 
-import { PreparedConfig } from './types';
+import {
+  PreparedConfig,
+  CreateRequestsFactoryMiddleware,
+  MiddlewareConfig,
+} from './types';
 import { isFactoryAction } from './factory/helpers';
 
-export const createRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
+export const getCreateRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
   Key
->): Middleware & { toPromise: () => Promise<void> } => {
+>): CreateRequestsFactoryMiddleware => (
+  middlewareConfig: MiddlewareConfig = {}
+) => {
   const actions: { [key: string]: Promise<void> } = {};
 
-  const middleware: Middleware & { toPromise: () => Promise<void> } = ({
+  const middleware: Middleware = ({
     dispatch,
     getState,
   }) => next => async action => {
     if (typeof action === 'function' && isFactoryAction(action.type)) {
-      actions[action.type as string] = action(dispatch, getState);
-      return await action(dispatch, getState);
+      const asyncAction = action({ dispatch, getState, middlewareConfig });
+
+      actions[action.type as string] = asyncAction;
+
+      await asyncAction;
+
+      delete actions[action.type as string];
+
+      return;
     }
 
     return next(action);
   };
 
-  middleware.toPromise = async () => {
+  const toPromise = async () => {
     const prpmises = Object.values(actions);
+
     for (let index = 0; index < prpmises.length; index++) {
       await prpmises[index];
     }
   };
 
-  return middleware;
+  return { middleware, toPromise };
 };

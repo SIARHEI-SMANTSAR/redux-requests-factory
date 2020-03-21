@@ -3,6 +3,7 @@ import { NextPage } from 'next';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { loadUsersAction, usersSelector } from '../api/users';
+import { StoreWithAsyncRequests } from '../store';
 
 const Home: NextPage<{}> = () => {
   const dispatch = useDispatch();
@@ -22,8 +23,8 @@ const Home: NextPage<{}> = () => {
 
 Home.getInitialProps = async ({ store }) => {
   store.dispatch(loadUsersAction());
-  // @ts-ignore
-  await store.requests();
+
+  await (store as StoreWithAsyncRequests).asyncRequests();
   return {};
 };
 

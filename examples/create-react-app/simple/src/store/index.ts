@@ -3,7 +3,7 @@ import { createLogger } from 'redux-logger';
 import {
   stateRequestsKey,
   requestsReducer,
-  requestsFactoryMiddleware,
+  createRequestsFactoryMiddleware,
 } from 'redux-requests-factory';
 
 export const reducer = combineReducers({
@@ -11,7 +11,8 @@ export const reducer = combineReducers({
 });
 
 const logger = createLogger({ collapsed: true });
-const reduxMiddleware = applyMiddleware(logger, requestsFactoryMiddleware);
+const { middleware } = createRequestsFactoryMiddleware();
+const reduxMiddleware = applyMiddleware(logger, middleware);
 
 const store = createStore(reducer, reduxMiddleware);
 

@@ -1,5 +1,5 @@
 import { CreateConfig, ReduxRequestsFactory } from './types';
-import { createRequestsFactoryMiddleware } from './middleware';
+import { getCreateRequestsFactoryMiddleware } from './middleware';
 import prepareConfig from './prepare-config';
 import { createRequestsFactory } from './factory';
 import { createRequestsReducer } from './reducer';
@@ -14,7 +14,7 @@ const createReduxRequestsFactory = <
 
   return {
     stateRequestsKey: preparedConfig.stateRequestsKey,
-    requestsFactoryMiddleware: createRequestsFactoryMiddleware<Key>(
+    createRequestsFactoryMiddleware: getCreateRequestsFactoryMiddleware<Key>(
       preparedConfig
     ),
     requestsFactory: createRequestsFactory<Key>(preparedConfig),
