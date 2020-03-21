@@ -8,7 +8,8 @@ import {
   RequestsStatuses,
   PreparedConfig,
   RequestFactoryConfigWithParamsWithSerialize,
-} from '../types';
+  RequestFactoryConfigWithTransformResponse,
+} from '../../types';
 import registerRequestKey from './register-request-key';
 
 export const actionToString = function toString(this: any) {
@@ -19,11 +20,26 @@ export const actionToString = function toString(this: any) {
   });
 };
 
-export const isWithSerialize = <Resp, Params>(
-  config: RequestFactoryConfig<Resp, Params>
-): config is RequestFactoryConfigWithParamsWithSerialize<Resp, Params> =>
-  (config as RequestFactoryConfigWithParamsWithSerialize<Resp, Params>)
+export const isWithSerialize = <Resp, Err, Params, TransformedResp>(
+  config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+): config is RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params> =>
+  (config as RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params>)
     .serializeRequestParameters !== undefined;
+
+export const isWithTransformResponse = <Resp, Err, Params, TransformedResp>(
+  config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+): config is RequestFactoryConfigWithTransformResponse<
+  Resp,
+  Err,
+  Params,
+  TransformedResp
+> =>
+  (config as RequestFactoryConfigWithTransformResponse<
+    Resp,
+    Err,
+    Params,
+    TransformedResp
+  >).transformResponse !== undefined;
 
 export const getByPath = <Value = any, Object = any>(
   ...keys: (string | undefined)[]
@@ -40,8 +56,8 @@ export const getRequestKey = ({
   serializedKey,
 }: RequestActionMeta): string => `${key}_${serializedKey || ''}`;
 
-export const getSerializedKey = <Resp, Params>(
-  factoryConfig: RequestFactoryConfig<Resp, Params>,
+export const getSerializedKey = <Resp, Err, Params, TransformedResp>(
+  factoryConfig: RequestFactoryConfig<Resp, Err, Params, TransformedResp>,
   params: Params
 ): string | undefined =>
   isWithSerialize(factoryConfig)
@@ -64,7 +80,10 @@ export const memoizeDebounce = function<
   } as Func;
 };
 
-export const patchConfig = <Config extends RequestFactoryConfigCommon>(
+export const patchConfig = <
+  Err,
+  Config extends RequestFactoryConfigCommon<Err>
+>(
   config: Config
 ): Config => ({
   ...config,
@@ -89,3 +108,12 @@ export const isNeedLoadData = <State, Key extends string>(
 };
 
 export const identity = <T>(a: T): T => a;
+
+// export const getTransformResponseFunction = <
+//   Resp,
+//   Err,
+//   Params,
+//   TransformedResp
+// >(
+//   config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+// ) => (isWithTransformResponse(config) ? config.transformResponse : identity);

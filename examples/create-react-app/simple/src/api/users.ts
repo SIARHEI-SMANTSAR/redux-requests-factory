@@ -16,4 +16,5 @@ export const {
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
+  transformResponse: (response: User[] | null) => response || [],
 });

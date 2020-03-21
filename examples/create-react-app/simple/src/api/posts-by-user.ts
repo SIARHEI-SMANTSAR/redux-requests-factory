@@ -21,4 +21,5 @@ export const {
   request: loadUserPostsRequest,
   stateRequestKey: 'user-posts',
   serializeRequestParameters: ({ userId }: Params) => `${userId}`,
+  transformResponse: (response: Post[] | null) => response || [],
 });

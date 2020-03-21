@@ -6,7 +6,7 @@ import {
   RequestActionMeta,
   RequestState,
   RequestsReducer,
-} from './types';
+} from '../types';
 
 const getNewState = (
   state: RequestsState,

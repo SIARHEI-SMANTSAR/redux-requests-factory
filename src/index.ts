@@ -1,8 +1,8 @@
 import createReduxRequestsFactory from './create-redux-requests-factory';
-import { ReduxRequestsFactory } from './types';
+import { ReduxRequestsFactory } from '../types';
 import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
 
-export * from './types';
+export * from '../types';
 
 export const {
   stateRequestsKey,

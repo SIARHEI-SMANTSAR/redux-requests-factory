@@ -7,7 +7,7 @@ import {
   FactoryActionTypes,
   RequestsFactoryItemActions,
   ActionPropsFromMiddleware,
-} from '../types';
+} from '../../types';
 import {
   commonRequestStartAction,
   commonRequestSuccessAction,
@@ -24,9 +24,16 @@ import {
   identity,
 } from './helpers';
 
-const createActions = <Resp, Err, Params, State, Key extends string>(
+const createActions = <
+  Resp,
+  Err,
+  Params,
+  State,
+  TransformedResp,
+  Key extends string
+>(
   config: PreparedConfig<Key>,
-  factoryConfig: RequestFactoryConfig<Resp, Params>
+  factoryConfig: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
 ): RequestsFactoryItemActions<Resp, Err, Params> => {
   const {
     request,
@@ -75,7 +82,10 @@ const createActions = <Resp, Err, Params, State, Key extends string>(
       const params: Params = getPramsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
-        serializedKey: getSerializedKey<Resp, Params>(factoryConfig, params),
+        serializedKey: getSerializedKey<Resp, Err, Params, TransformedResp>(
+          factoryConfig,
+          params
+        ),
       };
       const requestKey = getRequestKey(meta);
 

@@ -54,18 +54,16 @@ const App = () => {
         Cancel Load Users
       </button>
       <ul>
-        {users &&
-          users.map(({ id, name }) => (
-            <li key={id}>
-              {name}
-              <ul>
-                {postsByUser({ userId: id }) &&
-                  postsByUser({ userId: id })!.map(({ id, title }) => (
-                    <li key={id}>{title}</li>
-                  ))}
-              </ul>
-            </li>
-          ))}
+        {users.map(({ id, name }) => (
+          <li key={id}>
+            {name}
+            <ul>
+              {postsByUser({ userId: id }).map(({ id, title }) => (
+                <li key={id}>{title}</li>
+              ))}
+            </ul>
+          </li>
+        ))}
       </ul>
     </div>
   );

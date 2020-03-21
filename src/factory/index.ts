@@ -3,24 +3,27 @@ import {
   RequestsFactory,
   RequestsFactoryItem,
   RequestFactoryConfig,
-} from '../types';
+} from '../../types';
 import createActions from './create-actions';
 import createSelectors from './create-selectors';
 import { patchConfig } from './helpers';
 
 export const createRequestsFactory = <Key extends string>(
   preparedConfig: PreparedConfig<Key>
-): RequestsFactory =>
-  (<Resp, Err, Params, State>(
-    config: RequestFactoryConfig<Resp, Params>
-  ): RequestsFactoryItem<Resp, Err, Params, State> => {
+): RequestsFactory<Key> =>
+  (<Resp, Err, Params, State, TransformedResp = Resp>(
+    config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+  ): RequestsFactoryItem<Resp, Err, Params, State, TransformedResp> => {
     const patchedConfig = patchConfig(config);
 
     return {
-      ...createActions(preparedConfig, patchedConfig),
-      ...createSelectors<Resp, Err, Params, State, Key>(
+      ...createActions<Resp, Err, Params, State, TransformedResp, Key>(
         preparedConfig,
         patchedConfig
       ),
-    } as RequestsFactoryItem<Resp, Err, Params, State>;
-  }) as RequestsFactory;
+      ...createSelectors<Resp, Err, Params, State, TransformedResp, Key>(
+        preparedConfig,
+        patchedConfig
+      ),
+    } as RequestsFactoryItem<Resp, Err, Params, State, TransformedResp>;
+  }) as RequestsFactory<Key>;

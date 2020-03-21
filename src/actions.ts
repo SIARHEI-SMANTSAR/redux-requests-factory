@@ -6,7 +6,7 @@ import {
   CommonRequestErrorAction,
   CommonRequestCancelAction,
   CommonRequestResetAction,
-} from './types';
+} from '../types';
 
 export const commonRequestStartAction = (
   meta: RequestActionMeta
