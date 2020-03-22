@@ -1,4 +1,4 @@
-import { PreparedConfig, GlobalSelectors } from '../types';
+import { PreparedConfig, GlobalSelectors } from './types';
 import { IS_SOMETHING_LOADING_STATE_KEY } from './constants';
 
 const createGlobalSelectors = <Key extends string>({

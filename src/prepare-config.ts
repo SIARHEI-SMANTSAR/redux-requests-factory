@@ -1,4 +1,4 @@
-import { CreateConfig, PreparedConfig } from '../types';
+import { CreateConfig, PreparedConfig } from './types';
 import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
 
 const prepareConfig = <Key extends string>(

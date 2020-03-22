@@ -9,7 +9,7 @@ import {
   GlobalActionTypes,
   GlobalLoadingIncrementAction,
   GlobalLoadingDecrementAction,
-} from '../types';
+} from './types';
 
 export const commonRequestStartAction = (
   meta: RequestActionMeta

@@ -6,7 +6,7 @@ import {
   RequestsFactoryItemSelectors,
   RequestsState,
   RequestsStatuses,
-} from '../../types';
+} from '../types';
 import { isWithSerialize, getByPath, isWithTransformResponse } from './helpers';
 import { RESPONSES_STATE_KEY } from '../constants';
 

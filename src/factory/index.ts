@@ -3,7 +3,7 @@ import {
   RequestsFactory,
   RequestsFactoryItem,
   RequestFactoryConfig,
-} from '../../types';
+} from '../types';
 import createActions from './create-actions';
 import createSelectors from './create-selectors';
 import { patchConfig } from './helpers';

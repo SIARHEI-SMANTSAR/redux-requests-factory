@@ -7,7 +7,7 @@ import {
   RequestState,
   RequestsReducer,
   GlobalActionTypes,
-} from '../types';
+} from './types';
 import {
   RESPONSES_STATE_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,

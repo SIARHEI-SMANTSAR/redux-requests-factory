@@ -8,7 +8,7 @@ import {
   RequestsFactoryItemActions,
   ActionPropsFromMiddleware,
   ExternalActions,
-} from '../../types';
+} from '../types';
 import {
   commonRequestStartAction,
   commonRequestSuccessAction,

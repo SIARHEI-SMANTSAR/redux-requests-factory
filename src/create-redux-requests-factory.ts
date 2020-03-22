@@ -1,4 +1,4 @@
-import { CreateConfig, ReduxRequestsFactory } from '../types';
+import { CreateConfig, ReduxRequestsFactory } from './types';
 import { getCreateRequestsFactoryMiddleware } from './middleware';
 import prepareConfig from './prepare-config';
 import { createRequestsFactory } from './factory';

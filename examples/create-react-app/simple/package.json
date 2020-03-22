@@ -18,7 +18,7 @@
     "react-scripts": "3.4.0",
     "redux": "^4",
     "redux-logger": "^3.0.6",
-    "redux-requests-factory": "latest",
+    "redux-requests-factory": "0.0.11",
     "typescript": "^3.7.5"
   },
   "scripts": {

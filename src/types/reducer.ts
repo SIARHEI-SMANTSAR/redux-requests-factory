@@ -4,7 +4,7 @@ import { Actions } from './actions';
 import {
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../src/constants';
+} from '../constants';
 
 export enum RequestsStatuses {
   None = 'none',

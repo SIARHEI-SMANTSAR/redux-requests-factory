@@ -8,7 +8,7 @@ import {
   PreparedConfig,
   RequestFactoryConfigWithParamsWithSerialize,
   RequestFactoryConfigWithTransformResponse,
-} from '../../types';
+} from '../types';
 import registerRequestKey from './register-request-key';
 import { RESPONSES_STATE_KEY } from '../constants';
 

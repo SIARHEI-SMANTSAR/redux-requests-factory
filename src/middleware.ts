@@ -4,7 +4,7 @@ import {
   PreparedConfig,
   CreateRequestsFactoryMiddleware,
   MiddlewareConfig,
-} from '../types';
+} from './types';
 import { isFactoryAction } from './factory/helpers';
 
 export const getCreateRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
