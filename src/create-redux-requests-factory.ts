@@ -4,6 +4,7 @@ import prepareConfig from './prepare-config';
 import { createRequestsFactory } from './factory';
 import { createRequestsReducer } from './reducer';
 import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
+import createGlobalSelectors from './selectors';
 
 const createReduxRequestsFactory = <
   Key extends string = typeof DEFAULT_STATE_REQUESTS_KEY
@@ -19,6 +20,7 @@ const createReduxRequestsFactory = <
     ),
     requestsFactory: createRequestsFactory<Key>(preparedConfig),
     requestsReducer: createRequestsReducer<Key>(preparedConfig),
+    ...createGlobalSelectors<Key>(preparedConfig),
   };
 };
 

@@ -1,6 +1,10 @@
 import { Reducer } from 'redux';
 
-import { CommonActions } from './actions';
+import { Actions } from './actions';
+import {
+  IS_SOMETHING_LOADING_STATE_KEY,
+  RESPONSES_STATE_KEY,
+} from '../src/constants';
 
 export enum RequestsStatuses {
   None = 'none',
@@ -17,14 +21,19 @@ export type RequestState = {
 };
 
 export type RequestsState = {
-  [key: string]:
-    | RequestState
-    | {
-        [serializedKey: string]: RequestState;
-      };
+  [IS_SOMETHING_LOADING_STATE_KEY]: {
+    count: number;
+  };
+  [RESPONSES_STATE_KEY]: {
+    [key: string]:
+      | RequestState
+      | {
+          [serializedKey: string]: RequestState;
+        };
+  };
 };
 
-export type RequestsReducer = Reducer<RequestsState, CommonActions>;
+export type RequestsReducer = Reducer<RequestsState, Actions>;
 
 export type RootSate<Key extends string> = {
   [key in Key]: RequestsState;

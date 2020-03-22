@@ -26,6 +26,7 @@ export interface RequestFactoryConfigCommon<Resp, Err, Params, State> {
     error: Err;
     state: State;
   }>;
+  includeInGlobalLoading?: boolean;
 }
 
 export type RequestFactoryConfigCommonWithTransformResponse<

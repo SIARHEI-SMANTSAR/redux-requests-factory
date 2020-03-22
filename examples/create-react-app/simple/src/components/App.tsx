@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { isSomethingLoadingSelector } from 'redux-requests-factory';
 
 import {
   loadUsersAction,
@@ -13,6 +14,7 @@ import { loadUserPostsAction, userPostsSelector } from '../api/posts-by-user';
 const App = () => {
   const users = useSelector(usersSelector);
   const postsByUser = useSelector(userPostsSelector);
+  const isSomethingLoading = useSelector(isSomethingLoadingSelector);
   const dispatch = useDispatch();
   const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [
     dispatch,
@@ -44,6 +46,7 @@ const App = () => {
 
   return (
     <div className="app">
+      {isSomethingLoading ? <div>Something Loading...</div> : null}
       <button onClick={onLoadUsers} className="app__load-button">
         Load Users
       </button>

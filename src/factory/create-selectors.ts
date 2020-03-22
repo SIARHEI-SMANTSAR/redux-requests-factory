@@ -8,6 +8,7 @@ import {
   RequestsStatuses,
 } from '../../types';
 import { isWithSerialize, getByPath, isWithTransformResponse } from './helpers';
+import { RESPONSES_STATE_KEY } from '../constants';
 
 const createSelectors = <
   Resp,
@@ -24,6 +25,7 @@ const createSelectors = <
 
   const getCommonSate = getByPath<RequestsState, State>(
     stateRequestsKey,
+    RESPONSES_STATE_KEY,
     stateRequestKey
   );
 

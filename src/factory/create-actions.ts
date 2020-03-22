@@ -15,6 +15,8 @@ import {
   commonRequestErrorAction,
   commonRequestCancelAction,
   commonRequestResetAction,
+  globalLoadingIncrementAction,
+  globalLoadingDecrementAction,
 } from '../actions';
 import {
   actionToString,
@@ -45,6 +47,7 @@ const createActions = <
     stringifyParamsForDebounce = JSON.stringify,
     fulfilledActions = [],
     rejectedActions = [],
+    includeInGlobalLoading = true,
   } = factoryConfig;
 
   const cancelMapByKey: { [key: string]: boolean } = {};
@@ -167,6 +170,11 @@ const createActions = <
     doRequestMapByKey[requestKey] = true;
 
     dispatch(commonRequestStartAction(meta));
+
+    if (includeInGlobalLoading) {
+      dispatch(globalLoadingIncrementAction());
+    }
+
     try {
       const response = await request(params);
       if (!cancelMapByKey[requestKey]) {
@@ -190,6 +198,10 @@ const createActions = <
       }
     } finally {
       doRequestMapByKey[requestKey] = false;
+
+      if (includeInGlobalLoading) {
+        dispatch(globalLoadingDecrementAction());
+      }
     }
   };
 

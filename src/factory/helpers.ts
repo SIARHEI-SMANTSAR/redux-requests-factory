@@ -10,6 +10,7 @@ import {
   RequestFactoryConfigWithTransformResponse,
 } from '../../types';
 import registerRequestKey from './register-request-key';
+import { RESPONSES_STATE_KEY } from '../constants';
 
 export const actionToString = function toString(this: any) {
   return JSON.stringify({
@@ -116,6 +117,7 @@ export const isNeedLoadData = <State, Key extends string>(
 ) => {
   const status = getByPath<RequestsStatuses, State>(
     stateRequestsKey,
+    RESPONSES_STATE_KEY,
     key,
     serializedKey,
     'status'
@@ -127,12 +129,3 @@ export const isNeedLoadData = <State, Key extends string>(
 };
 
 export const identity = <T>(a: T): T => a;
-
-// export const getTransformResponseFunction = <
-//   Resp,
-//   Err,
-//   Params,
-//   TransformedResp
-// >(
-//   config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
-// ) => (isWithTransformResponse(config) ? config.transformResponse : identity);

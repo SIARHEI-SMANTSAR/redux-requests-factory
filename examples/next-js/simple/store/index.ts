@@ -11,7 +11,7 @@ import {
   stateRequestsKey,
   requestsReducer,
   createRequestsFactoryMiddleware,
-  CommonActions,
+  Actions as FactoryActions,
 } from 'redux-requests-factory';
 
 const reducer = combineReducers({
@@ -20,7 +20,7 @@ const reducer = combineReducers({
 
 export type RootState = ReturnType<typeof reducer>;
 
-type Actions = AnyAction | CommonActions;
+type Actions = AnyAction | FactoryActions;
 
 export type StoreWithAsyncRequests = Store<RootState, Actions> & {
   asyncRequests: () => Promise<void>;

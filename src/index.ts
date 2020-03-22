@@ -9,6 +9,7 @@ export const {
   createRequestsFactoryMiddleware,
   requestsFactory,
   requestsReducer,
+  isSomethingLoadingSelector,
 }: ReduxRequestsFactory<typeof DEFAULT_STATE_REQUESTS_KEY> = createReduxRequestsFactory();
 
 export default createReduxRequestsFactory;
