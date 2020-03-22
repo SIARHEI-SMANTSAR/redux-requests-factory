@@ -8,6 +8,7 @@ import {
   PreparedConfig,
   RequestFactoryConfigWithParamsWithSerialize,
   RequestFactoryConfigWithTransformResponse,
+  DoRequestMapByKey,
 } from '../types';
 import registerRequestKey from './register-request-key';
 import { RESPONSES_STATE_KEY } from '../constants';
@@ -129,3 +130,54 @@ export const isNeedLoadData = <State, Key extends string>(
 };
 
 export const identity = <T>(a: T): T => a;
+
+export const setNewRequestToMap = (
+  doRequestMapByKey: DoRequestMapByKey,
+  requestKey: string,
+  requestNumber: number
+) => {
+  if (doRequestMapByKey.has(requestKey)) {
+    doRequestMapByKey.get(requestKey)?.set(requestNumber, { canceled: false });
+  } else {
+    doRequestMapByKey.set(
+      requestKey,
+      new Map([[requestNumber, { canceled: false }]])
+    );
+  }
+};
+
+export const isRequestCanceled = (
+  doRequestMapByKey: DoRequestMapByKey,
+  requestKey: string,
+  requestNumber: number
+) => doRequestMapByKey.get(requestKey)!.get(requestNumber)!.canceled;
+
+export const deleteRequestFromMap = (
+  doRequestMapByKey: DoRequestMapByKey,
+  requestKey: string,
+  requestNumber: number
+) => {
+  doRequestMapByKey.get(requestKey)?.delete(requestNumber);
+};
+
+export const cancelRequestInMap = (
+  doRequestMapByKey: DoRequestMapByKey,
+  requestKey: string
+) => {
+  if (doRequestMapByKey.has(requestKey)) {
+    const doRequestMap = doRequestMapByKey.get(requestKey);
+    if (doRequestMap) {
+      const entries = Array.from(doRequestMap);
+      if (entries.length > 0) {
+        const [requestNumber] = entries[entries.length - 1];
+        const statusObj = doRequestMap.get(requestNumber);
+        if (statusObj && statusObj.canceled === false) {
+          statusObj.canceled = true;
+
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};

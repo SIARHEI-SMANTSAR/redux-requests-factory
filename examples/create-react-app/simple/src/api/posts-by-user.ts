@@ -16,10 +16,13 @@ const loadUserPostsRequest = ({ userId }: Params): Promise<Post[]> =>
 
 export const {
   loadDataAction: loadUserPostsAction,
+  forcedLoadDataAction: forcedLoadUserPostsAction,
   responseSelector: userPostsSelector,
+  setResponseAction: setUserPostsAction,
 } = requestsFactory({
   request: loadUserPostsRequest,
   stateRequestKey: 'user-posts',
+  useDebounce: true,
   serializeRequestParameters: ({ userId }: Params) => `${userId}`,
   transformResponse: (response: Post[] | null) => response || [],
 });

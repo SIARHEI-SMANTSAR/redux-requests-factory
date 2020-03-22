@@ -24,23 +24,33 @@ const getNewRequestsState = (
   state: RequestsState,
   { key, serializedKey }: RequestActionMeta,
   data: RequestState
-): RequestsState => ({
-  ...state,
-  [RESPONSES_STATE_KEY]: {
-    ...state[RESPONSES_STATE_KEY],
-    [key]: {
-      ...state[RESPONSES_STATE_KEY][key],
-      ...(serializedKey
-        ? {
+): RequestsState =>
+  serializedKey !== undefined
+    ? {
+        ...state,
+        [RESPONSES_STATE_KEY]: {
+          ...state[RESPONSES_STATE_KEY],
+          [key]: {
+            ...state[RESPONSES_STATE_KEY][key],
             [serializedKey]: {
-              ...state[RESPONSES_STATE_KEY][serializedKey],
+              ...(state[RESPONSES_STATE_KEY][key]
+                ? (state[RESPONSES_STATE_KEY][key] as any)[serializedKey]
+                : {}),
               ...data,
             },
-          }
-        : data),
-    },
-  },
-});
+          },
+        },
+      }
+    : {
+        ...state,
+        [RESPONSES_STATE_KEY]: {
+          ...state[RESPONSES_STATE_KEY],
+          [key]: {
+            ...state[RESPONSES_STATE_KEY][key],
+            ...data,
+          },
+        },
+      };
 
 export const createRequestsReducer = <Key>(
   _config: PreparedConfig<Key>

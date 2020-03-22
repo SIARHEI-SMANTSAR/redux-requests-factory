@@ -8,6 +8,7 @@ import {
   RequestsFactoryItemActions,
   ActionPropsFromMiddleware,
   ExternalActions,
+  DoRequestMapByKey,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -25,6 +26,10 @@ import {
   memoizeDebounce,
   isNeedLoadData,
   identity,
+  setNewRequestToMap,
+  isRequestCanceled,
+  deleteRequestFromMap,
+  cancelRequestInMap,
 } from './helpers';
 
 const createActions = <
@@ -48,10 +53,12 @@ const createActions = <
     fulfilledActions = [],
     rejectedActions = [],
     includeInGlobalLoading = true,
+    transformError = identity,
   } = factoryConfig;
 
-  const cancelMapByKey: { [key: string]: boolean } = {};
-  const doRequestMapByKey: { [key: string]: boolean } = {};
+  let lastRequestNumber = 0;
+
+  const doRequestMapByKey: DoRequestMapByKey = new Map();
 
   const getDispatchExternalActions = <Data>(
     externalActions: ExternalActions<Data>
@@ -166,8 +173,9 @@ const createActions = <
     requestKey: string;
     getState: () => State;
   }) => {
-    cancelMapByKey[requestKey] = false;
-    doRequestMapByKey[requestKey] = true;
+    const requestNumber = ++lastRequestNumber;
+
+    setNewRequestToMap(doRequestMapByKey, requestKey, requestNumber);
 
     dispatch(commonRequestStartAction(meta));
 
@@ -177,7 +185,7 @@ const createActions = <
 
     try {
       const response = await request(params);
-      if (!cancelMapByKey[requestKey]) {
+      if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
         dispatch(commonRequestSuccessAction(meta, response));
         dispatch(requestFulfilledAction({ params, response }, meta));
         dispatchFulfilledActions(dispatch, {
@@ -187,37 +195,46 @@ const createActions = <
         });
       }
     } catch (error) {
-      if (!cancelMapByKey[requestKey]) {
+      if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
         dispatch(commonRequestErrorAction(meta, error));
-        dispatch(requestRejectedAction({ params, error }, meta));
+        const transformedError = transformError(error) as Err;
+        dispatch(
+          requestRejectedAction({ params, error: transformedError }, meta)
+        );
         dispatchRejectedActions(dispatch, {
           request: params,
-          error,
+          error: transformedError,
           state: getState(),
         });
       }
     } finally {
-      doRequestMapByKey[requestKey] = false;
-
-      if (includeInGlobalLoading) {
+      if (
+        includeInGlobalLoading &&
+        !isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)
+      ) {
         dispatch(globalLoadingDecrementAction());
       }
+
+      deleteRequestFromMap(doRequestMapByKey, requestKey, requestNumber);
     }
   };
 
-  const memoizedDoRequest = memoizeDebounce(doRequest, debounceWait, {
-    leading: true,
-    trailing: false,
-    maxWait: debounceWait,
-    ...debounceOptions,
-    resolver: ({ params }: { params?: Params }) => {
-      try {
-        return stringifyParamsForDebounce(params);
-      } catch (error) {
-        return params;
-      }
-    },
-  });
+  const getMemoizedDoRequest = () =>
+    memoizeDebounce(doRequest, debounceWait, {
+      leading: true,
+      trailing: false,
+      maxWait: debounceWait,
+      ...debounceOptions,
+      resolver: ({ params }: { params?: Params }) => {
+        try {
+          return stringifyParamsForDebounce(params);
+        } catch (error) {
+          return params;
+        }
+      },
+    });
+
+  let memoizedDoRequest = getMemoizedDoRequest();
 
   const getDoRequestAction = (isForced: boolean = true) => ({
     params,
@@ -258,13 +275,17 @@ const createActions = <
     cancelRequestAction: createAsyncAction(
       `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
       ({ meta, requestKey }) => {
-        if (doRequestMapByKey[requestKey]) {
-          cancelMapByKey[requestKey] = true;
-        }
-
-        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-          if (doRequestMapByKey[requestKey]) {
+        return ({ dispatch }: ActionPropsFromMiddleware<State>) => {
+          if (cancelRequestInMap(doRequestMapByKey, requestKey)) {
             dispatch(commonRequestCancelAction(meta));
+
+            if (includeInGlobalLoading) {
+              dispatch(globalLoadingDecrementAction());
+            }
+
+            if (useDebounce) {
+              memoizedDoRequest = getMemoizedDoRequest();
+            }
           }
         };
       },

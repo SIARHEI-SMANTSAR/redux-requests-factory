@@ -98,6 +98,15 @@ export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
 
 export interface RequestsFactory<Key extends string> {
   <Resp, Err, Params, State extends RootSate<Key>>(
+    config: RequestFactoryConfigWithParamsWithoutSerialize<
+      Resp,
+      Err,
+      Params,
+      State
+    >
+  ): RequestsFactoryItemWithParamsWithoutSerialize<Resp, Err, Params, State>;
+
+  <Resp, Err, Params, State extends RootSate<Key>>(
     config: RequestFactoryConfigWithOptionalParamsWithoutSerialize<
       Resp,
       Err,
@@ -126,15 +135,6 @@ export interface RequestsFactory<Key extends string> {
     State,
     TransformedResp
   >;
-
-  <Resp, Err, Params, State extends RootSate<Key>>(
-    config: RequestFactoryConfigWithParamsWithoutSerialize<
-      Resp,
-      Err,
-      State,
-      Params
-    >
-  ): RequestsFactoryItemWithParamsWithoutSerialize<Resp, Err, Params, State>;
 
   <Resp, Err, Params, State extends RootSate<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse<

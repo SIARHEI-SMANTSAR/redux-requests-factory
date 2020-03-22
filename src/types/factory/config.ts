@@ -6,7 +6,8 @@ export type ExternalActions<Data> = (
   | (Action | null)[]
   | null
 )[];
-export interface RequestFactoryConfigCommon<Resp, Err, Params, State> {
+
+export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   stateRequestKey: string;
   useDebounce?: boolean;
   debounceWait?: number;
@@ -16,16 +17,6 @@ export interface RequestFactoryConfigCommon<Resp, Err, Params, State> {
     maxWait?: number;
   };
   transformError?: (error: any) => Err | null;
-  fulfilledActions?: ExternalActions<{
-    request?: Params;
-    response: Resp;
-    state: State;
-  }>;
-  rejectedActions?: ExternalActions<{
-    request?: Params;
-    error: Err;
-    state: State;
-  }>;
   includeInGlobalLoading?: boolean;
 }
 
@@ -44,6 +35,16 @@ export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   request: (params?: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params?: Params) => string;
+  fulfilledActions?: ExternalActions<{
+    request?: Params;
+    response: Resp;
+    state: State;
+  }>;
+  rejectedActions?: ExternalActions<{
+    request?: Params;
+    error: Err;
+    state: State;
+  }>;
 };
 
 export type RequestFactoryConfigWithParamsWithoutSerialize<
@@ -54,6 +55,16 @@ export type RequestFactoryConfigWithParamsWithoutSerialize<
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   request: (params: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params: Params) => string;
+  fulfilledActions?: ExternalActions<{
+    request: Params;
+    response: Resp;
+    state: State;
+  }>;
+  rejectedActions: ExternalActions<{
+    request?: Params;
+    error: Err;
+    state: State;
+  }>;
 };
 
 export type RequestFactoryConfigWithParamsWithSerialize<
@@ -65,6 +76,16 @@ export type RequestFactoryConfigWithParamsWithSerialize<
   request: (params: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params: Params) => string;
   serializeRequestParameters: (params: Params) => string;
+  fulfilledActions?: ExternalActions<{
+    request: Params;
+    response: Resp;
+    state: State;
+  }>;
+  rejectedActions?: ExternalActions<{
+    request: Params;
+    error: Err;
+    state: State;
+  }>;
 };
 
 export type RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse<
