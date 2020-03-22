@@ -1,5 +1,11 @@
 import { Action } from 'redux';
 
+export type ExternalActions<Data> = (
+  | ((data: Data) => Action | (Action | null)[] | null)
+  | Action
+  | (Action | null)[]
+  | null
+)[];
 export interface RequestFactoryConfigCommon<Resp, Err, Params, State> {
   stateRequestKey: string;
   useDebounce?: boolean;
@@ -10,14 +16,16 @@ export interface RequestFactoryConfigCommon<Resp, Err, Params, State> {
     maxWait?: number;
   };
   transformError?: (error: any) => Err | null;
-  fulfilledActions?: (
-    | ((data: { request?: Params; response: Resp; state: State }) => Action)
-    | Action
-  )[];
-  rejectedActions?: (
-    | ((data: { request?: Params; error: Err; state: State }) => Action)
-    | Action
-  )[];
+  fulfilledActions?: ExternalActions<{
+    request?: Params;
+    response: Resp;
+    state: State;
+  }>;
+  rejectedActions?: ExternalActions<{
+    request?: Params;
+    error: Err;
+    state: State;
+  }>;
 }
 
 export type RequestFactoryConfigCommonWithTransformResponse<

@@ -7,6 +7,7 @@ import {
   FactoryActionTypes,
   RequestsFactoryItemActions,
   ActionPropsFromMiddleware,
+  ExternalActions,
 } from '../../types';
 import {
   commonRequestStartAction,
@@ -49,31 +50,30 @@ const createActions = <
   const cancelMapByKey: { [key: string]: boolean } = {};
   const doRequestMapByKey: { [key: string]: boolean } = {};
 
-  const dispatchFulfilledActions = (
-    dispatch: Dispatch,
-    data: { request?: Params; response: Resp; state: State }
-  ) => {
-    fulfilledActions.forEach(action => {
-      if (typeof action === 'function') {
-        dispatch(action(data));
-      } else {
+  const getDispatchExternalActions = <Data>(
+    externalActions: ExternalActions<Data>
+  ) => (dispatch: Dispatch, data: Data) => {
+    externalActions.forEach(externalAction => {
+      const action =
+        typeof externalAction === 'function'
+          ? externalAction(data)
+          : externalAction;
+
+      if (Array.isArray(action)) {
+        action.forEach(a => {
+          if (a !== null) {
+            dispatch(a);
+          }
+        });
+      } else if (action !== null) {
         dispatch(action);
       }
     });
   };
 
-  const dispatchRejectedActions = (
-    dispatch: Dispatch,
-    data: { request?: Params; error: Err; state: State }
-  ) => {
-    rejectedActions.forEach(action => {
-      if (typeof action === 'function') {
-        dispatch(action(data));
-      } else {
-        dispatch(action);
-      }
-    });
-  };
+  const dispatchFulfilledActions = getDispatchExternalActions(fulfilledActions);
+
+  const dispatchRejectedActions = getDispatchExternalActions(rejectedActions);
 
   const createSyncAction = <
     Data,
