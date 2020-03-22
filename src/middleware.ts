@@ -12,7 +12,7 @@ export const getCreateRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
 >): CreateRequestsFactoryMiddleware => (
   middlewareConfig: MiddlewareConfig = {}
 ) => {
-  const actions: { [key: string]: Promise<void> } = {};
+  const actions: Set<Promise<void>> = new Set();
 
   const middleware: Middleware = ({
     dispatch,
@@ -21,11 +21,11 @@ export const getCreateRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
     if (typeof action === 'function' && isFactoryAction(action.type)) {
       const asyncAction = action({ dispatch, getState, middlewareConfig });
 
-      actions[action.type as string] = asyncAction;
+      actions.add(asyncAction);
 
       await asyncAction;
 
-      delete actions[action.type as string];
+      actions.delete(asyncAction);
 
       return;
     }
@@ -34,10 +34,8 @@ export const getCreateRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
   };
 
   const toPromise = async () => {
-    const prpmises = Object.values(actions);
-
-    for (let index = 0; index < prpmises.length; index++) {
-      await prpmises[index];
+    for (let action of actions) {
+      await action;
     }
   };
 

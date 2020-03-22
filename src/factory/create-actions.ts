@@ -33,7 +33,7 @@ const createActions = <
   Key extends string
 >(
   config: PreparedConfig<Key>,
-  factoryConfig: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+  factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
 ): RequestsFactoryItemActions<Resp, Err, Params> => {
   const {
     request,
@@ -42,10 +42,38 @@ const createActions = <
     debounceWait = 500,
     debounceOptions,
     stringifyParamsForDebounce = JSON.stringify,
+    fulfilledActions = [],
+    rejectedActions = [],
   } = factoryConfig;
 
   const cancelMapByKey: { [key: string]: boolean } = {};
   const doRequestMapByKey: { [key: string]: boolean } = {};
+
+  const dispatchFulfilledActions = (
+    dispatch: Dispatch,
+    data: { request?: Params; response: Resp; state: State }
+  ) => {
+    fulfilledActions.forEach(action => {
+      if (typeof action === 'function') {
+        dispatch(action(data));
+      } else {
+        dispatch(action);
+      }
+    });
+  };
+
+  const dispatchRejectedActions = (
+    dispatch: Dispatch,
+    data: { request?: Params; error: Err; state: State }
+  ) => {
+    rejectedActions.forEach(action => {
+      if (typeof action === 'function') {
+        dispatch(action(data));
+      } else {
+        dispatch(action);
+      }
+    });
+  };
 
   const createSyncAction = <
     Data,
@@ -82,10 +110,13 @@ const createActions = <
       const params: Params = getPramsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
-        serializedKey: getSerializedKey<Resp, Err, Params, TransformedResp>(
-          factoryConfig,
-          params
-        ),
+        serializedKey: getSerializedKey<
+          Resp,
+          Err,
+          Params,
+          State,
+          TransformedResp
+        >(factoryConfig, params),
       };
       const requestKey = getRequestKey(meta);
 
@@ -124,11 +155,13 @@ const createActions = <
     dispatch,
     meta,
     requestKey,
+    getState,
   }: {
     params: Params;
     dispatch: Dispatch;
     meta: RequestActionMeta;
     requestKey: string;
+    getState: () => State;
   }) => {
     cancelMapByKey[requestKey] = false;
     doRequestMapByKey[requestKey] = true;
@@ -139,11 +172,21 @@ const createActions = <
       if (!cancelMapByKey[requestKey]) {
         dispatch(commonRequestSuccessAction(meta, response));
         dispatch(requestFulfilledAction({ params, response }, meta));
+        dispatchFulfilledActions(dispatch, {
+          request: params,
+          response,
+          state: getState(),
+        });
       }
     } catch (error) {
       if (!cancelMapByKey[requestKey]) {
         dispatch(commonRequestErrorAction(meta, error));
         dispatch(requestRejectedAction({ params, error }, meta));
+        dispatchRejectedActions(dispatch, {
+          request: params,
+          error,
+          state: getState(),
+        });
       }
     } finally {
       doRequestMapByKey[requestKey] = false;
@@ -179,6 +222,7 @@ const createActions = <
         dispatch,
         meta,
         requestKey,
+        getState,
       });
     }
   };

@@ -3,7 +3,6 @@ import debounce from 'lodash.debounce';
 
 import {
   RequestFactoryConfig,
-  RequestFactoryConfigCommon,
   RequestActionMeta,
   RequestsStatuses,
   PreparedConfig,
@@ -20,24 +19,41 @@ export const actionToString = function toString(this: any) {
   });
 };
 
-export const isWithSerialize = <Resp, Err, Params, TransformedResp>(
-  config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
-): config is RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params> =>
-  (config as RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params>)
-    .serializeRequestParameters !== undefined;
+export const isWithSerialize = <Resp, Err, Params, State, TransformedResp>(
+  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
+): config is RequestFactoryConfigWithParamsWithSerialize<
+  Resp,
+  Err,
+  Params,
+  State
+> =>
+  (config as RequestFactoryConfigWithParamsWithSerialize<
+    Resp,
+    Err,
+    Params,
+    State
+  >).serializeRequestParameters !== undefined;
 
-export const isWithTransformResponse = <Resp, Err, Params, TransformedResp>(
-  config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+export const isWithTransformResponse = <
+  Resp,
+  Err,
+  Params,
+  State,
+  TransformedResp
+>(
+  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
 ): config is RequestFactoryConfigWithTransformResponse<
   Resp,
   Err,
   Params,
+  State,
   TransformedResp
 > =>
   (config as RequestFactoryConfigWithTransformResponse<
     Resp,
     Err,
     Params,
+    State,
     TransformedResp
   >).transformResponse !== undefined;
 
@@ -56,8 +72,14 @@ export const getRequestKey = ({
   serializedKey,
 }: RequestActionMeta): string => `${key}_${serializedKey || ''}`;
 
-export const getSerializedKey = <Resp, Err, Params, TransformedResp>(
-  factoryConfig: RequestFactoryConfig<Resp, Err, Params, TransformedResp>,
+export const getSerializedKey = <Resp, Err, Params, State, TransformedResp>(
+  factoryConfig: RequestFactoryConfig<
+    Resp,
+    Err,
+    Params,
+    State,
+    TransformedResp
+  >,
   params: Params
 ): string | undefined =>
   isWithSerialize(factoryConfig)
@@ -80,12 +102,9 @@ export const memoizeDebounce = function<
   } as Func;
 };
 
-export const patchConfig = <
-  Err,
-  Config extends RequestFactoryConfigCommon<Err>
->(
-  config: Config
-): Config => ({
+export const patchConfig = <Resp, Err, Params, State, TransformedResp>(
+  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
+): RequestFactoryConfig<Resp, Err, Params, State, TransformedResp> => ({
   ...config,
   stateRequestKey: registerRequestKey(config.stateRequestKey),
 });

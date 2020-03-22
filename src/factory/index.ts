@@ -12,7 +12,7 @@ export const createRequestsFactory = <Key extends string>(
   preparedConfig: PreparedConfig<Key>
 ): RequestsFactory<Key> =>
   (<Resp, Err, Params, State, TransformedResp = Resp>(
-    config: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+    config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
   ): RequestsFactoryItem<Resp, Err, Params, State, TransformedResp> => {
     const patchedConfig = patchConfig(config);
 

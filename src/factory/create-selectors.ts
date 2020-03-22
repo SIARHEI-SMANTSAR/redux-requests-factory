@@ -18,7 +18,7 @@ const createSelectors = <
   Key extends string
 >(
   { stateRequestsKey }: PreparedConfig<Key>,
-  factoryConfig: RequestFactoryConfig<Resp, Err, Params, TransformedResp>
+  factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
 ): RequestsFactoryItemSelectors<Resp, Err, Params, State, TransformedResp> => {
   const { stateRequestKey, transformError } = factoryConfig;
 
@@ -27,7 +27,9 @@ const createSelectors = <
     stateRequestKey
   );
 
-  if (isWithSerialize<Resp, Err, Params, TransformedResp>(factoryConfig)) {
+  if (
+    isWithSerialize<Resp, Err, Params, State, TransformedResp>(factoryConfig)
+  ) {
     const { serializeRequestParameters } = factoryConfig;
     return {
       responseSelector: createSelector(
@@ -39,7 +41,7 @@ const createSelectors = <
           )(commonSate);
 
           if (
-            isWithTransformResponse<Resp, Err, Params, TransformedResp>(
+            isWithTransformResponse<Resp, Err, Params, State, TransformedResp>(
               factoryConfig
             )
           ) {
@@ -112,7 +114,7 @@ const createSelectors = <
         );
 
         if (
-          isWithTransformResponse<Resp, Err, Params, TransformedResp>(
+          isWithTransformResponse<Resp, Err, Params, State, TransformedResp>(
             factoryConfig
           )
         ) {
