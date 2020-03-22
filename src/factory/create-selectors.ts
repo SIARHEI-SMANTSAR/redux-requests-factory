@@ -5,6 +5,7 @@ import {
   RequestFactoryConfig,
   RequestsFactoryItemSelectors,
   RequestsState,
+  RequestsStatuses,
 } from '../../types';
 import { isWithSerialize, getByPath, isWithTransformResponse } from './helpers';
 
@@ -63,6 +64,39 @@ const createSelectors = <
           return error;
         }
       ),
+      requestStatusSelector: createSelector(
+        [getCommonSate],
+        commonSate => (params: Params) => {
+          const status = getByPath<RequestsStatuses, RequestsState | null>(
+            serializeRequestParameters(params),
+            'status'
+          )(commonSate);
+
+          return status || RequestsStatuses.None;
+        }
+      ),
+      isLoadingSelector: createSelector(
+        [getCommonSate],
+        commonSate => (params: Params) => {
+          const status = getByPath<RequestsStatuses, RequestsState | null>(
+            serializeRequestParameters(params),
+            'status'
+          )(commonSate);
+
+          return status === RequestsStatuses.Loading;
+        }
+      ),
+      isLoadedSelector: createSelector(
+        [getCommonSate],
+        commonSate => (params: Params) => {
+          const status = getByPath<RequestsStatuses, RequestsState | null>(
+            serializeRequestParameters(params),
+            'status'
+          )(commonSate);
+
+          return status === RequestsStatuses.Success;
+        }
+      ),
     } as RequestsFactoryItemSelectors<
       Resp,
       Err,
@@ -95,6 +129,27 @@ const createSelectors = <
         }
 
         return error;
+      }),
+      requestStatusSelector: createSelector([getCommonSate], commonSate => {
+        const status = getByPath<RequestsStatuses, RequestsState | null>(
+          'status'
+        )(commonSate);
+
+        return status || RequestsStatuses.None;
+      }),
+      isLoadingSelector: createSelector([getCommonSate], commonSate => {
+        const status = getByPath<RequestsStatuses, RequestsState | null>(
+          'status'
+        )(commonSate);
+
+        return status === RequestsStatuses.Loading;
+      }),
+      isLoadedSelector: createSelector([getCommonSate], commonSate => {
+        const status = getByPath<RequestsStatuses, RequestsState | null>(
+          'status'
+        )(commonSate);
+
+        return status === RequestsStatuses.Success;
       }),
     } as RequestsFactoryItemSelectors<
       Resp,

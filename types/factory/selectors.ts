@@ -1,22 +1,56 @@
-export type RequestsFactoryItemSelectorsWithoutSerialize<
-  Resp,
+import { RequestsStatuses } from '../reducer';
+
+type RequestsFactoryItemCommonSelectorsWithoutSerialize<
+  _Resp,
   Err,
   _Params,
   State
 > = {
-  responseSelector: (state: State) => Resp | null;
   errrorSelector: (state: State) => Err | null;
+  requestStatusSelector: (state: State) => RequestsStatuses;
+  isLoadingSelector: (state: State) => boolean;
+  isLoadedSelector: (state: State) => boolean;
+};
+
+type RequestsFactoryItemCommonSelectorsWithSerialize<
+  _Resp,
+  Err,
+  Params,
+  State
+> = {
+  errrorSelector: (state: State) => (params: Params) => Err | null;
+  requestStatusSelector: (state: State) => (params: Params) => RequestsStatuses;
+  isLoadingSelector: (state: State) => (params: Params) => boolean;
+  isLoadedSelector: (state: State) => (params: Params) => boolean;
+};
+
+export type RequestsFactoryItemSelectorsWithoutSerialize<
+  Resp,
+  Err,
+  Params,
+  State
+> = RequestsFactoryItemCommonSelectorsWithoutSerialize<
+  Resp,
+  Err,
+  Params,
+  State
+> & {
+  responseSelector: (state: State) => Resp | null;
 };
 
 export type RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
-  _Resp,
+  Resp,
   Err,
-  _Params,
+  Params,
   State,
   TransformedResp
-> = {
+> = RequestsFactoryItemCommonSelectorsWithoutSerialize<
+  Resp,
+  Err,
+  Params,
+  State
+> & {
   responseSelector: (state: State) => TransformedResp;
-  errrorSelector: (state: State) => Err | null;
 };
 
 export type RequestsFactoryItemSelectorsWithSerialize<
@@ -24,20 +58,28 @@ export type RequestsFactoryItemSelectorsWithSerialize<
   Err,
   Params,
   State
-> = {
+> = RequestsFactoryItemCommonSelectorsWithSerialize<
+  Resp,
+  Err,
+  Params,
+  State
+> & {
   responseSelector: (state: State) => (params: Params) => Resp | null;
-  errrorSelector: (state: State) => (params: Params) => Err | null;
 };
 
 export type RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<
-  _Resp,
+  Resp,
   Err,
   Params,
   State,
   TransformedResp
-> = {
+> = RequestsFactoryItemCommonSelectorsWithSerialize<
+  Resp,
+  Err,
+  Params,
+  State
+> & {
   responseSelector: (state: State) => (params: Params) => TransformedResp;
-  errrorSelector: (state: State) => (params: Params) => Err | null;
 };
 
 export type RequestsFactoryItemSelectors<
