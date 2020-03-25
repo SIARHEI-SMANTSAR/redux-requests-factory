@@ -6,7 +6,7 @@ type RequestsFactoryItemCommonSelectorsWithoutSerialize<
   _Params,
   State
 > = {
-  errrorSelector: (state: State) => Err | null;
+  errorSelector: (state: State) => Err | null;
   requestStatusSelector: (state: State) => RequestsStatuses;
   isLoadingSelector: (state: State) => boolean;
   isLoadedSelector: (state: State) => boolean;
@@ -18,7 +18,7 @@ type RequestsFactoryItemCommonSelectorsWithSerialize<
   Params,
   State
 > = {
-  errrorSelector: (state: State) => (params: Params) => Err | null;
+  errorSelector: (state: State) => (params: Params) => Err | null;
   requestStatusSelector: (state: State) => (params: Params) => RequestsStatuses;
   isLoadingSelector: (state: State) => (params: Params) => boolean;
   isLoadedSelector: (state: State) => (params: Params) => boolean;

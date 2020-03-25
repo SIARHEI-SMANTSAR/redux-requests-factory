@@ -7,18 +7,18 @@ import {
   forcedLoadUsersAction,
   cancelLoadUsersAction,
   usersSelector,
-} from '../api/users';
+} from '../requests/users';
 import './App.css';
 import {
   loadUserPostsAction,
   userPostsSelector,
   forcedLoadUserPostsAction,
-} from '../api/posts-by-user';
+} from '../requests/posts-by-user';
 import {
   addPostAction,
   isLoadingAddPostSelector,
   cancelAddPostAction,
-} from '../api/add-post';
+} from '../requests/add-post';
 
 const App = () => {
   const users = useSelector(usersSelector);

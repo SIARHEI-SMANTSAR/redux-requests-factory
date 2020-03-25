@@ -53,7 +53,7 @@ const createSelectors = <
           return response;
         }
       ),
-      errrorSelector: createSelector(
+      errorSelector: createSelector(
         [getCommonSate],
         commonSate => (params: Params) => {
           const error = getByPath<Err, RequestsState | null>(
@@ -125,7 +125,7 @@ const createSelectors = <
 
         return response;
       }),
-      errrorSelector: createSelector([getCommonSate], commonSate => {
+      errorSelector: createSelector([getCommonSate], commonSate => {
         const error = getByPath<Err, RequestsState | null>('error')(commonSate);
 
         if (transformError) {
