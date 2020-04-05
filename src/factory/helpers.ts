@@ -61,11 +61,11 @@ export const isWithTransformResponse = <
 
 export const getByPath = <Value = any, Object = any>(
   ...keys: (string | undefined)[]
-) => (obj: Object): Value | null =>
+) => (obj: Object): Value | undefined =>
   keys
     .filter(Boolean)
-    .reduce<Value | null>(
-      (value: any, key) => (value ? value[key as string] : null),
+    .reduce<Value | undefined>(
+      (value: any, key) => (value ? value[key as string] : undefined),
       obj as any
     );
 

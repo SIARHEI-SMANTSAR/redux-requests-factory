@@ -6,7 +6,7 @@ interface User {
 }
 
 const loadUsersRequest = (): Promise<User[]> =>
-  fetch('https://jsonplaceholder.typicode.com/users').then(res => res.json());
+  fetch('https://jsonplaceholder.typicode.com/users').then((res) => res.json());
 
 export const {
   loadDataAction: loadUsersAction,
@@ -16,5 +16,5 @@ export const {
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
-  transformResponse: (response: User[] | null) => response || [],
+  transformResponse: (response: User[] | undefined) => response || [],
 });

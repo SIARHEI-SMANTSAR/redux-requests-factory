@@ -35,7 +35,7 @@ export type RequestsFactoryItemSelectorsWithoutSerialize<
   Params,
   State
 > & {
-  responseSelector: (state: State) => Resp | null;
+  responseSelector: (state: State) => Resp | undefined;
 };
 
 export type RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
@@ -64,7 +64,7 @@ export type RequestsFactoryItemSelectorsWithSerialize<
   Params,
   State
 > & {
-  responseSelector: (state: State) => (params: Params) => Resp | null;
+  responseSelector: (state: State) => (params: Params) => Resp | undefined;
 };
 
 export type RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<

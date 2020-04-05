@@ -24,7 +24,7 @@ export type RequestFactoryConfigCommonWithTransformResponse<
   Resp,
   TransformedResp
 > = {
-  transformResponse: (response: Resp | null) => TransformedResp;
+  transformResponse: (response: Resp | undefined) => TransformedResp;
 };
 
 export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<
