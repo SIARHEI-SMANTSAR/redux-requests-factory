@@ -96,6 +96,7 @@ export const {
 } = requestsFactory({
   request: loadUserPostsRequest,
   stateRequestKey: 'user-posts',
+  useDebounce: true,
   serializeRequestParameters: ({ userId }) => `${userId}`, // selector will return function
   transformResponse: (response) => response || [],
 });
@@ -144,7 +145,7 @@ export const {
 ### App.js
 
 ```js
-import React, { useCallback, useEffect, FormEvent, MouseEvent } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isSomethingLoadingSelector } from 'redux-requests-factory';
 
@@ -230,24 +231,18 @@ const App = () => {
   }, [users, onLoadUserPosts]);
 
   return (
-    <div className="app">
-      <div className="app__loading">
+    <div>
+      <div>
         {isSomethingLoading ? 'Something Loading...' : null}
       </div>
 
-      <button onClick={onLoadUsers} className="app__button app__load-button">
+      <button onClick={onLoadUsers}>
         Load Users
       </button>
-      <button
-        onClick={onForcedLoadUsers}
-        className="app__button app__forced-load-button"
-      >
+      <button onClick={onForcedLoadUsers}>
         Forced Load Users
       </button>
-      <button
-        onClick={onCancelLoadUsers}
-        className="app__button app__cancel-load-button"
-      >
+      <button onClick={onCancelLoadUsers}>
         Cancel Load Users
       </button>
 
@@ -260,23 +255,21 @@ const App = () => {
                 <li key={`${id}_${index}`}>{title}</li>
               ))}
               <button
-                className="app__button app__forced-load-user-posts-button"
                 data-user-id={id}
                 onClick={onForcedLoadUserPosts}
               >
                 Forced Load User Posts With Debounce 500ms
               </button>
               <form
-                className="app__form"
                 data-user-id={id}
                 onSubmit={onAddPost}
               >
                 <h3>Add new post </h3>
-                <label className="app__input-label">
+                <label>
                   Title
                   <input id={`title_${id}`} name="title" />
                 </label>
-                <label className="app__input-label">
+                <label>
                   Body
                   <textarea name="body" />
                 </label>
@@ -296,6 +289,66 @@ const App = () => {
 };
 
 export default App;
+```
+
+## `requestsFactory` config
+
+```js
+import { requestsFactory } from 'redux-requests-factory';
+
+const {...} = requestsFactory(config);
+```
+
+### `config.request`
+
+`request` is **required** field, it is should be function that takes parameters (or not) and returns `Promise`
+
+```js
+const {
+  doRequestAction,
+  forcedLoadDataAction,
+  loadDataAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+});
+
+doRequestAction({ id: 1 });
+// or
+forcedLoadDataAction({ id: 1 });
+// or
+loadDataAction({ id: 1 });
+```
+
+or
+
+```js
+const {
+  doRequestAction,
+  forcedLoadDataAction,
+  loadDataAction,
+} = requestsFactory({
+  request: () => fetch('https://mysite.com/api/users'),
+});
+
+doRequestAction();
+// or
+forcedLoadDataAction();
+// or
+loadDataAction();
+```
+
+### `config.stateRequestKey`
+
+`stateRequestKey` is **required** field, it is should be unique string key between all requests
+
+```js
+const {...} = requestsFactory({
+  stateRequestKey: 'users',
+});
+
+const {...} = requestsFactory({
+  stateRequestKey: 'user-posts',
+});
 ```
 
 ## TypeScript
