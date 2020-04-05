@@ -49,7 +49,7 @@
   "bugs": {
     "url": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/issues"
   },
-  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory#readme",
+  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop#readme",
   "peerDependencies": {
     "redux": "^4"
   },
