@@ -27,13 +27,10 @@ export type StoreWithAsyncRequests = Store<RootState, Actions> & {
 };
 
 const makeStore: MakeStore = (
-  initialState: RootState,
-  { isServer }
+  initialState: RootState
 ): StoreWithAsyncRequests => {
   const logger = createLogger({ collapsed: true });
-  const { middleware, toPromise } = createRequestsFactoryMiddleware({
-    isServer,
-  });
+  const { middleware, toPromise } = createRequestsFactoryMiddleware();
   const reduxMiddleware = applyMiddleware(logger, middleware);
 
   const store = createStore(reducer, initialState, reduxMiddleware);

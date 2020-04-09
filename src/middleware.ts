@@ -7,9 +7,9 @@ import {
 } from './types';
 import { isFactoryAction } from './factory/helpers';
 
-export const getCreateRequestsFactoryMiddleware = <Key>({}: PreparedConfig<
-  Key
->): CreateRequestsFactoryMiddleware => (
+export const getCreateRequestsFactoryMiddleware = <Key>(
+  _config: PreparedConfig<Key>
+): CreateRequestsFactoryMiddleware => (
   middlewareConfig: MiddlewareConfig = {}
 ) => {
   const actions: Set<Promise<void>> = new Set();

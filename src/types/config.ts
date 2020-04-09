@@ -6,6 +6,4 @@ export type PreparedConfig<Key> = {
   stateRequestsKey: Key;
 };
 
-export type MiddlewareConfig = {
-  isServer?: boolean;
-};
+export type MiddlewareConfig = {};
