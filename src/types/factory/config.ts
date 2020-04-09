@@ -60,8 +60,8 @@ export type RequestFactoryConfigWithParamsWithoutSerialize<
     response: Resp;
     state: State;
   }>;
-  rejectedActions: ExternalActions<{
-    request?: Params;
+  rejectedActions?: ExternalActions<{
+    request: Params;
     error: Err;
     state: State;
   }>;
