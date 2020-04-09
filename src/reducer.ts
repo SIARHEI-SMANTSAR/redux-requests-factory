@@ -77,8 +77,8 @@ export const createRequestsReducer = <Key>(
     case CommonActionTypes.RequestReset:
       return getNewRequestsState(state, action.meta, {
         status: RequestsStatuses.None,
-        response: null,
-        error: null,
+        response: undefined,
+        error: undefined,
       });
     case GlobalActionTypes.LoadingIncrement:
       return {
