@@ -36,12 +36,12 @@ export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<
   request: (params?: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params?: Params) => string;
   fulfilledActions?: ExternalActions<{
-    request?: Params;
+    request: Params | undefined;
     response: Resp;
     state: State;
   }>;
   rejectedActions?: ExternalActions<{
-    request?: Params;
+    request: Params | undefined;
     error: Err;
     state: State;
   }>;
