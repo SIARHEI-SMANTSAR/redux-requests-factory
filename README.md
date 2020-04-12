@@ -19,6 +19,8 @@ npm install redux-requests-factory --save
 
 [next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/next-js)
 
+[redux-observabl](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/create-react-app/with-redux-observable)
+
 ## Installation
 
 `redux-requests-factory` is available on [npm](https://www.npmjs.com/package/redux-requests-factory).
@@ -355,9 +357,9 @@ const {...} = requestsFactory({
 
 Full support TypeScript
 
-[TypeScript + create-react-app + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/create-react-app/simple)
+[TypeScript + create-react-app + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/create-react-app)
 
-[TypeScript + next.js + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/next-js/simple)
+[TypeScript + next.js + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/next-js)
 
 ## License
 
