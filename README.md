@@ -57,13 +57,64 @@ export default store;
 
 ## Usage
 
+```js
+import { requestsFactory } from 'redux-requests-factory';
+
+const loadUsersRequest = () =>
+  fetch('https://mysite.com/users').then(res => res.json());
+
+export const {
+  // actions
+  loadDataAction, // do request once (can be dispatched many times, but do request once)
+  forcedLoadDataAction, // do request every time (used when need reload data)
+  doRequestAction, // do request every time (used for create, update and delete requests)
+  cancelRequestAction, // cancel request
+  requestFulfilledAction, // dispatched when request fulfilled
+  requestRejectedAction, // dispatched when request rejected
+  setErrorAction, // set custom Error for this request (requestRejectedAction will be dispatched)
+  setResponseAction, // set response for this request (requestFulfilledAction will be dispatched)
+  resetRequestAction, // reset request data
+  // selectors
+  responseSelector, // return `response || []`
+  errorSelector, // return Error when request rejected or undefined
+  requestStatusSelector, // return request status ('none', 'loading', 'success', 'failed', 'canceled')
+  isLoadingSelector, // return true when request status === 'loading'
+  isLoadedSelector, // return true when request status === 'success'
+} = requestsFactory({
+  request: loadUsersRequest,
+  stateRequestKey: 'users',
+  transformResponse: (response) => response || [],
+});
+```
+
+```js
+import React from 'react';
+import { useSelector } from 'react-redux';
+import { isSomethingLoadingSelector } from 'redux-requests-factory';
+
+const App = () => {
+  const isSomethingLoading = useSelector(isSomethingLoadingSelector); // returns true when something loads
+
+  return (
+    <>
+      {isSomethingLoading ? <div>'Something Loading...'</div> : null}
+    </>
+  );
+}
+```
+
+## Example
+
 ### requests/users.js
+
+<details>
+  <summary>Click to expand example!</summary>
 
 ```js
 import { requestsFactory } from 'redux-requests-factory';
 
 const loadUsersRequest = () =>
-  fetch('https://jsonplaceholder.typicode.com/users').then(res => res.json());
+  fetch('https://mysite.com/users').then(res => res.json());
 
 export const {
   loadDataAction: loadUsersAction, // do request once
@@ -80,14 +131,19 @@ export const {
 });
 ```
 
+</details>
+
 ### requests/posts-by-user.js
+
+<details>
+  <summary>Click to expand example!</summary>
 
 ```js
 import { requestsFactory } from 'redux-requests-factory';
 
 const loadUserPostsRequest = ({ userId }) =>
   fetch(
-    `https://jsonplaceholder.typicode.com/posts?userId=${userId}`
+    `https://mysite.com/posts?userId=${userId}`
   ).then(res => res.json());
 
 export const {
@@ -104,7 +160,12 @@ export const {
 });
 ```
 
+</details>
+
 ### requests/add-post.js
+
+<details>
+  <summary>Click to expand example!</summary>
 
 ```js
 import { requestsFactory } from 'redux-requests-factory';
@@ -112,7 +173,7 @@ import { requestsFactory } from 'redux-requests-factory';
 import { setUserPostsAction, userPostsSelector } from './posts-by-user';
 
 const addPostRequest = ({ userId, title, body }) =>
-  fetch('https://jsonplaceholder.typicode.com/posts', {
+  fetch('https://mysite.com/posts', {
     method: 'POST',
     body: JSON.stringify({
       title,
@@ -144,7 +205,12 @@ export const {
 });
 ```
 
+</details>
+
 ### App.js
+
+<details>
+  <summary>Click to expand example!</summary>
 
 ```js
 import React, { useCallback, useEffect } from 'react';
@@ -293,17 +359,48 @@ const App = () => {
 export default App;
 ```
 
-## `requestsFactory` config
+</details>
+
+## Config `requestsFactory`
 
 ```js
 import { requestsFactory } from 'redux-requests-factory';
 
-const {...} = requestsFactory(config);
+const {...} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+  stateRequestKey: 'user',
+  serializeRequestParameters: ({ id }) => `${id}`,
+  // Debounce
+  useDebounce: true,
+  debounceWait: 500,
+  stringifyParamsForDebounce: ({ id }) => `${id}`,
+  debounceOptions: {
+    leading: true,
+    trailing: false,
+    maxWait: 500,
+  },
+  // Request rejected
+  transformError: (error) => error && error.message,
+  rejectedActions: [({ error, request: { id }, state }) => {
+    // return the actions that should be dispatched when request is rejected
+    return { type: 'SHOW_NOTIFICATION' }
+  }],
+  // Request fulfilled
+  transformResponse: (response) => response || {},
+  fulfilledActions: [({ response, request: { id }, state }) => {
+    // return the actions that should be dispatched when request is fulfilled
+    return { type: 'SHOW_NOTIFICATION' }
+  }],
+  // Loading
+  includeInGlobalLoading: true,
+});
 ```
 
 ### `config.request`
 
 `request` is **required** field, it is should be function that takes parameters (or not) and returns `Promise`
+
+with params:
 
 ```js
 const {
@@ -312,6 +409,7 @@ const {
   loadDataAction,
 } = requestsFactory({
   request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+  stateRequestKey: 'user',
 });
 
 doRequestAction({ id: 1 });
@@ -321,7 +419,7 @@ forcedLoadDataAction({ id: 1 });
 loadDataAction({ id: 1 });
 ```
 
-or
+or without params:
 
 ```js
 const {
@@ -330,6 +428,7 @@ const {
   loadDataAction,
 } = requestsFactory({
   request: () => fetch('https://mysite.com/api/users'),
+  stateRequestKey: 'users',
 });
 
 doRequestAction();
@@ -351,6 +450,32 @@ const {...} = requestsFactory({
 const {...} = requestsFactory({
   stateRequestKey: 'user-posts',
 });
+```
+
+### `config.serializeRequestParameters`
+
+`serializeRequestParameters` is **not required** field, it is should be function that takes parameters and returns `string`.
+
+When used `serializeRequestParameters` all selectors return function that takes parameters and returns selected value.
+
+```js
+const {
+  responseSelector,
+  errorSelector,
+  requestStatusSelector,
+  isLoadingSelector,
+  isLoadedSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+  stateRequestKey: 'user',
+  serializeRequestParameters: ({ id }) => `${id}`,
+});
+
+responseSelector(store)({ id: 1 });
+errorSelector(store)({ id: 1 });
+requestStatusSelector(store)({ id: 1 });
+isLoadingSelector(store)({ id: 1 });
+isLoadedSelector(store)({ id: 1 });
 ```
 
 ## TypeScript

@@ -197,7 +197,7 @@ const createActions = <
         }
         dispatchFulfilledActions(dispatch, {
           request: params,
-          response,
+          response, // TODO use transform response
           state: getState(),
         });
       }
