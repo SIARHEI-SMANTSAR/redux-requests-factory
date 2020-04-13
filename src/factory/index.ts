@@ -16,14 +16,14 @@ export const createRequestsFactory = <Key extends string>(
   ): RequestsFactoryItem<Resp, Err, Params, State, TransformedResp> => {
     const patchedConfig = patchConfig(config);
 
-    return {
-      ...createActions<Resp, Err, Params, State, TransformedResp, Key>(
+    return Object.assign(
+      createActions<Resp, Err, Params, State, TransformedResp, Key>(
         preparedConfig,
         patchedConfig
       ),
-      ...createSelectors<Resp, Err, Params, State, TransformedResp, Key>(
+      createSelectors<Resp, Err, Params, State, TransformedResp, Key>(
         preparedConfig,
         patchedConfig
-      ),
-    } as RequestsFactoryItem<Resp, Err, Params, State, TransformedResp>;
+      )
+    ) as RequestsFactoryItem<Resp, Err, Params, State, TransformedResp>;
   }) as RequestsFactory<Key>;

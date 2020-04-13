@@ -56,6 +56,9 @@ const createActions = <
     transformError = identity,
   } = factoryConfig;
 
+  let isRequestFulfilledActionNeeded = false;
+  let isRequestRejectedActionNeeded = false;
+
   let lastRequestNumber = 0;
 
   const doRequestMapByKey: DoRequestMapByKey = new Map();
@@ -113,6 +116,7 @@ const createActions = <
       type?: string;
       meta?: RequestActionMeta;
       payload?: Data;
+      toJSON?: () => string;
     },
     getPramsFromData: (data: Data) => Params
   ) => {
@@ -142,6 +146,7 @@ const createActions = <
       action.payload = data;
 
       action.toString = actionToString;
+      action.toJSON = actionToString;
 
       return action;
     };
@@ -187,7 +192,9 @@ const createActions = <
       const response = await request(params);
       if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
         dispatch(commonRequestSuccessAction(meta, response));
-        dispatch(requestFulfilledAction({ params, response }, meta));
+        if (isRequestFulfilledActionNeeded) {
+          dispatch(requestFulfilledAction({ params, response }, meta));
+        }
         dispatchFulfilledActions(dispatch, {
           request: params,
           response,
@@ -198,9 +205,11 @@ const createActions = <
       if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
         dispatch(commonRequestErrorAction(meta, error));
         const transformedError = transformError(error) as Err;
-        dispatch(
-          requestRejectedAction({ params, error: transformedError }, meta)
-        );
+        if (isRequestRejectedActionNeeded) {
+          dispatch(
+            requestRejectedAction({ params, error: transformedError }, meta)
+          );
+        }
         dispatchRejectedActions(dispatch, {
           request: params,
           error: transformedError,
@@ -256,73 +265,90 @@ const createActions = <
     }
   };
 
-  return {
-    doRequestAction: createAsyncAction(
-      `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
-      getDoRequestAction(),
-      identity
-    ),
-    forcedLoadDataAction: createAsyncAction(
-      `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
-      getDoRequestAction(),
-      identity
-    ),
-    loadDataAction: createAsyncAction(
-      `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
-      getDoRequestAction(false),
-      identity
-    ),
-    cancelRequestAction: createAsyncAction(
-      `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
-      ({ meta, requestKey }) => {
-        return ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-          if (cancelRequestInMap(doRequestMapByKey, requestKey)) {
-            dispatch(commonRequestCancelAction(meta));
+  return new Proxy(
+    {
+      doRequestAction: createAsyncAction(
+        `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
+        getDoRequestAction(),
+        identity
+      ),
+      forcedLoadDataAction: createAsyncAction(
+        `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
+        getDoRequestAction(),
+        identity
+      ),
+      loadDataAction: createAsyncAction(
+        `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
+        getDoRequestAction(false),
+        identity
+      ),
+      cancelRequestAction: createAsyncAction(
+        `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
+        ({ meta, requestKey }) => {
+          return ({ dispatch }: ActionPropsFromMiddleware<State>) => {
+            if (cancelRequestInMap(doRequestMapByKey, requestKey)) {
+              dispatch(commonRequestCancelAction(meta));
 
-            if (includeInGlobalLoading) {
-              dispatch(globalLoadingDecrementAction());
-            }
+              if (includeInGlobalLoading) {
+                dispatch(globalLoadingDecrementAction());
+              }
 
-            if (useDebounce) {
-              memoizedDoRequest = getMemoizedDoRequest();
+              if (useDebounce) {
+                memoizedDoRequest = getMemoizedDoRequest();
+              }
             }
-          }
-        };
+          };
+        },
+        identity
+      ),
+      setErrorAction: createAsyncAction(
+        `${FactoryActionTypes.SetError}/${stateRequestKey}`,
+        ({ meta, data: { error }, params }) => {
+          return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
+            dispatch(commonRequestErrorAction(meta, error));
+            if (isRequestRejectedActionNeeded) {
+              dispatch(requestRejectedAction({ params, error }, meta));
+            }
+          };
+        },
+        ({ params }) => params
+      ),
+      setResponseAction: createAsyncAction(
+        `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
+        ({ meta, data: { response }, params }) => {
+          return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
+            dispatch(commonRequestSuccessAction(meta, response));
+            if (isRequestFulfilledActionNeeded) {
+              dispatch(requestFulfilledAction({ params, response }, meta));
+            }
+          };
+        },
+        ({ params }) => params
+      ),
+      resetRequestAction: createAsyncAction(
+        `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
+        ({ meta }) => {
+          return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
+            dispatch(commonRequestResetAction(meta));
+          };
+        },
+        identity
+      ),
+      requestFulfilledAction,
+      requestRejectedAction,
+    } as RequestsFactoryItemActions<Resp, Err, Params>,
+    {
+      get(target: any, prop: any) {
+        if (prop === 'requestFulfilledAction') {
+          isRequestFulfilledActionNeeded = true;
+        }
+        if (prop === 'requestRejectedAction') {
+          isRequestRejectedActionNeeded = true;
+        }
+        return target[prop];
       },
-      identity
-    ),
-    setErrorAction: createAsyncAction(
-      `${FactoryActionTypes.SetError}/${stateRequestKey}`,
-      ({ meta, data: { error }, params }) => {
-        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-          dispatch(commonRequestErrorAction(meta, error));
-          dispatch(requestRejectedAction({ params, error }, meta));
-        };
-      },
-      ({ params }) => params
-    ),
-    setResponseAction: createAsyncAction(
-      `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
-      ({ meta, data: { response }, params }) => {
-        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-          dispatch(commonRequestSuccessAction(meta, response));
-          dispatch(requestFulfilledAction({ params, response }, meta));
-        };
-      },
-      ({ params }) => params
-    ),
-    resetRequestAction: createAsyncAction(
-      `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
-      ({ meta }) => {
-        return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-          dispatch(commonRequestResetAction(meta));
-        };
-      },
-      identity
-    ),
-    requestFulfilledAction,
-    requestRejectedAction,
-  } as RequestsFactoryItemActions<Resp, Err, Params>;
+    }
+  );
 };
 
 export default createActions;
