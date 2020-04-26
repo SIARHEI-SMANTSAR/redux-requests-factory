@@ -13,6 +13,14 @@ import {
 import registerRequestKey from './register-request-key';
 import { RESPONSES_STATE_KEY } from '../constants';
 
+export const actionToObject = function toObject(this: any) {
+  return {
+    type: this.type,
+    meta: this.meta,
+    payload: this.payload,
+  };
+};
+
 export const actionToString = function toString(this: any) {
   return JSON.stringify({
     type: this.type,

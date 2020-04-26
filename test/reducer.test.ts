@@ -19,7 +19,12 @@ describe('requestsReducer responses', () => {
       [IS_SOMETHING_LOADING_STATE_KEY]: {
         count: 0,
       },
-      [RESPONSES_STATE_KEY]: {},
+      [RESPONSES_STATE_KEY]: {
+        post: {
+          status: RequestsStatuses.Failed,
+          error: 'error',
+        },
+      },
     };
   });
 
@@ -36,6 +41,10 @@ describe('requestsReducer responses', () => {
       {
         users: {
           status: RequestsStatuses.Loading,
+        },
+        post: {
+          status: RequestsStatuses.Failed,
+          error: 'error',
         },
       },
     ],
@@ -54,6 +63,10 @@ describe('requestsReducer responses', () => {
           status: RequestsStatuses.Success,
           response: ['test'],
         },
+        post: {
+          status: RequestsStatuses.Failed,
+          error: 'error',
+        },
       },
     ],
     [
@@ -71,6 +84,10 @@ describe('requestsReducer responses', () => {
           status: RequestsStatuses.Failed,
           error: 'error',
         },
+        post: {
+          status: RequestsStatuses.Failed,
+          error: 'error',
+        },
       },
     ],
     [
@@ -85,6 +102,10 @@ describe('requestsReducer responses', () => {
       {
         posts: {
           status: RequestsStatuses.Canceled,
+        },
+        post: {
+          status: RequestsStatuses.Failed,
+          error: 'error',
         },
       },
     ],
@@ -108,6 +129,24 @@ describe('requestsReducer responses', () => {
     [
       // action
       {
+        type: CommonActionTypes.RequestSuccess,
+        meta: {
+          key: 'post',
+        },
+        payload: { response: ['test'] },
+      },
+      // expected state
+      {
+        post: {
+          status: RequestsStatuses.Success,
+          response: ['test'],
+          error: undefined,
+        },
+      },
+    ],
+    [
+      // action
+      {
         type: CommonActionTypes.RequestStart,
         meta: {
           key: 'user',
@@ -120,6 +159,10 @@ describe('requestsReducer responses', () => {
           '25': {
             status: RequestsStatuses.Loading,
           },
+        },
+        post: {
+          status: RequestsStatuses.Failed,
+          error: 'error',
         },
       },
     ],

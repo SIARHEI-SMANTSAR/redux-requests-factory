@@ -30,6 +30,7 @@ import {
   isRequestCanceled,
   deleteRequestFromMap,
   cancelRequestInMap,
+  actionToObject,
 } from './helpers';
 
 const createActions = <
@@ -117,6 +118,11 @@ const createActions = <
       meta?: RequestActionMeta;
       payload?: Data;
       toJSON?: () => string;
+      toObject?: () => {
+        type: string;
+        meta?: RequestActionMeta;
+        payload?: Data;
+      };
     },
     getPramsFromData: (data: Data) => Params
   ) => {
@@ -147,6 +153,7 @@ const createActions = <
 
       action.toString = actionToString;
       action.toJSON = actionToString;
+      action.toObject = actionToObject;
 
       return action;
     };

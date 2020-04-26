@@ -64,6 +64,7 @@ export const createRequestsReducer = <Key>(
       return getNewRequestsState(state, action.meta, {
         status: RequestsStatuses.Success,
         response: action.payload.response,
+        error: undefined,
       });
     case CommonActionTypes.RequestError:
       return getNewRequestsState(state, action.meta, {
@@ -80,6 +81,7 @@ export const createRequestsReducer = <Key>(
         response: undefined,
         error: undefined,
       });
+
     case GlobalActionTypes.LoadingIncrement:
       return {
         ...state,
