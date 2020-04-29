@@ -11,6 +11,66 @@ npm install redux-requests-factory
 npm install redux-requests-factory --save
 ```
 
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Redux Requests Factory](#redux-requests-factory)
+  - [Table of Contents](#table-of-contents)
+  - [Examples](#examples)
+  - [Installation](#installation)
+    - [store.js](#storejs)
+  - [Usage](#usage)
+  - [Example](#example)
+    - [requests/users.js](#requestsusersjs)
+    - [requests/posts-by-user.js](#requestsposts-by-userjs)
+    - [requests/add-post.js](#requestsadd-postjs)
+    - [App.js](#appjs)
+  - [Requests Factory Config](#requests-factory-config)
+    - [Required](#required)
+      - [`config.request`](#configrequest)
+      - [`config.stateRequestKey`](#configstaterequestkey)
+    - [Serialize](#serialize)
+      - [`config.serializeRequestParameters`](#configserializerequestparameters)
+    - [Debounce](#debounce)
+      - [`config.useDebounce`](#configusedebounce)
+      - [`config.debounceWait`](#configdebouncewait)
+      - [`config.debounceOptions`](#configdebounceoptions)
+      - [`config.stringifyParamsForDebounce`](#configstringifyparamsfordebounce)
+    - [Transform](#transform)
+      - [`config.transformError`](#configtransformerror)
+      - [`config.transformResponse`](#configtransformresponse)
+    - [Actions](#actions)
+      - [`config.rejectedActions`](#configrejectedactions)
+      - [`config.fulfilledActions`](#configfulfilledactions)
+    - [Global Loading](#global-loading)
+      - [`config.includeInGlobalLoading`](#configincludeingloballoading)
+  - [Requests Factory Instance](#requests-factory-instance)
+    - [Requests Factory Instance Actions](#requests-factory-instance-actions)
+      - [`loadDataAction`](#loaddataaction)
+      - [`forcedLoadDataAction`](#forcedloaddataaction)
+      - [`doRequestAction`](#dorequestaction)
+      - [`cancelRequestAction`](#cancelrequestaction)
+      - [`requestFulfilledAction`](#requestfulfilledaction)
+      - [`requestRejectedAction`](#requestrejectedaction)
+      - [`setErrorAction`](#seterroraction)
+      - [`setResponseAction`](#setresponseaction)
+      - [`resetRequestAction`](#resetrequestaction)
+    - [Selectors](#selectors)
+      - [`responseSelector`](#responseselector)
+      - [`errorSelector`](#errorselector)
+      - [`requestStatusSelector`](#requeststatusselector)
+      - [`isLoadingSelector`](#isloadingselector)
+      - [`isLoadedSelector`](#isloadedselector)
+  - [Global Selectors](#global-selectors)
+    - [`isSomethingLoadingSelector`](#issomethingloadingselector)
+  - [Create Redux Requests Factory](#create-redux-requests-factory)
+  - [TypeScript](#typescript)
+  - [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Examples
 
 [All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples)
@@ -75,11 +135,11 @@ export const {
   setResponseAction, // set response for this request (requestFulfilledAction will be dispatched)
   resetRequestAction, // reset request data
   // selectors
-  responseSelector, // return `response || []`
-  errorSelector, // return Error when request rejected or undefined
-  requestStatusSelector, // return request status ('none', 'loading', 'success', 'failed', 'canceled')
-  isLoadingSelector, // return true when request status === 'loading'
-  isLoadedSelector, // return true when request status === 'success'
+  responseSelector, // returns `response || []`
+  errorSelector, // returns Error when request rejected or undefined
+  requestStatusSelector, // returns request status ('none', 'loading', 'success', 'failed', 'canceled')
+  isLoadingSelector, // returns true when request status === 'loading'
+  isLoadedSelector, // returns true when request status === 'success'
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
@@ -361,13 +421,13 @@ export default App;
 
 </details>
 
-## Config `requestsFactory`
+## Requests Factory Config
 
 ```js
 import { requestsFactory } from 'redux-requests-factory';
 
 const {...} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
   serializeRequestParameters: ({ id }) => `${id}`,
   // Debounce
@@ -396,7 +456,9 @@ const {...} = requestsFactory({
 });
 ```
 
-### `config.request`
+### Required
+
+#### `config.request`
 
 `request` is **required** field, it is should be function that takes parameters (or not) and returns `Promise`
 
@@ -408,7 +470,7 @@ const {
   forcedLoadDataAction,
   loadDataAction,
 } = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -427,7 +489,7 @@ const {
   forcedLoadDataAction,
   loadDataAction,
 } = requestsFactory({
-  request: () => fetch('https://mysite.com/api/users'),
+  request: () => fetch('https://mysite.com/api/users').then(res => res.json()),
   stateRequestKey: 'users',
 });
 
@@ -438,7 +500,7 @@ forcedLoadDataAction();
 loadDataAction();
 ```
 
-### `config.stateRequestKey`
+#### `config.stateRequestKey`
 
 `stateRequestKey` is **required** field, it is should be unique string key between all requests
 
@@ -452,30 +514,527 @@ const {...} = requestsFactory({
 });
 ```
 
-### `config.serializeRequestParameters`
+### Serialize
+
+#### `config.serializeRequestParameters`
 
 `serializeRequestParameters` is **not required** field, it is should be function that takes parameters and returns `string`.
 
 When used `serializeRequestParameters` all selectors return function that takes parameters and returns selected value.
+When used `serializeRequestParameters` params are required for all actions.
 
 ```js
 const {
+  loadDataAction,
+  forcedLoadDataAction,
+  doRequestAction,
+  cancelRequestAction,
+  requestFulfilledAction,
+  requestRejectedAction,
+  setErrorAction,
+  setResponseAction,
+  resetRequestAction,
+
   responseSelector,
   errorSelector,
   requestStatusSelector,
   isLoadingSelector,
   isLoadedSelector,
 } = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`),
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
   serializeRequestParameters: ({ id }) => `${id}`,
 });
+
+loadDataAction({ id: 1 });
+forcedLoadDataAction({ id: 1 });
+doRequestAction({ id: 1 });
+cancelRequestAction({ id: 1 });
+setErrorAction({
+  error: new Error(),
+  params: { id: 1 },
+});
+setResponseAction({
+  response: { id: 1, name: 'Name' },
+  params: { id: 1 },
+});
+resetRequestAction({ id: 1 });
 
 responseSelector(store)({ id: 1 });
 errorSelector(store)({ id: 1 });
 requestStatusSelector(store)({ id: 1 });
 isLoadingSelector(store)({ id: 1 });
 isLoadedSelector(store)({ id: 1 });
+```
+
+### Debounce
+
+#### `config.useDebounce`
+
+`useDebounce` is **not required** field, default value - `false`.
+
+When `useDebounce: true` requestsFactory creates debounced actions `doRequestAction`, `forcedLoadDataAction` and `loadDataAction` that delays dispatch action with **same params** until after wait `config.debounceWait` milliseconds have elapsed since the last time the debounced action was dispatched.
+Detect same params helps `config.stringifyParamsForDebounce`.
+For debounce used [lodash.debounce](https://lodash.com/docs/4.17.15#debounce)  and you can use own debounce options `config.debounceOptions`.
+
+```js
+const {...} = requestsFactory({
+  useDebounce: true,
+});
+```
+
+#### `config.debounceWait`
+
+`debounceWait` is **not required** field, default value - `500`.
+Used when `config.useDebounce: true`.
+
+```js
+const {...} = requestsFactory({
+  debounceWait: 300,
+});
+```
+
+#### `config.debounceOptions`
+
+`debounceOptions` is **not required** field, default value:
+
+```js
+{
+  leading: true,
+  trailing: false,
+  maxWait: config.debounceWait,
+}
+```
+
+It is options for [lodash.debounce](https://lodash.com/docs/4.17.15#debounce).
+Used when `config.useDebounce: true`.
+
+```js
+const {...} = requestsFactory({
+  debounceOptions: {
+    leading: true,
+    trailing: false,
+    maxWait: 300,
+  },
+});
+```
+
+#### `config.stringifyParamsForDebounce`
+
+`stringifyParamsForDebounce` is **not required** field, default value - `JSON.stringify`. It is should be function that takes parameters and returns `string`.
+Used when `config.useDebounce: true`.
+
+```js
+const {...} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+  stringifyParamsForDebounce: ({ id }) => `${id}`,
+});
+```
+
+### Transform
+
+#### `config.transformError`
+
+`transformError` is **not required** field, it is should be function that takes request `error` or `undefined` and returns transformed `error` or `undefined`. `transformError` used for `errorSelector`.
+
+```js
+const {
+  errorSelector,
+} = requestsFactory({
+  transformError: (error) => error && `Error: ${error.message}`,
+});
+
+errorSelector(state); // undefined  or `Error: ${error.message}`
+```
+
+#### `config.transformResponse`
+
+`transformResponse` is **not required** field, it is should be function that takes request `response` or `undefined` and returns transformed `response`. `transformResponse` used for `responseSelector`. Better use `transformResponse` for setting default value.
+
+NOTE: For best performance, do not use `transformResponse` with `serializeRequestParameters` for expensive transformations. For all expensive transforms better use [reselect](https://www.npmjs.com/package/reselect).
+
+```js
+const {
+  responseSelector,
+} = requestsFactory({
+  transformResponse: (response) => response || [],,
+});
+
+responseSelector(state); // []
+```
+
+### Actions
+
+#### `config.rejectedActions`
+
+`rejectedActions` is **not required** field, default value - `[]`. It is should be array with actions or with functions that takes object `{ error, request, state }` as parameter and returns `action` or `[action, action, ...]` that will be dispatched when request is rejected.
+
+```js
+const {...} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+  rejectedActions: [
+    { type: 'SHOW_NOTIFICATION' }, // simple action
+    ({ error, request: { id }, state }) => {
+      // ...
+      return id === 1 ? { type: 'SHOW_ERROR' } : null;
+    }, // function that returns an action or null
+    ({ error, request: { id }, state }) => {
+      // ...
+      return [{ type: 'SHOW_ERROR' }, (id === 1 ? { type: 'SHOW_ERROR' } : null) ];
+    }, // function that returns an array with actions or null
+  ],
+});
+```
+
+#### `config.fulfilledActions`
+
+`fulfilledActions` is **not required** field, default value - `[]`. It is should be array with actions or with functions that takes object `{ response, request, state }` as parameter and returns `action` or `[action, action, ...]` that will be dispatched when request is fulfilled.
+
+```js
+const {...} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+  fulfilledActions: [
+    { type: 'SHOW_NOTIFICATION' }, // simple action
+    ({ response, request: { id }, state }) => {
+      // ...
+      return !response ? { type: 'SHOW_ERROR' } : null;
+    }, // function that returns an action or null
+    ({ response, request: { id }, state }) => {
+      // ...
+      return [{ type: 'SHOW_NOTIFICATION' }, (!response ? { type: 'SHOW_ERROR' } : null) ];
+    }, // function that returns an array with actions or null
+  ],
+});
+```
+
+### Global Loading
+
+#### `config.includeInGlobalLoading`
+
+`includeInGlobalLoading` is **not required** field, default value - `true`. It is should be boolean.
+When `includeInGlobalLoading: true` and request is loading, global `isSomethingLoadingSelector` will be return `true`. If `includeInGlobalLoading: false` you can use `isLoadingSelector`
+
+```js
+import { isSomethingLoadingSelector } from 'redux-requests-factory';
+
+const {
+  isLoadingSelector,
+} = requestsFactory({
+  includeInGlobalLoading: false,
+});
+```
+
+## Requests Factory Instance
+
+```js
+import { requestsFactory } from 'redux-requests-factory';
+
+export const {
+  // actions
+  loadDataAction, // do request once (can be dispatched many times, but do request once)
+  forcedLoadDataAction, // do request every time (used when need reload data)
+  doRequestAction, // do request every time (used for create, update and delete requests)
+  cancelRequestAction, // cancel request
+  requestFulfilledAction, // dispatched when request fulfilled
+  requestRejectedAction, // dispatched when request rejected
+  setErrorAction, // set custom Error for this request (requestRejectedAction will be dispatched)
+  setResponseAction, // set response for this request (requestFulfilledAction will be dispatched)
+  resetRequestAction, // reset request data
+  // selectors
+  responseSelector, // returns `response || []`
+  errorSelector, // returns Error when request rejected or undefined
+  requestStatusSelector, // returns request status ('none', 'loading', 'success', 'failed', 'canceled')
+  isLoadingSelector, // returns true when request status === 'loading'
+  isLoadedSelector, // returns true when request status === 'success'
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+  transformResponse: (response) => response || [],
+});
+```
+
+### Requests Factory Instance Actions
+
+#### `loadDataAction`
+
+`loadDataAction` do request once (can be dispatched many times, but do request once)
+
+```js
+export const {
+  loadDataAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(loadDataAction({ id: 1 }));
+```
+
+#### `forcedLoadDataAction`
+
+`forcedLoadDataAction` do request every time (used when need reload data)
+
+```js
+export const {
+  forcedLoadDataAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(forcedLoadDataAction({ id: 1 }));
+```
+
+#### `doRequestAction`
+
+`doRequestAction` do request every time (used for create, update and delete requests)
+
+```js
+export const {
+  doRequestAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(doRequestAction({ id: 1 }));
+```
+
+#### `cancelRequestAction`
+
+`cancelRequestAction` cancel active request
+
+```js
+export const {
+  cancelRequestAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(cancelRequestAction());
+```
+
+#### `requestFulfilledAction`
+
+`requestFulfilledAction` dispatched with `payload: { params, response }` when request fulfilled. Can be used for subscriptions ([redux-observable](https://www.npmjs.com/package/redux-observable), [redux-saga](https://www.npmjs.com/package/redux-saga)).
+
+```js
+import { ofType } from 'redux-observable';
+
+export const {
+  requestFulfilledAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+const loadUserFulfilledEpic = (action$, state$) =>
+  action$.pipe(
+    ofType(requestFulfilledAction),
+    tap(({ payload: { params: { id }, response } }) => {
+      alert(`User ${id} is loaded`);
+    }),
+    ignoreElements()
+  );
+```
+
+#### `requestRejectedAction`
+
+`requestRejectedAction` dispatched with `payload: { params, error }` when request rejected. Can be used for subscriptions ([redux-observable](https://www.npmjs.com/package/redux-observable), [redux-saga](https://www.npmjs.com/package/redux-saga)).
+
+```js
+import { ofType } from 'redux-observable';
+
+export const {
+  requestRejectedAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+const loadUserRejectedEpic = (action$, state$) =>
+  action$.pipe(
+    ofType(requestRejectedAction),
+    tap(({ payload: { params: { id }, error } }) => {
+      alert(`User ${id} is not loaded`);
+    }),
+    ignoreElements()
+  );
+```
+
+#### `setErrorAction`
+
+`setErrorAction` set custom Error for this request (`requestRejectedAction` will be dispatched)
+
+```js
+export const {
+  setErrorAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(setErrorAction({ error: 'some error' }));
+```
+
+#### `setResponseAction`
+
+`setResponseAction` set response for this request (`requestFulfilledAction` will be dispatched)
+
+```js
+export const {
+  setResponseAction,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(setResponseAction({ response: { id: 1, name: 'Name' } }));
+```
+
+#### `resetRequestAction`
+
+`resetRequestAction` reset request data. Set `undefined` to `response` and `error`, and set `RequestsStatuses.None` to `status`.
+
+```js
+export const {
+  resetRequestAction,
+  responseSelector,
+  errorSelector,
+  requestStatusSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+dispatch(resetRequestAction());
+
+responseSelector(state); // undefined
+errorSelector(state); // undefined
+requestStatusSelector(state); // RequestsStatuses.None
+```
+
+### Selectors
+
+#### `responseSelector`
+
+`responseSelector` returns `response` when request fulfilled or `undefined`
+
+```js
+export const {
+  responseSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+responseSelector(state);
+```
+
+#### `errorSelector`
+
+`errorSelector` returns `Error` when request rejected or `undefined`
+
+```js
+export const {
+  errorSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+errorSelector(state);
+```
+
+#### `requestStatusSelector`
+
+`requestStatusSelector` returns request `status` (`RequestsStatuses.None`, `RequestsStatuses.Loading`, `RequestsStatuses.Success`, `RequestsStatuses.Failed`, `RequestsStatuses.Canceled`)
+
+```js
+import { RequestsStatuses } from 'redux-requests-factory';
+
+export const {
+  requestStatusSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+requestStatusSelector(state) === RequestsStatuses.None;
+```
+
+#### `isLoadingSelector`
+
+`isLoadingSelector` returns true when request `status === RequestsStatuses.Loading`
+
+```js
+export const {
+  isLoadingSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+isLoadingSelector(state);
+```
+
+#### `isLoadedSelector`
+
+`isLoadedSelector` returns true when request `status === RequestsStatuses.Success`
+
+```js
+export const {
+  isLoadedSelector,
+} = requestsFactory({
+  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  stateRequestKey: 'user',
+});
+
+isLoadedSelector(state);
+```
+
+## Global Selectors
+
+### `isSomethingLoadingSelector`
+
+`isSomethingLoadingSelector` returns `true` when something loads
+
+```js
+import { isSomethingLoadingSelector } from 'redux-requests-factory';
+
+isSomethingLoadingSelector(state);
+```
+
+## Create Redux Requests Factory
+
+Used if you need more than one instance of `createReduxRequestsFactory`
+
+```js
+import createReduxRequestsFactory from 'redux-requests-factory';
+
+export const {
+  stateRequestsKey, // 'api-key-one'
+  createRequestsFactoryMiddleware, // Middleware for 'api-key-one'
+  requestsFactory, // requestsFactory for 'api-key-one'
+  requestsReducer, // requestsReducer for 'api-key-one'
+  isSomethingLoadingSelector, // isSomethingLoadingSelector for 'api-key-one'
+} = createReduxRequestsFactory({
+  stateRequestsKey: 'api-key-one',
+});
+
+export const {
+  stateRequestsKey, // 'api-key-two'
+  createRequestsFactoryMiddleware, // Middleware for 'api-key-two'
+  requestsFactory, // requestsFactory for 'api-key-two'
+  requestsReducer, // requestsReducer for 'api-key-two'
+  isSomethingLoadingSelector, // isSomethingLoadingSelector for 'api-key-two'
+} = createReduxRequestsFactory({
+  stateRequestsKey: 'api-key-two',
+});
 ```
 
 ## TypeScript

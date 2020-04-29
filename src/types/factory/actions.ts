@@ -209,14 +209,14 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
     };
   };
   cancelRequestAction: RequestFactoryActionCommon & {
-    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
-      payload: Params;
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
       toObject(): {
         type: string;
         meta: {
           key: string;
         };
-        payload: Params;
+        payload?: Params;
       };
     };
   };
@@ -266,11 +266,11 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   setResponseAction: RequestFactoryActionCommon & {
     (data: {
       response: Resp;
-      params: Params;
+      params?: Params;
     }): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: {
         response: Resp;
-        params: Params;
+        params?: Params;
       };
       toObject(): {
         type: string;
@@ -279,20 +279,20 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
         };
         payload: {
           response: Resp;
-          params: Params;
+          params?: Params;
         };
       };
     };
   };
   resetRequestAction: RequestFactoryActionCommon & {
-    (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
-      payload: Params;
+    (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
+      payload?: Params;
       toObject(): {
         type: string;
         meta: {
           key: string;
         };
-        payload: Params;
+        payload?: Params;
       };
     };
   };
