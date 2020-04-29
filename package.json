@@ -1,6 +1,6 @@
 {
   "name": "redux-requests-factory",
-  "version": "0.0.22",
+  "version": "1.0.0",
   "description": "Redux requests factory",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -8,7 +8,6 @@
   "files": [
     "dist"
   ],
-  "sideEffects": false,
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
@@ -18,7 +17,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "tsdx lint"
+      "pre-commit": "tsdx lint && tsdx test"
     }
   },
   "prettier": {
@@ -49,17 +48,17 @@
   "bugs": {
     "url": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/issues"
   },
-  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop#readme",
+  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory#readme",
   "peerDependencies": {
     "redux": "^4"
   },
   "devDependencies": {
-    "@types/jest": "^25.1.3",
+    "@types/jest": "^25.2.1",
     "@types/lodash.debounce": "^4.0.6",
     "@types/lodash.memoize": "^4.1.6",
-    "husky": "^4.2.3",
+    "husky": "^4.2.5",
     "redux": "^4",
-    "tsdx": "^0.12.3",
+    "tsdx": "^0.13.2",
     "tslib": "^1.11.1",
     "typescript": "^3.8.3"
   },
