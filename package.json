@@ -1,0 +1,70 @@
+{
+  "name": "redux-requests-factory",
+  "version": "1.0.0",
+  "description": "Redux requests factory",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "module": "dist/mylib.esm.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint && tsdx test"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SIARHEI-SMANTSAR/redux-requests-factory.git"
+  },
+  "keywords": [
+    "redux",
+    "api",
+    "middleware",
+    "requests",
+    "requests-factory",
+    "api-factory",
+    "redux-middleware",
+    "flux"
+  ],
+  "author": {
+    "name": "Siarhei Smantsar",
+    "email": "siarhei.smantsar@gmail.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/issues"
+  },
+  "homepage": "https://github.com/SIARHEI-SMANTSAR/redux-requests-factory#readme",
+  "peerDependencies": {
+    "redux": "^4"
+  },
+  "devDependencies": {
+    "@types/jest": "^25.2.1",
+    "@types/lodash.debounce": "^4.0.6",
+    "@types/lodash.memoize": "^4.1.6",
+    "husky": "^4.2.5",
+    "redux": "^4",
+    "tsdx": "^0.13.2",
+    "tslib": "^1.11.1",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "lodash.debounce": "^4.0.8",
+    "lodash.memoize": "^4.1.2",
+    "reselect": "^4.0.0"
+  }
+}
