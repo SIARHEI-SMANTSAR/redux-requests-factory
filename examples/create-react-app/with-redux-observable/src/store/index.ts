@@ -17,7 +17,7 @@ const logger = createLogger({ collapsed: true });
 const { middleware } = createRequestsFactoryMiddleware();
 const epicMiddleware = createEpicMiddleware();
 
-const reduxMiddleware = applyMiddleware(logger, middleware, epicMiddleware);
+const reduxMiddleware = applyMiddleware(middleware, epicMiddleware, logger);
 
 const store = createStore(reducer, reduxMiddleware);
 

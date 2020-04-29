@@ -117,16 +117,22 @@ const createActions = <
       type?: string;
       meta?: RequestActionMeta;
       payload?: Data;
-      toJSON?: () => string;
-      toObject?: () => {
-        type: string;
-        meta?: RequestActionMeta;
-        payload?: Data;
-      };
+      toString?(): string;
+      toJSON?(): string;
+      toObject?(): any;
     },
     getPramsFromData: (data: Data) => Params
   ) => {
-    const asyncAction = (data: Data) => {
+    const asyncAction = (
+      data: Data
+    ): {
+      type: string;
+      meta: RequestActionMeta;
+      payload?: Data;
+      toString(): string;
+      toJSON(): string;
+      toObject(): any;
+    } => {
       const params: Params = getPramsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
@@ -155,7 +161,14 @@ const createActions = <
       action.toJSON = actionToString;
       action.toObject = actionToObject;
 
-      return action;
+      return action as {
+        type: string;
+        meta: RequestActionMeta;
+        payload?: Data;
+        toString(): string;
+        toJSON(): string;
+        toObject(): any;
+      };
     };
 
     asyncAction.type = type;

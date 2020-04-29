@@ -14,7 +14,7 @@ export const createRequestsFactory = <Key extends string>(
   (<Resp, Err, Params, State, TransformedResp = Resp>(
     config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
   ): RequestsFactoryItem<Resp, Err, Params, State, TransformedResp> => {
-    const patchedConfig = patchConfig(config);
+    const patchedConfig = patchConfig(config, preparedConfig);
 
     return Object.assign(
       createActions<Resp, Err, Params, State, TransformedResp, Key>(

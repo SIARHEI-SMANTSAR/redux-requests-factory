@@ -31,7 +31,7 @@ const makeStore: MakeStore = (
 ): StoreWithAsyncRequests => {
   const logger = createLogger({ collapsed: true });
   const { middleware, toPromise } = createRequestsFactoryMiddleware();
-  const reduxMiddleware = applyMiddleware(logger, middleware);
+  const reduxMiddleware = applyMiddleware(middleware, logger);
 
   const store = createStore(reducer, initialState, reduxMiddleware);
 

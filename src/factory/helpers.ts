@@ -10,7 +10,6 @@ import {
   RequestFactoryConfigWithTransformResponse,
   DoRequestMapByKey,
 } from '../types';
-import registerRequestKey from './register-request-key';
 import { RESPONSES_STATE_KEY } from '../constants';
 
 export const actionToObject = function toObject(this: any) {
@@ -112,11 +111,12 @@ export const memoizeDebounce = function<
   } as Func;
 };
 
-export const patchConfig = <Resp, Err, Params, State, TransformedResp>(
-  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
+export const patchConfig = <Resp, Err, Params, State, TransformedResp, Key>(
+  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>,
+  preparedConfig: PreparedConfig<Key>
 ): RequestFactoryConfig<Resp, Err, Params, State, TransformedResp> => ({
   ...config,
-  stateRequestKey: registerRequestKey(config.stateRequestKey),
+  stateRequestKey: preparedConfig.registerRequestKey(config.stateRequestKey),
 });
 
 export const isNeedLoadData = <State, Key extends string>(

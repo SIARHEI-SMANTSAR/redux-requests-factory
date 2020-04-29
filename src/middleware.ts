@@ -8,10 +8,12 @@ import {
 import { isFactoryAction } from './factory/helpers';
 
 export const getCreateRequestsFactoryMiddleware = <Key>(
-  _config: PreparedConfig<Key>
+  config: PreparedConfig<Key>
 ): CreateRequestsFactoryMiddleware => (
   middlewareConfig: MiddlewareConfig = {}
 ) => {
+  config.resetRegisterRequestKey();
+
   const actions: Set<Promise<void>> = new Set();
 
   const middleware: Middleware = ({
@@ -19,6 +21,8 @@ export const getCreateRequestsFactoryMiddleware = <Key>(
     getState,
   }) => next => async action => {
     if (typeof action === 'function' && isFactoryAction(action.type)) {
+      next(action.toObject());
+
       const asyncAction = action({ dispatch, getState, middlewareConfig });
 
       actions.add(asyncAction);

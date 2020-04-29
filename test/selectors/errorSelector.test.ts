@@ -5,7 +5,9 @@ import {
   RESPONSES_STATE_KEY,
 } from '../../src/constants';
 
-jest.mock('../../src/factory/register-request-key', () => (key: string) => key);
+jest.mock('../../src/create-register-request-key', () => () => ({
+  registerRequestKey: (key: string) => key,
+}));
 
 describe('errorSelector', () => {
   it('when request status is Failed', () => {

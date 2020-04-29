@@ -23,6 +23,8 @@ export interface RequestFactoryActionCommonWithSerializeReturnType {
     key: string;
     serializedKey: string;
   };
+  toString(): string;
+  toJSON(): string;
 }
 
 export interface RequestFactoryActionCommonWithoutSerializeReturnType {
@@ -30,6 +32,8 @@ export interface RequestFactoryActionCommonWithoutSerializeReturnType {
   meta: {
     key: string;
   };
+  toString(): string;
+  toJSON(): string;
 }
 
 export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
@@ -40,21 +44,49 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   doRequestAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload?: Params;
+      };
     };
   };
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload?: Params;
+      };
     };
   };
   loadDataAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload?: Params;
+      };
     };
   };
   cancelRequestAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload?: Params;
+      };
     };
   };
   requestFulfilledAction: RequestFactoryActionCommon & {
@@ -88,6 +120,16 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
         error: Err;
         params?: Params;
       };
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: {
+          error: Err;
+          params?: Params;
+        };
+      };
     };
   };
   setResponseAction: RequestFactoryActionCommon & {
@@ -99,11 +141,28 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
         response: Resp;
         params?: Params;
       };
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: {
+          response: Resp;
+          params?: Params;
+        };
+      };
     };
   };
   resetRequestAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload?: Params;
+      };
     };
   };
 };
@@ -116,21 +175,49 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   doRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: Params;
+      };
     };
   };
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: Params;
+      };
     };
   };
   loadDataAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: Params;
+      };
     };
   };
   cancelRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: Params;
+      };
     };
   };
   requestFulfilledAction: RequestFactoryActionCommon & {
@@ -164,6 +251,16 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
         error: Err;
         params: Params;
       };
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: {
+          error: Err;
+          params: Params;
+        };
+      };
     };
   };
   setResponseAction: RequestFactoryActionCommon & {
@@ -175,11 +272,28 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
         response: Resp;
         params: Params;
       };
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: {
+          response: Resp;
+          params: Params;
+        };
+      };
     };
   };
   resetRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+        };
+        payload: Params;
+      };
     };
   };
 };
@@ -192,21 +306,53 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   doRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: Params;
+      };
     };
   };
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: Params;
+      };
     };
   };
   loadDataAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: Params;
+      };
     };
   };
   cancelRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: Params;
+      };
     };
   };
   requestFulfilledAction: RequestFactoryActionCommon & {
@@ -240,6 +386,17 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
         error: Err;
         params: Params;
       };
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: {
+          error: Err;
+          params: Params;
+        };
+      };
     };
   };
   setResponseAction: RequestFactoryActionCommon & {
@@ -251,11 +408,30 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
         response: Resp;
         params: Params;
       };
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: {
+          response: Resp;
+          params: Params;
+        };
+      };
     };
   };
   resetRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
+      toObject(): {
+        type: string;
+        meta: {
+          key: string;
+          serializedKey: string;
+        };
+        payload: Params;
+      };
     };
   };
 };
