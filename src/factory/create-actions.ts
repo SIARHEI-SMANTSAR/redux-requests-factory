@@ -101,6 +101,7 @@ const createActions = <
 
     syncAction.type = type;
     syncAction.toString = () => type;
+    syncAction.getType = () => type;
 
     return syncAction;
   };
@@ -173,6 +174,7 @@ const createActions = <
 
     asyncAction.type = type;
     asyncAction.toString = () => type;
+    asyncAction.getType = () => type;
 
     return asyncAction;
   };

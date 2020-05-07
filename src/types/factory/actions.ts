@@ -15,6 +15,7 @@ export enum FactoryActionTypes {
 export interface RequestFactoryActionCommon {
   type: string;
   toString(): string;
+  getType(): string;
 }
 
 export interface RequestFactoryActionCommonWithSerializeReturnType {
