@@ -66,6 +66,7 @@ npm install redux-requests-factory --save
   - [Global Selectors](#global-selectors)
     - [`isSomethingLoadingSelector`](#issomethingloadingselector)
   - [Create Redux Requests Factory](#create-redux-requests-factory)
+  - [SSR](#ssr)
   - [TypeScript](#typescript)
   - [License](#license)
 
@@ -73,13 +74,13 @@ npm install redux-requests-factory --save
 
 ## Examples
 
-[All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples)
+[All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples)
 
-[create-react-app](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/create-react-app)
+[create-react-app](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
 
-[next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/next-js)
+[next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
 
-[redux-observabl](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/create-react-app/with-redux-observable)
+[redux-observabl](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable)
 
 ## Installation
 
@@ -512,6 +513,25 @@ const {...} = requestsFactory({
 const {...} = requestsFactory({
   stateRequestKey: 'user-posts',
 });
+
+// Now the state is like here
+// state = {
+//   [stateRequestsKey]: {
+//     responses: {
+//       users: {
+//         status: RequestsStatuses.None,
+//         response: undefined,
+//         error: undefined,
+//       },
+//       'user-posts': {
+//         status: RequestsStatuses.None,
+//         response: undefined,
+//         error: undefined,
+//       },
+//     },
+//   },
+// };
+
 ```
 
 ### Serialize
@@ -565,6 +585,36 @@ errorSelector(store)({ id: 1 });
 requestStatusSelector(store)({ id: 1 });
 isLoadingSelector(store)({ id: 1 });
 isLoadedSelector(store)({ id: 1 });
+
+
+// loadDataAction({ id: 1 });
+// loadDataAction({ id: 2 });
+// loadDataAction({ id: 3 });
+//
+// Now the state is like here
+// state = {
+//   [stateRequestsKey]: {
+//     responses: {
+//       user: {
+//         '1': {
+//           status: RequestsStatuses.Loading,
+//           response: undefined,
+//           error: undefined,
+//         },
+//         '2': {
+//           status: RequestsStatuses.Loading,
+//           response: undefined,
+//           error: undefined,
+//         },
+//         '3': {
+//           status: RequestsStatuses.Loading,
+//           response: undefined,
+//           error: undefined,
+//         },
+//       },
+//     },
+//   },
+// };
 ```
 
 ### Debounce
@@ -1037,13 +1087,42 @@ export const {
 });
 ```
 
+## SSR
+
+`store.js`
+
+```js
+const makeStore = (initialState) => {
+  const { middleware, toPromise } = createRequestsFactoryMiddleware();
+  const reduxMiddleware = applyMiddleware(middleware);
+
+  const store = createStore(reducer, initialState, reduxMiddleware);
+
+  store.asyncRequests = toPromise;
+
+  return store;
+};
+```
+
+`app.js`
+
+```js
+const loadData = async ({ isServer, store }) => {
+  store.dispatch(loadUsersAction());
+
+  if (isServer) {
+    await store.asyncRequests();
+  }
+}
+```
+
 ## TypeScript
 
 Full support TypeScript
 
-[TypeScript + create-react-app + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/create-react-app)
+[TypeScript + create-react-app + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
 
-[TypeScript + next.js + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/develop/examples/next-js)
+[TypeScript + next.js + redux-requests-factory](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
 
 ## License
 
