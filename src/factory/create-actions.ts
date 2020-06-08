@@ -226,7 +226,7 @@ const createActions = <
     } catch (error) {
       if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
         dispatch(commonRequestErrorAction(meta, error));
-        const transformedError = transformError(error) as Err;
+        const transformedError = transformError<Err>(error);
         if (isRequestRejectedActionNeeded) {
           dispatch(
             requestRejectedAction({ params, error: transformedError }, meta)
