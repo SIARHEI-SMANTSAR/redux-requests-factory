@@ -1,4 +1,4 @@
-import { RootSate } from '../reducer';
+import { RootState } from '../reducer';
 import {
   RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize,
   RequestsFactoryItemActionsWithParamsWithoutSerialize,
@@ -97,7 +97,7 @@ export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
   >;
 
 export interface RequestsFactory<Key extends string> {
-  <Resp, Err, Params, State extends RootSate<Key>>(
+  <Resp, Err, Params, State extends RootState<Key>>(
     config: RequestFactoryConfigWithOptionalParamsWithoutSerialize<
       Resp,
       Err,
@@ -111,7 +111,7 @@ export interface RequestsFactory<Key extends string> {
     State
   >;
 
-  <Resp, Err, Params, State extends RootSate<Key>>(
+  <Resp, Err, Params, State extends RootState<Key>>(
     config: RequestFactoryConfigWithParamsWithoutSerialize<
       Resp,
       Err,
@@ -120,7 +120,7 @@ export interface RequestsFactory<Key extends string> {
     >
   ): RequestsFactoryItemWithParamsWithoutSerialize<Resp, Err, Params, State>;
 
-  <Resp, Err, Params, State extends RootSate<Key>, TransformedResp = Resp>(
+  <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse<
       Resp,
       Err,
@@ -136,7 +136,7 @@ export interface RequestsFactory<Key extends string> {
     TransformedResp
   >;
 
-  <Resp, Err, Params, State extends RootSate<Key>, TransformedResp = Resp>(
+  <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse<
       Resp,
       Err,
@@ -152,7 +152,7 @@ export interface RequestsFactory<Key extends string> {
     TransformedResp
   >;
 
-  <Resp, Err, Params, State extends RootSate<Key>>(
+  <Resp, Err, Params, State extends RootState<Key>>(
     config: RequestFactoryConfigWithParamsWithSerialize<
       Resp,
       Err,
@@ -161,7 +161,7 @@ export interface RequestsFactory<Key extends string> {
     >
   ): RequestsFactoryItemWithParamsWithSerialize<Resp, Err, Params, State>;
 
-  <Resp, Err, Params, State extends RootSate<Key>, TransformedResp = Resp>(
+  <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithParamsWithSerializeWithTransformResponse<
       Resp,
       Err,

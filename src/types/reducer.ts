@@ -35,6 +35,6 @@ export type RequestsState = {
 
 export type RequestsReducer = Reducer<RequestsState, Actions>;
 
-export type RootSate<Key extends string> = {
+export type RootState<Key extends string> = {
   [key in Key]: RequestsState;
 };

@@ -16,7 +16,7 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
     trailing?: boolean;
     maxWait?: number;
   };
-  transformError?: (error: any) => Err | null;
+  transformError?: (error: any) => Err;
   includeInGlobalLoading?: boolean;
 }
 
