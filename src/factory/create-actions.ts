@@ -31,6 +31,7 @@ import {
   deleteRequestFromMap,
   cancelRequestInMap,
   actionToObject,
+  getResponse,
 } from './helpers';
 
 const createActions = <
@@ -55,6 +56,7 @@ const createActions = <
     rejectedActions = [],
     includeInGlobalLoading = true,
     transformError = identity,
+    dispatchFulfilledActionForLoadedRequest = false,
   } = factoryConfig;
 
   let isRequestFulfilledActionNeeded = false;
@@ -283,6 +285,18 @@ const createActions = <
         meta,
         requestKey,
         getState,
+      });
+    } else if (
+      dispatchFulfilledActionForLoadedRequest &&
+      isRequestFulfilledActionNeeded
+    ) {
+      const response = getResponse(config, meta, getState());
+
+      dispatch(requestFulfilledAction({ params, response }, meta));
+      dispatchFulfilledActions(dispatch, {
+        request: params,
+        response, // TODO use transform response
+        state: getState(),
       });
     }
   };
