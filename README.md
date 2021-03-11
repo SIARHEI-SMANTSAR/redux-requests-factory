@@ -46,6 +46,8 @@ npm install redux-requests-factory --save
       - [`config.fulfilledActions`](#configfulfilledactions)
     - [Global Loading](#global-loading)
       - [`config.includeInGlobalLoading`](#configincludeingloballoading)
+    - [Others](#others)
+      - [`config.dispatchFulfilledActionForLoadedRequest`](#configdispatchfulfilledactionforloadedrequest)
   - [Requests Factory Instance](#requests-factory-instance)
     - [Requests Factory Instance Actions](#requests-factory-instance-actions)
       - [`loadDataAction`](#loaddataaction)
@@ -106,7 +108,7 @@ export const reducer = combineReducers({
 });
 
 const {
-  middleware: requestsFactoryMiddleware
+  middleware: requestsFactoryMiddleware,
 } = createRequestsFactoryMiddleware();
 
 const reduxMiddleware = applyMiddleware(requestsFactoryMiddleware);
@@ -144,7 +146,7 @@ export const {
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
-  transformResponse: (response) => response || [],
+  transformResponse: response => response || [],
 });
 ```
 
@@ -156,12 +158,8 @@ import { isSomethingLoadingSelector } from 'redux-requests-factory';
 const App = () => {
   const isSomethingLoading = useSelector(isSomethingLoadingSelector); // returns true when something loads
 
-  return (
-    <>
-      {isSomethingLoading ? <div>'Something Loading...'</div> : null}
-    </>
-  );
-}
+  return <>{isSomethingLoading ? <div>'Something Loading...'</div> : null}</>;
+};
 ```
 
 ## Example
@@ -188,7 +186,7 @@ export const {
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
-  transformResponse: (response) => response || [],
+  transformResponse: response => response || [],
 });
 ```
 
@@ -203,9 +201,7 @@ export const {
 import { requestsFactory } from 'redux-requests-factory';
 
 const loadUserPostsRequest = ({ userId }) =>
-  fetch(
-    `https://mysite.com/posts?userId=${userId}`
-  ).then(res => res.json());
+  fetch(`https://mysite.com/posts?userId=${userId}`).then(res => res.json());
 
 export const {
   loadDataAction: loadUserPostsAction,
@@ -217,7 +213,7 @@ export const {
   stateRequestKey: 'user-posts',
   useDebounce: true,
   serializeRequestParameters: ({ userId }) => `${userId}`, // selector will return function
-  transformResponse: (response) => response || [],
+  transformResponse: response => response || [],
 });
 ```
 
@@ -255,7 +251,8 @@ export const {
   stateRequestKey: 'add-post',
   includeInGlobalLoading: false, // not include in isSomethingLoadingSelector
   serializeRequestParameters: ({ userId }) => `${userId}`,
-  fulfilledActions: [ // this actions calls when addPostRequest fulfilled
+  fulfilledActions: [
+    // this actions calls when addPostRequest fulfilled
     ({ response, request: { userId }, state }) => {
       return setUserPostsAction({
         response: [...userPostsSelector(state)({ userId }), response],
@@ -315,11 +312,11 @@ const App = () => {
     [dispatch]
   );
   const onLoadUserPosts = useCallback(
-    (userId) => dispatch(loadUserPostsAction({ userId })),
+    userId => dispatch(loadUserPostsAction({ userId })),
     [dispatch]
   );
   const onForcedLoadUserPosts = useCallback(
-    (event) => {
+    event => {
       dispatch(
         forcedLoadUserPostsAction({
           userId: event.currentTarget.dataset.userId,
@@ -329,7 +326,7 @@ const App = () => {
     [dispatch]
   );
   const onAddPost = useCallback(
-    (even) => {
+    even => {
       event.preventDefault();
       const form = event.currentTarget;
       const elements = form.elements;
@@ -361,19 +358,11 @@ const App = () => {
 
   return (
     <div>
-      <div>
-        {isSomethingLoading ? 'Something Loading...' : null}
-      </div>
+      <div>{isSomethingLoading ? 'Something Loading...' : null}</div>
 
-      <button onClick={onLoadUsers}>
-        Load Users
-      </button>
-      <button onClick={onForcedLoadUsers}>
-        Forced Load Users
-      </button>
-      <button onClick={onCancelLoadUsers}>
-        Cancel Load Users
-      </button>
+      <button onClick={onLoadUsers}>Load Users</button>
+      <button onClick={onForcedLoadUsers}>Forced Load Users</button>
+      <button onClick={onCancelLoadUsers}>Cancel Load Users</button>
 
       <ul>
         {users.map(({ id, name }) => (
@@ -383,16 +372,10 @@ const App = () => {
               {postsByUser({ userId: id }).map(({ id, title }, index) => (
                 <li key={`${id}_${index}`}>{title}</li>
               ))}
-              <button
-                data-user-id={id}
-                onClick={onForcedLoadUserPosts}
-              >
+              <button data-user-id={id} onClick={onForcedLoadUserPosts}>
                 Forced Load User Posts With Debounce 500ms
               </button>
-              <form
-                data-user-id={id}
-                onSubmit={onAddPost}
-              >
+              <form data-user-id={id} onSubmit={onAddPost}>
                 <h3>Add new post </h3>
                 <label>
                   Title
@@ -471,7 +454,8 @@ const {
   forcedLoadDataAction,
   loadDataAction,
 } = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -561,7 +545,8 @@ const {
   isLoadingSelector,
   isLoadedSelector,
 } = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
   serializeRequestParameters: ({ id }) => `${id}`,
 });
@@ -585,7 +570,6 @@ errorSelector(store)({ id: 1 });
 requestStatusSelector(store)({ id: 1 });
 isLoadingSelector(store)({ id: 1 });
 isLoadedSelector(store)({ id: 1 });
-
 
 // loadDataAction({ id: 1 });
 // loadDataAction({ id: 2 });
@@ -625,7 +609,7 @@ isLoadedSelector(store)({ id: 1 });
 
 When `useDebounce: true` requestsFactory creates debounced actions `doRequestAction`, `forcedLoadDataAction` and `loadDataAction` that delays dispatch action with **same params** until after wait `config.debounceWait` milliseconds have elapsed since the last time the debounced action was dispatched.
 Detect same params helps `config.stringifyParamsForDebounce`.
-For debounce used [lodash.debounce](https://lodash.com/docs/4.17.15#debounce)  and you can use own debounce options `config.debounceOptions`.
+For debounce used [lodash.debounce](https://lodash.com/docs/4.17.15#debounce) and you can use own debounce options `config.debounceOptions`.
 
 ```js
 const {...} = requestsFactory({
@@ -689,10 +673,8 @@ const {...} = requestsFactory({
 `transformError` is **not required** field, it is should be function that takes request `error` or `undefined` and returns transformed `error` or `undefined`. `transformError` used for `errorSelector`.
 
 ```js
-const {
-  errorSelector,
-} = requestsFactory({
-  transformError: (error) => error && `Error: ${error.message}`,
+const { errorSelector } = requestsFactory({
+  transformError: error => error && `Error: ${error.message}`,
 });
 
 errorSelector(state); // undefined  or `Error: ${error.message}`
@@ -767,12 +749,17 @@ const {...} = requestsFactory({
 `includeInGlobalLoading` is **not required** field, default value - `true`. It is should be boolean.
 When `includeInGlobalLoading: true` and request is loading, global `isSomethingLoadingSelector` will be return `true`. If `includeInGlobalLoading: false` you can use `isLoadingSelector`
 
+### Others
+
+#### `config.dispatchFulfilledActionForLoadedRequest`
+
+`dispatchFulfilledActionForLoadedRequest` is **not required** field, default value - `false`. It is should be boolean.
+When `dispatchFulfilledActionForLoadedRequest: true` and the request is loaded and new `loadDataAction` is dispatched, then the `requestFulfilledAction` and `config.fulfilledActions` will be dispatched again.
+
 ```js
 import { isSomethingLoadingSelector } from 'redux-requests-factory';
 
-const {
-  isLoadingSelector,
-} = requestsFactory({
+const { isLoadingSelector } = requestsFactory({
   includeInGlobalLoading: false,
 });
 ```
@@ -800,9 +787,10 @@ export const {
   isLoadingSelector, // returns true when request status === 'loading'
   isLoadedSelector, // returns true when request status === 'success'
 } = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
-  transformResponse: (response) => response || [],
+  transformResponse: response => response || [],
 });
 ```
 
@@ -813,10 +801,9 @@ export const {
 `loadDataAction` do request once (can be dispatched many times, but do request once)
 
 ```js
-export const {
-  loadDataAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { loadDataAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -828,10 +815,9 @@ dispatch(loadDataAction({ id: 1 }));
 `forcedLoadDataAction` do request every time (used when need reload data)
 
 ```js
-export const {
-  forcedLoadDataAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { forcedLoadDataAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -843,10 +829,9 @@ dispatch(forcedLoadDataAction({ id: 1 }));
 `doRequestAction` do request every time (used for create, update and delete requests)
 
 ```js
-export const {
-  doRequestAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { doRequestAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -858,10 +843,9 @@ dispatch(doRequestAction({ id: 1 }));
 `cancelRequestAction` cancel active request
 
 ```js
-export const {
-  cancelRequestAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { cancelRequestAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -875,19 +859,25 @@ dispatch(cancelRequestAction());
 ```js
 import { ofType } from 'redux-observable';
 
-export const {
-  requestFulfilledAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { requestFulfilledAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
 const loadUserFulfilledEpic = (action$, state$) =>
   action$.pipe(
     ofType(requestFulfilledAction),
-    tap(({ payload: { params: { id }, response } }) => {
-      alert(`User ${id} is loaded`);
-    }),
+    tap(
+      ({
+        payload: {
+          params: { id },
+          response,
+        },
+      }) => {
+        alert(`User ${id} is loaded`);
+      }
+    ),
     ignoreElements()
   );
 ```
@@ -899,19 +889,25 @@ const loadUserFulfilledEpic = (action$, state$) =>
 ```js
 import { ofType } from 'redux-observable';
 
-export const {
-  requestRejectedAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { requestRejectedAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
 const loadUserRejectedEpic = (action$, state$) =>
   action$.pipe(
     ofType(requestRejectedAction),
-    tap(({ payload: { params: { id }, error } }) => {
-      alert(`User ${id} is not loaded`);
-    }),
+    tap(
+      ({
+        payload: {
+          params: { id },
+          error,
+        },
+      }) => {
+        alert(`User ${id} is not loaded`);
+      }
+    ),
     ignoreElements()
   );
 ```
@@ -921,10 +917,9 @@ const loadUserRejectedEpic = (action$, state$) =>
 `setErrorAction` set custom Error for this request (`requestRejectedAction` will be dispatched)
 
 ```js
-export const {
-  setErrorAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { setErrorAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -936,10 +931,9 @@ dispatch(setErrorAction({ error: 'some error' }));
 `setResponseAction` set response for this request (`requestFulfilledAction` will be dispatched)
 
 ```js
-export const {
-  setResponseAction,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { setResponseAction } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -957,7 +951,8 @@ export const {
   errorSelector,
   requestStatusSelector,
 } = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -975,10 +970,9 @@ requestStatusSelector(state); // RequestsStatuses.None
 `responseSelector` returns `response` when request fulfilled or `undefined`
 
 ```js
-export const {
-  responseSelector,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { responseSelector } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -990,10 +984,9 @@ responseSelector(state);
 `errorSelector` returns `Error` when request rejected or `undefined`
 
 ```js
-export const {
-  errorSelector,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { errorSelector } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -1007,10 +1000,9 @@ errorSelector(state);
 ```js
 import { RequestsStatuses } from 'redux-requests-factory';
 
-export const {
-  requestStatusSelector,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { requestStatusSelector } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -1022,10 +1014,9 @@ requestStatusSelector(state) === RequestsStatuses.None;
 `isLoadingSelector` returns true when request `status === RequestsStatuses.Loading`
 
 ```js
-export const {
-  isLoadingSelector,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { isLoadingSelector } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -1037,10 +1028,9 @@ isLoadingSelector(state);
 `isLoadedSelector` returns true when request `status === RequestsStatuses.Success`
 
 ```js
-export const {
-  isLoadedSelector,
-} = requestsFactory({
-  request: ({ id }) => fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
+export const { isLoadedSelector } = requestsFactory({
+  request: ({ id }) =>
+    fetch(`https://mysite.com/api/user/${id}`).then(res => res.json()),
   stateRequestKey: 'user',
 });
 
@@ -1092,7 +1082,7 @@ export const {
 `store.js`
 
 ```js
-const makeStore = (initialState) => {
+const makeStore = initialState => {
   const { middleware, toPromise } = createRequestsFactoryMiddleware();
   const reduxMiddleware = applyMiddleware(middleware);
 
@@ -1113,7 +1103,7 @@ const loadData = async ({ isServer, store }) => {
   if (isServer) {
     await store.asyncRequests();
   }
-}
+};
 ```
 
 ## TypeScript

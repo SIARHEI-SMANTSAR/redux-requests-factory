@@ -137,6 +137,22 @@ export const isNeedLoadData = <State, Key extends string>(
   );
 };
 
+export const getResponse = <State, Key extends string>(
+  { stateRequestsKey }: PreparedConfig<Key>,
+  { key, serializedKey }: RequestActionMeta,
+  state: State
+) => {
+  const response = getByPath<any, State>(
+    stateRequestsKey,
+    RESPONSES_STATE_KEY,
+    key,
+    serializedKey,
+    'response'
+  )(state);
+
+  return response;
+};
+
 export const identity = <T>(a: T): T => a;
 
 export const setNewRequestToMap = (
