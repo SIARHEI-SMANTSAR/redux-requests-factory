@@ -749,6 +749,14 @@ const {...} = requestsFactory({
 `includeInGlobalLoading` is **not required** field, default value - `true`. It is should be boolean.
 When `includeInGlobalLoading: true` and request is loading, global `isSomethingLoadingSelector` will be return `true`. If `includeInGlobalLoading: false` you can use `isLoadingSelector`
 
+```js
+import { isSomethingLoadingSelector } from 'redux-requests-factory';
+
+const { isLoadingSelector } = requestsFactory({
+  includeInGlobalLoading: false,
+});
+```
+
 ### Others
 
 #### `config.dispatchFulfilledActionForLoadedRequest`
@@ -757,12 +765,11 @@ When `includeInGlobalLoading: true` and request is loading, global `isSomethingL
 When `dispatchFulfilledActionForLoadedRequest: true` and the request is loaded and new `loadDataAction` is dispatched, then the `requestFulfilledAction` and `config.fulfilledActions` will be dispatched again.
 
 ```js
-import { isSomethingLoadingSelector } from 'redux-requests-factory';
-
-const { isLoadingSelector } = requestsFactory({
-  includeInGlobalLoading: false,
+const { loadDataAction, requestFulfilledAction } = requestsFactory({
+  dispatchFulfilledActionForLoadedRequest: true,
 });
 ```
+
 
 ## Requests Factory Instance
 
