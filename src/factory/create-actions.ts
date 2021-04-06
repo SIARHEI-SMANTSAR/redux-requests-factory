@@ -32,6 +32,7 @@ import {
   cancelRequestInMap,
   actionToObject,
   getResponse,
+  isRequestFulfilled,
 } from './helpers';
 
 const createActions = <
@@ -288,7 +289,8 @@ const createActions = <
       });
     } else if (
       dispatchFulfilledActionForLoadedRequest &&
-      isRequestFulfilledActionNeeded
+      isRequestFulfilledActionNeeded &&
+      isRequestFulfilled(config, meta, getState())
     ) {
       const response = getResponse(config, meta, getState());
 
