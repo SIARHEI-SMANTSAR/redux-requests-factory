@@ -137,6 +137,22 @@ export const isNeedLoadData = <State, Key extends string>(
   );
 };
 
+export const isRequestFulfilled = <State, Key extends string>(
+  { stateRequestsKey }: PreparedConfig<Key>,
+  { key, serializedKey }: RequestActionMeta,
+  state: State
+) => {
+  const status = getByPath<RequestsStatuses, State>(
+    stateRequestsKey,
+    RESPONSES_STATE_KEY,
+    key,
+    serializedKey,
+    'status'
+  )(state);
+
+  return status === RequestsStatuses.Success;
+};
+
 export const getResponse = <State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
