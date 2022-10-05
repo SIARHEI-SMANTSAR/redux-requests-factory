@@ -757,6 +757,15 @@ const { isLoadingSelector } = requestsFactory({
 });
 ```
 
+Use the `silent` option for the following actions to temporarily disable the `includeInGlobalLoading` property:
+
+```js
+loadDataAction(params, { silent: true });
+forcedLoadDataAction(params, { silent: true });
+doRequestAction(params, { silent: true });
+cancelRequestAction(params, { silent: true });
+```
+
 ### Others
 
 #### `config.dispatchFulfilledActionForLoadedRequest`
@@ -769,7 +778,6 @@ const { loadDataAction, requestFulfilledAction } = requestsFactory({
   dispatchFulfilledActionForLoadedRequest: true,
 });
 ```
-
 
 ## Requests Factory Instance
 

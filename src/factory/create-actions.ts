@@ -9,6 +9,7 @@ import {
   ActionPropsFromMiddleware,
   ExternalActions,
   DoRequestMapByKey,
+  ActionOptions,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -116,6 +117,7 @@ const createActions = <
       meta: RequestActionMeta;
       requestKey: string;
       data: Data;
+      silent: boolean;
     }) => {
       (props: ActionPropsFromMiddleware<State>): void;
       type?: string;
@@ -125,10 +127,11 @@ const createActions = <
       toJSON?(): string;
       toObject?(): any;
     },
-    getPramsFromData: (data: Data) => Params
+    getParamsFromData: (data: Data) => Params
   ) => {
     const asyncAction = (
-      data: Data
+      data: Data,
+      options?: ActionOptions
     ): {
       type: string;
       meta: RequestActionMeta;
@@ -137,7 +140,7 @@ const createActions = <
       toJSON(): string;
       toObject(): any;
     } => {
-      const params: Params = getPramsFromData(data);
+      const params: Params = getParamsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
         serializedKey: getSerializedKey<
@@ -149,12 +152,14 @@ const createActions = <
         >(factoryConfig, params),
       };
       const requestKey = getRequestKey(meta);
+      const silent = options?.silent || false;
 
       const action = getAction({
         params,
         meta,
         requestKey,
         data,
+        silent,
       });
 
       action.type = type;
@@ -196,12 +201,14 @@ const createActions = <
     meta,
     requestKey,
     getState,
+    silent,
   }: {
     params: Params;
     dispatch: Dispatch;
     meta: RequestActionMeta;
     requestKey: string;
     getState: () => State;
+    silent: boolean;
   }) => {
     const requestNumber = ++lastRequestNumber;
 
@@ -209,7 +216,7 @@ const createActions = <
 
     dispatch(commonRequestStartAction(meta));
 
-    if (includeInGlobalLoading) {
+    if (includeInGlobalLoading && !silent) {
       dispatch(globalLoadingIncrementAction());
     }
 
@@ -244,6 +251,7 @@ const createActions = <
     } finally {
       if (
         includeInGlobalLoading &&
+        !silent &&
         !isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)
       ) {
         dispatch(globalLoadingDecrementAction());
@@ -274,10 +282,12 @@ const createActions = <
     params,
     meta,
     requestKey,
+    silent,
   }: {
     params: Params;
     requestKey: string;
     meta: RequestActionMeta;
+    silent: boolean;
   }) => async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
     if (isForced || isNeedLoadData(config, meta, getState())) {
       return await (useDebounce ? memoizedDoRequest : doRequest)({
@@ -286,6 +296,7 @@ const createActions = <
         meta,
         requestKey,
         getState,
+        silent,
       });
     } else if (
       dispatchFulfilledActionForLoadedRequest &&
@@ -322,12 +333,12 @@ const createActions = <
       ),
       cancelRequestAction: createAsyncAction(
         `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
-        ({ meta, requestKey }) => {
+        ({ meta, requestKey, silent }) => {
           return ({ dispatch }: ActionPropsFromMiddleware<State>) => {
             if (cancelRequestInMap(doRequestMapByKey, requestKey)) {
               dispatch(commonRequestCancelAction(meta));
 
-              if (includeInGlobalLoading) {
+              if (includeInGlobalLoading && !silent) {
                 dispatch(globalLoadingDecrementAction());
               }
 
@@ -349,7 +360,7 @@ const createActions = <
             }
           };
         },
-        ({ params }) => params
+        ({ params }) => params as Params
       ),
       setResponseAction: createAsyncAction(
         `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
@@ -361,7 +372,7 @@ const createActions = <
             }
           };
         },
-        ({ params }) => params
+        ({ params }) => params as Params
       ),
       resetRequestAction: createAsyncAction(
         `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
