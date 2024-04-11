@@ -19,6 +19,8 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   transformError?: (error: any) => Err;
   includeInGlobalLoading?: boolean;
   dispatchFulfilledActionForLoadedRequest?: boolean;
+  /** timeout in ms */
+  globalLoadingTimeout?: number;
 }
 
 export type RequestFactoryConfigCommonWithTransformResponse<

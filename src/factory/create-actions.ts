@@ -59,12 +59,16 @@ const createActions = <
     includeInGlobalLoading = true,
     transformError = identity,
     dispatchFulfilledActionForLoadedRequest = false,
+    globalLoadingTimeout,
   } = factoryConfig;
 
   let isRequestFulfilledActionNeeded = false;
   let isRequestRejectedActionNeeded = false;
 
   let lastRequestNumber = 0;
+
+  let globalLoadingTimeoutId: ReturnType<typeof setTimeout>;
+  let globalLoadingDecrementedAfterTimeout = false;
 
   const doRequestMapByKey: DoRequestMapByKey = new Map();
 
@@ -220,8 +224,23 @@ const createActions = <
       dispatch(globalLoadingIncrementAction());
     }
 
+    if (globalLoadingTimeout) {
+      globalLoadingTimeoutId = setTimeout(() => {
+        if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
+          if (includeInGlobalLoading && !silent) {
+            globalLoadingDecrementedAfterTimeout = true;
+
+            dispatch(globalLoadingDecrementAction());
+          }
+        }
+      }, globalLoadingTimeout);
+    }
+
     try {
       const response = await request(params);
+
+      clearTimeout(globalLoadingTimeoutId);
+
       if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
         dispatch(commonRequestSuccessAction(meta, response));
         if (isRequestFulfilledActionNeeded) {
@@ -239,7 +258,13 @@ const createActions = <
         const transformedError = transformError<Err>(error);
         if (isRequestRejectedActionNeeded) {
           dispatch(
-            requestRejectedAction({ params, error: transformedError }, meta)
+            requestRejectedAction(
+              {
+                params,
+                error: transformedError,
+              },
+              meta
+            )
           );
         }
         dispatchRejectedActions(dispatch, {
@@ -252,7 +277,8 @@ const createActions = <
       if (
         includeInGlobalLoading &&
         !silent &&
-        !isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)
+        !isRequestCanceled(doRequestMapByKey, requestKey, requestNumber) &&
+        !globalLoadingDecrementedAfterTimeout
       ) {
         dispatch(globalLoadingDecrementAction());
       }
@@ -338,7 +364,13 @@ const createActions = <
             if (cancelRequestInMap(doRequestMapByKey, requestKey)) {
               dispatch(commonRequestCancelAction(meta));
 
-              if (includeInGlobalLoading && !silent) {
+              clearTimeout(globalLoadingTimeoutId);
+
+              if (
+                includeInGlobalLoading &&
+                !silent &&
+                !globalLoadingDecrementedAfterTimeout
+              ) {
                 dispatch(globalLoadingDecrementAction());
               }
 
