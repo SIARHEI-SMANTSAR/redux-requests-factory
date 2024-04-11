@@ -46,6 +46,7 @@ npm install redux-requests-factory --save
       - [`config.fulfilledActions`](#configfulfilledactions)
     - [Global Loading](#global-loading)
       - [`config.includeInGlobalLoading`](#configincludeingloballoading)
+      - [`config.globalLoadingTimeout`](#configgloballoadingtimeout)
     - [Others](#others)
       - [`config.dispatchFulfilledActionForLoadedRequest`](#configdispatchfulfilledactionforloadedrequest)
   - [Requests Factory Instance](#requests-factory-instance)
@@ -765,6 +766,10 @@ forcedLoadDataAction(params, { silent: true });
 doRequestAction(params, { silent: true });
 cancelRequestAction(params, { silent: true });
 ```
+
+#### `config.globalLoadingTimeout`
+
+`globalLoadingTimeout` is value in ms. After the specified time has passed, the request is excluded from global loading but is not cancelled.
 
 ### Others
 
