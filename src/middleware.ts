@@ -7,6 +7,16 @@ import {
 } from './types';
 import { isFactoryAction } from './factory/helpers';
 
+type RunnableFactoryAction = {
+  type: string;
+  toObject: () => unknown;
+  (params: {
+    dispatch: Parameters<Middleware>[0]['dispatch'];
+    getState: Parameters<Middleware>[0]['getState'];
+    middlewareConfig: MiddlewareConfig;
+  }): Promise<void>;
+};
+
 export const getCreateRequestsFactoryMiddleware =
   <Key>(config: PreparedConfig<Key>): CreateRequestsFactoryMiddleware =>
   (middlewareConfig: MiddlewareConfig = {}) => {
@@ -18,10 +28,20 @@ export const getCreateRequestsFactoryMiddleware =
       ({ dispatch, getState }) =>
       (next) =>
       async (action) => {
-        if (typeof action === 'function' && isFactoryAction(action.type)) {
-          next(action.toObject());
+        if (typeof action === 'function') {
+          const factoryAction = action as RunnableFactoryAction;
 
-          const asyncAction = action({ dispatch, getState, middlewareConfig });
+          if (!isFactoryAction(factoryAction.type)) {
+            return next(action);
+          }
+
+          next(factoryAction.toObject());
+
+          const asyncAction = factoryAction({
+            dispatch,
+            getState,
+            middlewareConfig,
+          });
 
           actions.add(asyncAction);
 
