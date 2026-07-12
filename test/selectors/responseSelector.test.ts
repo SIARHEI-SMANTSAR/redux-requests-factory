@@ -115,7 +115,7 @@ describe('responseSelector', () => {
       request: (): Promise<string[]> => Promise.resolve([]),
       stateRequestKey: 'users',
       transformResponse: (response?: string[]) =>
-        (response || []).map(value => ({ value })),
+        (response || []).map((value) => ({ value })),
     });
 
     expect(responseSelector(state)).toEqual([{ value: 'test' }]);

@@ -59,7 +59,6 @@ export type GlobalLoadingDecrementAction = {
 };
 
 export type GlobalActions =
-  | GlobalLoadingIncrementAction
-  | GlobalLoadingDecrementAction;
+  GlobalLoadingIncrementAction | GlobalLoadingDecrementAction;
 
 export type Actions = CommonActions | GlobalActions;

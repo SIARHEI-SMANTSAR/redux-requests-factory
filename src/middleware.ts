@@ -7,41 +7,39 @@ import {
 } from './types';
 import { isFactoryAction } from './factory/helpers';
 
-export const getCreateRequestsFactoryMiddleware = <Key>(
-  config: PreparedConfig<Key>
-): CreateRequestsFactoryMiddleware => (
-  middlewareConfig: MiddlewareConfig = {}
-) => {
-  config.resetRegisterRequestKey();
+export const getCreateRequestsFactoryMiddleware =
+  <Key>(config: PreparedConfig<Key>): CreateRequestsFactoryMiddleware =>
+  (middlewareConfig: MiddlewareConfig = {}) => {
+    config.resetRegisterRequestKey();
 
-  const actions: Set<Promise<void>> = new Set();
+    const actions: Set<Promise<void>> = new Set();
 
-  const middleware: Middleware = ({
-    dispatch,
-    getState,
-  }) => next => async action => {
-    if (typeof action === 'function' && isFactoryAction(action.type)) {
-      next(action.toObject());
+    const middleware: Middleware =
+      ({ dispatch, getState }) =>
+      (next) =>
+      async (action) => {
+        if (typeof action === 'function' && isFactoryAction(action.type)) {
+          next(action.toObject());
 
-      const asyncAction = action({ dispatch, getState, middlewareConfig });
+          const asyncAction = action({ dispatch, getState, middlewareConfig });
 
-      actions.add(asyncAction);
+          actions.add(asyncAction);
 
-      await asyncAction;
+          await asyncAction;
 
-      actions.delete(asyncAction);
+          actions.delete(asyncAction);
 
-      return;
-    }
+          return;
+        }
 
-    return next(action);
+        return next(action);
+      };
+
+    const toPromise = async () => {
+      for (let action of actions) {
+        await action;
+      }
+    };
+
+    return { middleware, toPromise };
   };
-
-  const toPromise = async () => {
-    for (let action of actions) {
-      await action;
-    }
-  };
-
-  return { middleware, toPromise };
-};

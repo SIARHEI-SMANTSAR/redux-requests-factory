@@ -50,10 +50,12 @@ export const commonRequestResetAction = (
   meta,
 });
 
-export const globalLoadingIncrementAction = (): GlobalLoadingIncrementAction => ({
-  type: GlobalActionTypes.LoadingIncrement,
-});
+export const globalLoadingIncrementAction =
+  (): GlobalLoadingIncrementAction => ({
+    type: GlobalActionTypes.LoadingIncrement,
+  });
 
-export const globalLoadingDecrementAction = (): GlobalLoadingDecrementAction => ({
-  type: GlobalActionTypes.LoadingDecrement,
-});
+export const globalLoadingDecrementAction =
+  (): GlobalLoadingDecrementAction => ({
+    type: GlobalActionTypes.LoadingDecrement,
+  });

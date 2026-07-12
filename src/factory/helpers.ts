@@ -36,19 +36,21 @@ export const isWithSerialize = <Resp, Err, Params, State, TransformedResp>(
   Params,
   State
 > =>
-  (config as RequestFactoryConfigWithParamsWithSerialize<
-    Resp,
-    Err,
-    Params,
-    State
-  >).serializeRequestParameters !== undefined;
+  (
+    config as RequestFactoryConfigWithParamsWithSerialize<
+      Resp,
+      Err,
+      Params,
+      State
+    >
+  ).serializeRequestParameters !== undefined;
 
 export const isWithTransformResponse = <
   Resp,
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 >(
   config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
 ): config is RequestFactoryConfigWithTransformResponse<
@@ -58,23 +60,25 @@ export const isWithTransformResponse = <
   State,
   TransformedResp
 > =>
-  (config as RequestFactoryConfigWithTransformResponse<
-    Resp,
-    Err,
-    Params,
-    State,
-    TransformedResp
-  >).transformResponse !== undefined;
+  (
+    config as RequestFactoryConfigWithTransformResponse<
+      Resp,
+      Err,
+      Params,
+      State,
+      TransformedResp
+    >
+  ).transformResponse !== undefined;
 
-export const getByPath = <Value = any, Object = any>(
-  ...keys: (string | undefined)[]
-) => (obj: Object): Value | undefined =>
-  keys
-    .filter(Boolean)
-    .reduce<Value | undefined>(
-      (value: any, key) => (value ? value[key as string] : undefined),
-      obj as any
-    );
+export const getByPath =
+  <Value = any, Object = any>(...keys: (string | undefined)[]) =>
+  (obj: Object): Value | undefined =>
+    keys
+      .filter(Boolean)
+      .reduce<Value | undefined>(
+        (value: any, key) => (value ? value[key as string] : undefined),
+        obj as any
+      );
 
 export const getRequestKey = ({
   key,
@@ -98,14 +102,14 @@ export const getSerializedKey = <Resp, Err, Params, State, TransformedResp>(
 export const isFactoryAction = (type: string) =>
   /^@@REDUX_REQUESTS_FACTORY\//.test(type);
 
-export const memoizeDebounce = function<
-  Func extends (this: any, ...args: any) => any
+export const memoizeDebounce = function <
+  Func extends (this: any, ...args: any) => any,
 >(func: Func, wait = 0, options: any = {}): Func {
-  var mem = memoize(function() {
+  var mem = memoize(function () {
     return debounce(func, wait, options);
   }, options.resolver);
 
-  return function() {
+  return function () {
     // @ts-ignore
     mem.apply(this, arguments).apply(this, arguments);
   } as Func;

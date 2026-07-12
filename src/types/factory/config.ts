@@ -25,7 +25,7 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
 
 export type RequestFactoryConfigCommonWithTransformResponse<
   Resp,
-  TransformedResp
+  TransformedResp,
 > = {
   transformResponse: (response: Resp | undefined) => TransformedResp;
 };
@@ -34,7 +34,7 @@ export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   request: (params?: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params?: Params) => string;
@@ -54,7 +54,7 @@ export type RequestFactoryConfigWithParamsWithoutSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   request: (params: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params: Params) => string;
@@ -74,7 +74,7 @@ export type RequestFactoryConfigWithParamsWithSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   request: (params: Params) => Promise<Resp>;
   stringifyParamsForDebounce?: (params: Params) => string;
@@ -96,7 +96,7 @@ export type RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformR
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestFactoryConfigWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
@@ -110,7 +110,7 @@ export type RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestFactoryConfigWithParamsWithoutSerialize<Resp, Err, Params, State> &
   RequestFactoryConfigCommonWithTransformResponse<Resp, TransformedResp>;
 
@@ -119,7 +119,7 @@ export type RequestFactoryConfigWithParamsWithSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State> &
   RequestFactoryConfigCommonWithTransformResponse<Resp, TransformedResp>;
 
@@ -128,7 +128,7 @@ export type RequestFactoryConfigWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > =
   | RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse<
       Resp,

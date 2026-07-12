@@ -42,7 +42,7 @@ const createActions = <
   Params,
   State,
   TransformedResp,
-  Key extends string
+  Key extends string,
 >(
   config: PreparedConfig<Key>,
   factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
@@ -72,26 +72,26 @@ const createActions = <
 
   const doRequestMapByKey: DoRequestMapByKey = new Map();
 
-  const getDispatchExternalActions = <Data>(
-    externalActions: ExternalActions<Data>
-  ) => (dispatch: Dispatch, data: Data) => {
-    externalActions.forEach(externalAction => {
-      const action =
-        typeof externalAction === 'function'
-          ? externalAction(data)
-          : externalAction;
+  const getDispatchExternalActions =
+    <Data>(externalActions: ExternalActions<Data>) =>
+    (dispatch: Dispatch, data: Data) => {
+      externalActions.forEach((externalAction) => {
+        const action =
+          typeof externalAction === 'function'
+            ? externalAction(data)
+            : externalAction;
 
-      if (Array.isArray(action)) {
-        action.forEach(a => {
-          if (a !== null) {
-            dispatch(a);
-          }
-        });
-      } else if (action !== null) {
-        dispatch(action);
-      }
-    });
-  };
+        if (Array.isArray(action)) {
+          action.forEach((a) => {
+            if (a !== null) {
+              dispatch(a);
+            }
+          });
+        } else if (action !== null) {
+          dispatch(action);
+        }
+      });
+    };
 
   const dispatchFulfilledActions = getDispatchExternalActions(fulfilledActions);
 
@@ -99,7 +99,7 @@ const createActions = <
 
   const createSyncAction = <
     Data,
-    Action extends { type: string; meta: RequestActionMeta; payload: Data }
+    Action extends { type: string; meta: RequestActionMeta; payload: Data },
   >(
     type: string
   ) => {
@@ -304,41 +304,44 @@ const createActions = <
 
   let memoizedDoRequest = getMemoizedDoRequest();
 
-  const getDoRequestAction = (isForced: boolean = true) => ({
-    params,
-    meta,
-    requestKey,
-    silent,
-  }: {
-    params: Params;
-    requestKey: string;
-    meta: RequestActionMeta;
-    silent: boolean;
-  }) => async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
-    if (isForced || isNeedLoadData(config, meta, getState())) {
-      return await (useDebounce ? memoizedDoRequest : doRequest)({
-        params,
-        dispatch,
-        meta,
-        requestKey,
-        getState,
-        silent,
-      });
-    } else if (
-      dispatchFulfilledActionForLoadedRequest &&
-      isRequestFulfilledActionNeeded &&
-      isRequestFulfilled(config, meta, getState())
-    ) {
-      const response = getResponse(config, meta, getState());
+  const getDoRequestAction =
+    (isForced: boolean = true) =>
+    ({
+      params,
+      meta,
+      requestKey,
+      silent,
+    }: {
+      params: Params;
+      requestKey: string;
+      meta: RequestActionMeta;
+      silent: boolean;
+    }) =>
+    async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
+      if (isForced || isNeedLoadData(config, meta, getState())) {
+        return await (useDebounce ? memoizedDoRequest : doRequest)({
+          params,
+          dispatch,
+          meta,
+          requestKey,
+          getState,
+          silent,
+        });
+      } else if (
+        dispatchFulfilledActionForLoadedRequest &&
+        isRequestFulfilledActionNeeded &&
+        isRequestFulfilled(config, meta, getState())
+      ) {
+        const response = getResponse(config, meta, getState());
 
-      dispatch(requestFulfilledAction({ params, response }, meta));
-      dispatchFulfilledActions(dispatch, {
-        request: params,
-        response, // TODO use transform response
-        state: getState(),
-      });
-    }
-  };
+        dispatch(requestFulfilledAction({ params, response }, meta));
+        dispatchFulfilledActions(dispatch, {
+          request: params,
+          response, // TODO use transform response
+          state: getState(),
+        });
+      }
+    };
 
   return new Proxy(
     {

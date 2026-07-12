@@ -7,7 +7,7 @@ import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
 import createGlobalSelectors from './selectors';
 
 const createReduxRequestsFactory = <
-  Key extends string = typeof DEFAULT_STATE_REQUESTS_KEY
+  Key extends string = typeof DEFAULT_STATE_REQUESTS_KEY,
 >(
   config?: CreateConfig<Key>
 ): ReduxRequestsFactory<Key> => {
@@ -15,9 +15,8 @@ const createReduxRequestsFactory = <
 
   return {
     stateRequestsKey: preparedConfig.stateRequestsKey,
-    createRequestsFactoryMiddleware: getCreateRequestsFactoryMiddleware<Key>(
-      preparedConfig
-    ),
+    createRequestsFactoryMiddleware:
+      getCreateRequestsFactoryMiddleware<Key>(preparedConfig),
     requestsFactory: createRequestsFactory<Key>(preparedConfig),
     requestsReducer: createRequestsReducer<Key>(preparedConfig),
     ...createGlobalSelectors<Key>(preparedConfig),

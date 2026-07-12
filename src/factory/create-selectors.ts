@@ -16,7 +16,7 @@ const createSelectors = <
   Params,
   State,
   TransformedResp,
-  Key extends string
+  Key extends string,
 >(
   { stateRequestsKey }: PreparedConfig<Key>,
   factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
@@ -36,7 +36,7 @@ const createSelectors = <
     return {
       responseSelector: createSelector(
         [getCommonSate],
-        commonSate => (params: Params) => {
+        (commonSate) => (params: Params) => {
           const response = getByPath<Resp, RequestsState | undefined>(
             serializeRequestParameters(params),
             'response'
@@ -55,7 +55,7 @@ const createSelectors = <
       ),
       errorSelector: createSelector(
         [getCommonSate],
-        commonSate => (params: Params) => {
+        (commonSate) => (params: Params) => {
           const error = getByPath<Err, RequestsState | undefined>(
             serializeRequestParameters(params),
             'error'
@@ -70,7 +70,7 @@ const createSelectors = <
       ),
       requestStatusSelector: createSelector(
         [getCommonSate],
-        commonSate => (params: Params) => {
+        (commonSate) => (params: Params) => {
           const status = getByPath<RequestsStatuses, RequestsState | undefined>(
             serializeRequestParameters(params),
             'status'
@@ -81,7 +81,7 @@ const createSelectors = <
       ),
       isLoadingSelector: createSelector(
         [getCommonSate],
-        commonSate => (params: Params) => {
+        (commonSate) => (params: Params) => {
           const status = getByPath<RequestsStatuses, RequestsState | undefined>(
             serializeRequestParameters(params),
             'status'
@@ -92,7 +92,7 @@ const createSelectors = <
       ),
       isLoadedSelector: createSelector(
         [getCommonSate],
-        commonSate => (params: Params) => {
+        (commonSate) => (params: Params) => {
           const status = getByPath<RequestsStatuses, RequestsState | undefined>(
             serializeRequestParameters(params),
             'status'
@@ -109,10 +109,10 @@ const createSelectors = <
       TransformedResp
     >;
   } else {
-    const responseSelector = createSelector([getCommonSate], commonSate =>
+    const responseSelector = createSelector([getCommonSate], (commonSate) =>
       getByPath<Resp, RequestsState | undefined>('response')(commonSate)
     );
-    const errorSelector = createSelector([getCommonSate], commonSate =>
+    const errorSelector = createSelector([getCommonSate], (commonSate) =>
       getByPath<Err, RequestsState | undefined>('error')(commonSate)
     );
 
@@ -129,21 +129,21 @@ const createSelectors = <
       errorSelector: transformError
         ? createSelector([errorSelector], transformError)
         : errorSelector,
-      requestStatusSelector: createSelector([getCommonSate], commonSate => {
+      requestStatusSelector: createSelector([getCommonSate], (commonSate) => {
         const status = getByPath<RequestsStatuses, RequestsState | undefined>(
           'status'
         )(commonSate);
 
         return status || RequestsStatuses.None;
       }),
-      isLoadingSelector: createSelector([getCommonSate], commonSate => {
+      isLoadingSelector: createSelector([getCommonSate], (commonSate) => {
         const status = getByPath<RequestsStatuses, RequestsState | undefined>(
           'status'
         )(commonSate);
 
         return status === RequestsStatuses.Loading;
       }),
-      isLoadedSelector: createSelector([getCommonSate], commonSate => {
+      isLoadedSelector: createSelector([getCommonSate], (commonSate) => {
         const status = getByPath<RequestsStatuses, RequestsState | undefined>(
           'status'
         )(commonSate);

@@ -44,7 +44,7 @@ export interface ActionOptions {
 export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
-  Params
+  Params,
 > = {
   doRequestAction: RequestFactoryActionCommon & {
     (
@@ -187,7 +187,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
 export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   Resp,
   Err,
-  Params
+  Params,
 > = {
   doRequestAction: RequestFactoryActionCommon & {
     (
@@ -330,7 +330,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
 export type RequestsFactoryItemActionsWithParamsWithSerialize<
   Resp,
   Err,
-  Params
+  Params,
 > = {
   doRequestAction: RequestFactoryActionCommon & {
     (

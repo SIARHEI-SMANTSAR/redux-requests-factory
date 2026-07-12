@@ -23,7 +23,7 @@ export type RequestsFactoryItemWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
@@ -36,7 +36,7 @@ export type RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformRe
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
@@ -54,7 +54,7 @@ export type RequestsFactoryItemWithParamsWithoutSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
 
@@ -63,7 +63,7 @@ export type RequestsFactoryItemWithParamsWithoutSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
     Resp,
@@ -77,7 +77,7 @@ export type RequestsFactoryItemWithParamsWithSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>;
 
@@ -86,7 +86,7 @@ export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<
     Resp,

@@ -4,7 +4,7 @@ type RequestsFactoryItemCommonSelectorsWithoutSerialize<
   _Resp,
   Err,
   _Params,
-  State
+  State,
 > = {
   errorSelector: (state: State) => Err;
   requestStatusSelector: (state: State) => RequestsStatuses;
@@ -16,7 +16,7 @@ type RequestsFactoryItemCommonSelectorsWithSerialize<
   _Resp,
   Err,
   Params,
-  State
+  State,
 > = {
   errorSelector: (state: State) => (params: Params) => Err;
   requestStatusSelector: (state: State) => (params: Params) => RequestsStatuses;
@@ -28,7 +28,7 @@ export type RequestsFactoryItemSelectorsWithoutSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestsFactoryItemCommonSelectorsWithoutSerialize<
   Resp,
   Err,
@@ -43,7 +43,7 @@ export type RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemCommonSelectorsWithoutSerialize<
   Resp,
   Err,
@@ -57,7 +57,7 @@ export type RequestsFactoryItemSelectorsWithSerialize<
   Resp,
   Err,
   Params,
-  State
+  State,
 > = RequestsFactoryItemCommonSelectorsWithSerialize<
   Resp,
   Err,
@@ -72,7 +72,7 @@ export type RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemCommonSelectorsWithSerialize<
   Resp,
   Err,
@@ -87,7 +87,7 @@ export type RequestsFactoryItemSelectors<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > =
   | RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>
   | RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>
