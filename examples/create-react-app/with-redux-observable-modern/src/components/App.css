@@ -1,0 +1,23 @@
+.app__loading {
+  height: 1rem;
+  padding: 0.5rem;
+}
+
+.app__button {
+  margin: 8px;
+}
+
+.app__form {
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+}
+
+.app__form > * {
+  margin: 0.5rem;
+}
+
+.app__input-label {
+  display: flex;
+  flex-direction: column;
+}
