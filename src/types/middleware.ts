@@ -1,6 +1,6 @@
-import { Middleware, Dispatch } from 'redux';
+import { Middleware, Dispatch } from "redux";
 
-import { MiddlewareConfig } from './config';
+import { MiddlewareConfig } from "./config";
 
 export interface CreateRequestsFactoryMiddleware {
   (config?: MiddlewareConfig): {

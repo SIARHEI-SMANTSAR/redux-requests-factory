@@ -1,15 +1,15 @@
-import { RequestActionMeta } from '../actions';
+import { RequestActionMeta } from "../actions";
 
 export enum FactoryActionTypes {
-  DoRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/DO',
-  CancelRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/CANCEL',
-  ForcedLoadData = '@@REDUX_REQUESTS_FACTORY/FORCED_LOAD',
-  LoadData = '@@REDUX_REQUESTS_FACTORY/LOAD',
-  RequestFulfilled = '@@REDUX_REQUESTS_FACTORY/REQUEST/FULFILLED',
-  RequestRejected = '@@REDUX_REQUESTS_FACTORY/REQUEST/REJECTED',
-  SetError = '@@REDUX_REQUESTS_FACTORY/REQUEST/SET/ERROR',
-  SetResponse = '@@REDUX_REQUESTS_FACTORY/REQUEST/SET/RESPONSE',
-  ResetRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/RESET',
+  DoRequest = "@@REDUX_REQUESTS_FACTORY/REQUEST/DO",
+  CancelRequest = "@@REDUX_REQUESTS_FACTORY/REQUEST/CANCEL",
+  ForcedLoadData = "@@REDUX_REQUESTS_FACTORY/FORCED_LOAD",
+  LoadData = "@@REDUX_REQUESTS_FACTORY/LOAD",
+  RequestFulfilled = "@@REDUX_REQUESTS_FACTORY/REQUEST/FULFILLED",
+  RequestRejected = "@@REDUX_REQUESTS_FACTORY/REQUEST/REJECTED",
+  SetError = "@@REDUX_REQUESTS_FACTORY/REQUEST/SET/ERROR",
+  SetResponse = "@@REDUX_REQUESTS_FACTORY/REQUEST/SET/RESPONSE",
+  ResetRequest = "@@REDUX_REQUESTS_FACTORY/REQUEST/RESET",
 }
 
 export interface RequestFactoryActionCommon {
@@ -41,15 +41,11 @@ export interface ActionOptions {
   silent?: boolean;
 }
 
-export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params
-> = {
+export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<Resp, Err, Params> = {
   doRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
       toObject(): {
@@ -64,7 +60,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (
       params?: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
       toObject(): {
@@ -79,7 +75,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   loadDataAction: RequestFactoryActionCommon & {
     (
       params?: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
       toObject(): {
@@ -94,7 +90,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
       toObject(): {
@@ -109,7 +105,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   requestFulfilledAction: RequestFactoryActionCommon & {
     (
       data: any,
-      meta: RequestActionMeta
+      meta: RequestActionMeta,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: {
         response: Resp;
@@ -120,7 +116,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   requestRejectedAction: RequestFactoryActionCommon & {
     (
       data: any,
-      meta: RequestActionMeta
+      meta: RequestActionMeta,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: {
         error: Err;
@@ -184,15 +180,11 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   };
 };
 
-export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params
-> = {
+export type RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> = {
   doRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -207,7 +199,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -222,7 +214,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   loadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -237,7 +229,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
       toObject(): {
@@ -252,7 +244,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   requestFulfilledAction: RequestFactoryActionCommon & {
     (
       data: any,
-      meta: RequestActionMeta
+      meta: RequestActionMeta,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: {
         response: Resp;
@@ -263,7 +255,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   requestRejectedAction: RequestFactoryActionCommon & {
     (
       data: any,
-      meta: RequestActionMeta
+      meta: RequestActionMeta,
     ): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: {
         error: Err;
@@ -272,10 +264,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
     };
   };
   setErrorAction: RequestFactoryActionCommon & {
-    (data: {
-      error: Err;
-      params: Params;
-    }): RequestFactoryActionCommonWithoutSerializeReturnType & {
+    (data: { error: Err; params: Params }): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload: {
         error: Err;
         params: Params;
@@ -327,15 +316,11 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   };
 };
 
-export type RequestsFactoryItemActionsWithParamsWithSerialize<
-  Resp,
-  Err,
-  Params
-> = {
+export type RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> = {
   doRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -351,7 +336,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -367,7 +352,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   loadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -383,7 +368,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
       toObject(): {
@@ -399,7 +384,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   requestFulfilledAction: RequestFactoryActionCommon & {
     (
       data: any,
-      meta: RequestActionMeta
+      meta: RequestActionMeta,
     ): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: {
         response: Resp;
@@ -410,7 +395,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   requestRejectedAction: RequestFactoryActionCommon & {
     (
       data: any,
-      meta: RequestActionMeta
+      meta: RequestActionMeta,
     ): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: {
         error: Err;
@@ -419,10 +404,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
     };
   };
   setErrorAction: RequestFactoryActionCommon & {
-    (data: {
-      error: Err;
-      params: Params;
-    }): RequestFactoryActionCommonWithSerializeReturnType & {
+    (data: { error: Err; params: Params }): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: {
         error: Err;
         params: Params;
@@ -478,10 +460,6 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
 };
 
 export type RequestsFactoryItemActions<Resp, Err, Params> =
-  | RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
-      Resp,
-      Err,
-      Params
-    >
+  | RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<Resp, Err, Params>
   | RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params>
   | RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params>;

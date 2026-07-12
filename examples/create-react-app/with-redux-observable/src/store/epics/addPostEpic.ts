@@ -1,19 +1,16 @@
-import { ofType, Epic, combineEpics } from 'redux-observable';
-import { mergeMap, map, ignoreElements, tap } from 'rxjs/operators';
+import { ofType, Epic, combineEpics } from "redux-observable";
+import { mergeMap, map, ignoreElements, tap } from "rxjs/operators";
 
-import { addUserPostAction } from '../actions';
+import { addUserPostAction } from "../actions";
 import {
   cancelAddPostAction,
   addPostAction,
   addPostFulfilledAction,
   addPostRejectedAction,
-} from '../../requests/add-post';
-import {
-  setUserPostsAction,
-  userPostsSelector,
-} from '../../requests/posts-by-user';
+} from "../../requests/add-post";
+import { setUserPostsAction, userPostsSelector } from "../../requests/posts-by-user";
 
-const addUserPostEpic: Epic = action$ =>
+const addUserPostEpic: Epic = (action$) =>
   action$.pipe(
     ofType(addUserPostAction),
     mergeMap((action: ReturnType<typeof addUserPostAction>) => {
@@ -21,14 +18,14 @@ const addUserPostEpic: Epic = action$ =>
         cancelAddPostAction({ userId: action.payload.userId }),
         addPostAction(action.payload),
       ];
-    })
+    }),
   );
 
 const addUserPostFulfilledEpic: Epic = (action$, state$) =>
   action$.pipe(
     ofType(addPostFulfilledAction),
     map((action: ReturnType<typeof addPostFulfilledAction>) => {
-      console.info('Post added successfully');
+      console.info("Post added successfully");
 
       return setUserPostsAction({
         response: [
@@ -39,7 +36,7 @@ const addUserPostFulfilledEpic: Epic = (action$, state$) =>
         ],
         params: { userId: action.payload.params.userId },
       });
-    })
+    }),
   );
 
 const addUserPostRejectedEpic: Epic = (action$, state$) =>
@@ -48,11 +45,7 @@ const addUserPostRejectedEpic: Epic = (action$, state$) =>
     tap((action: ReturnType<typeof addPostRejectedAction>) => {
       alert(`Post for user ${action.payload.params.userId} not added`);
     }),
-    ignoreElements()
+    ignoreElements(),
   );
 
-export default combineEpics(
-  addUserPostEpic,
-  addUserPostFulfilledEpic,
-  addUserPostRejectedEpic
-);
+export default combineEpics(addUserPostEpic, addUserPostFulfilledEpic, addUserPostRejectedEpic);

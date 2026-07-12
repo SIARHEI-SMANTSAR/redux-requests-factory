@@ -1,17 +1,14 @@
-import { Reducer } from 'redux';
+import { Reducer } from "redux";
 
-import { Actions } from './actions';
-import {
-  IS_SOMETHING_LOADING_STATE_KEY,
-  RESPONSES_STATE_KEY,
-} from '../constants';
+import { Actions } from "./actions";
+import { IS_SOMETHING_LOADING_STATE_KEY, RESPONSES_STATE_KEY } from "../constants";
 
 export enum RequestsStatuses {
-  None = 'none',
-  Loading = 'loading',
-  Success = 'success',
-  Failed = 'failed',
-  Canceled = 'canceled',
+  None = "none",
+  Loading = "loading",
+  Success = "success",
+  Failed = "failed",
+  Canceled = "canceled",
 }
 
 export type RequestState = {

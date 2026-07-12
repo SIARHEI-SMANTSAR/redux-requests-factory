@@ -1,12 +1,14 @@
-import { isSomethingLoadingSelector } from '../../src';
+import { describe, it, expect } from "vitest";
+
+import { isSomethingLoadingSelector } from "../../src";
 import {
   DEFAULT_STATE_REQUESTS_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../../src/constants';
+} from "../../src/constants";
 
-describe('isSomethingLoadingSelector', () => {
-  it('when count equal 0', () => {
+describe("isSomethingLoadingSelector", () => {
+  it("when count equal 0", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -19,7 +21,7 @@ describe('isSomethingLoadingSelector', () => {
     expect(isSomethingLoadingSelector(state)).toBe(false);
   });
 
-  it('when count not equal 0', () => {
+  it("when count not equal 0", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {

@@ -48,25 +48,21 @@ npm install redux
 Add the requests reducer under `stateRequestsKey`, then apply the middleware.
 
 ```js
-import { createStore, applyMiddleware, combineReducers } from 'redux';
+import { createStore, applyMiddleware, combineReducers } from "redux";
 import {
   stateRequestsKey,
   requestsReducer,
   createRequestsFactoryMiddleware,
-} from 'redux-requests-factory';
+} from "redux-requests-factory";
 
 export const reducer = combineReducers({
   [stateRequestsKey]: requestsReducer,
   // other reducers
 });
 
-const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware();
+const { middleware: requestsFactoryMiddleware } = createRequestsFactoryMiddleware();
 
-const store = createStore(
-  reducer,
-  applyMiddleware(requestsFactoryMiddleware)
-);
+const store = createStore(reducer, applyMiddleware(requestsFactoryMiddleware));
 
 export default store;
 ```
@@ -79,10 +75,9 @@ Create a request module and export only the actions and selectors your app
 needs.
 
 ```js
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory } from "redux-requests-factory";
 
-const loadUsersRequest = () =>
-  fetch('https://mysite.com/users').then(res => res.json());
+const loadUsersRequest = () => fetch("https://mysite.com/users").then((res) => res.json());
 
 export const {
   loadDataAction: loadUsersAction,
@@ -94,23 +89,23 @@ export const {
   isLoadedSelector: isLoadedUsersSelector,
 } = requestsFactory({
   request: loadUsersRequest,
-  stateRequestKey: 'users',
-  transformResponse: response => response || [],
+  stateRequestKey: "users",
+  transformResponse: (response) => response || [],
 });
 ```
 
 Use the generated API in a component.
 
 ```js
-import React, { useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import {
   loadUsersAction,
   reloadUsersAction,
   usersSelector,
   isLoadingUsersSelector,
-} from './requests/users';
+} from "./requests/users";
 
 const Users = () => {
   const dispatch = useDispatch();
@@ -130,7 +125,7 @@ const Users = () => {
       <button onClick={() => dispatch(reloadUsersAction())}>Reload</button>
       {isLoading ? <span>Loading...</span> : null}
       <ul>
-        {users.map(user => (
+        {users.map((user) => (
           <li key={user.id}>{user.name}</li>
         ))}
       </ul>
@@ -148,10 +143,10 @@ Use `serializeRequestParameters` when one logical request has separate cached
 states for different parameters.
 
 ```js
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory } from "redux-requests-factory";
 
 const loadUserPostsRequest = ({ userId }) =>
-  fetch(`https://mysite.com/posts?userId=${userId}`).then(res => res.json());
+  fetch(`https://mysite.com/posts?userId=${userId}`).then((res) => res.json());
 
 export const {
   loadDataAction: loadUserPostsAction,
@@ -160,9 +155,9 @@ export const {
   isLoadingSelector: isLoadingUserPostsSelector,
 } = requestsFactory({
   request: loadUserPostsRequest,
-  stateRequestKey: 'user-posts',
+  stateRequestKey: "user-posts",
   serializeRequestParameters: ({ userId }) => `${userId}`,
-  transformResponse: response => response || [],
+  transformResponse: (response) => response || [],
 });
 ```
 
@@ -203,18 +198,18 @@ Use `fulfilledActions` and `rejectedActions` to dispatch additional actions
 after a request finishes.
 
 ```js
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory } from "redux-requests-factory";
 
-import { setUserPostsAction, userPostsSelector } from './posts-by-user';
+import { setUserPostsAction, userPostsSelector } from "./posts-by-user";
 
 const addPostRequest = ({ userId, title, body }) =>
-  fetch('https://mysite.com/posts', {
-    method: 'POST',
+  fetch("https://mysite.com/posts", {
+    method: "POST",
     body: JSON.stringify({ userId, title, body }),
     headers: {
-      'Content-type': 'application/json; charset=UTF-8',
+      "Content-type": "application/json; charset=UTF-8",
     },
-  }).then(res => res.json());
+  }).then((res) => res.json());
 
 export const {
   doRequestAction: addPostAction,
@@ -222,7 +217,7 @@ export const {
   isLoadingSelector: isAddingPostSelector,
 } = requestsFactory({
   request: addPostRequest,
-  stateRequestKey: 'add-post',
+  stateRequestKey: "add-post",
   includeInGlobalLoading: false,
   serializeRequestParameters: ({ userId }) => `${userId}`,
   fulfilledActions: [
@@ -241,16 +236,16 @@ you need to write request state manually.
 ```js
 dispatch(
   setResponseAction({
-    response: { id: 1, name: 'Ada' },
+    response: { id: 1, name: "Ada" },
     params: { id: 1 },
-  })
+  }),
 );
 
 dispatch(
   setErrorAction({
-    error: new Error('Request failed'),
+    error: new Error("Request failed"),
     params: { id: 1 },
-  })
+  }),
 );
 ```
 
@@ -259,8 +254,8 @@ dispatch(
 Use `isSomethingLoadingSelector` to read global request activity.
 
 ```js
-import { useSelector } from 'react-redux';
-import { isSomethingLoadingSelector } from 'redux-requests-factory';
+import { useSelector } from "react-redux";
+import { isSomethingLoadingSelector } from "redux-requests-factory";
 
 const isSomethingLoading = useSelector(isSomethingLoadingSelector);
 ```
@@ -270,7 +265,7 @@ Requests are included in global loading by default. Disable that per request:
 ```js
 requestsFactory({
   request: saveDraftRequest,
-  stateRequestKey: 'save-draft',
+  stateRequestKey: "save-draft",
   includeInGlobalLoading: false,
 });
 ```
@@ -290,7 +285,7 @@ after a timeout without cancelling them.
 ```js
 requestsFactory({
   request: loadReportRequest,
-  stateRequestKey: 'report',
+  stateRequestKey: "report",
   globalLoadingTimeout: 1000,
 });
 ```
@@ -303,12 +298,11 @@ Creates request-specific actions and selectors.
 
 ```js
 const request = requestsFactory({
-  request: ({ id }) =>
-    fetch(`https://mysite.com/api/users/${id}`).then(res => res.json()),
-  stateRequestKey: 'user',
+  request: ({ id }) => fetch(`https://mysite.com/api/users/${id}`).then((res) => res.json()),
+  stateRequestKey: "user",
   serializeRequestParameters: ({ id }) => `${id}`,
-  transformResponse: response => response || null,
-  transformError: error => error && error.message,
+  transformResponse: (response) => response || null,
+  transformError: (error) => error && error.message,
   useDebounce: true,
   debounceWait: 500,
   debounceOptions: {
@@ -327,22 +321,22 @@ const request = requestsFactory({
 
 ### Config
 
-| Option | Required | Default | Description |
-| --- | --- | --- | --- |
-| `request` | Yes | - | Function that receives params and returns a `Promise`. |
-| `stateRequestKey` | Yes | - | Unique key for this request in Redux state. |
-| `serializeRequestParameters` | No | - | Converts params to a string cache key. When set, selectors return `(params) => value`. |
-| `transformResponse` | No | - | Transforms `responseSelector` output. Commonly used to provide a default value. |
-| `transformError` | No | - | Transforms `errorSelector` output and rejected action payloads. |
-| `useDebounce` | No | `false` | Enables debounce for `doRequestAction`, `forcedLoadDataAction`, and `loadDataAction`. |
-| `debounceWait` | No | `500` | Debounce wait in milliseconds. |
-| `debounceOptions` | No | `{ leading: true, trailing: false, maxWait: debounceWait }` | Options passed to `lodash.debounce`. |
-| `stringifyParamsForDebounce` | No | `JSON.stringify` | Converts params to a debounce key. |
-| `fulfilledActions` | No | `[]` | Actions or action factories dispatched after success. |
-| `rejectedActions` | No | `[]` | Actions or action factories dispatched after failure. |
-| `includeInGlobalLoading` | No | `true` | Includes this request in `isSomethingLoadingSelector`. |
-| `globalLoadingTimeout` | No | - | Removes this request from global loading after the given time in ms. |
-| `dispatchFulfilledActionForLoadedRequest` | No | `false` | Re-dispatches fulfilled side effects when `loadDataAction` is called for an already loaded request. |
+| Option                                    | Required | Default                                                     | Description                                                                                         |
+| ----------------------------------------- | -------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `request`                                 | Yes      | -                                                           | Function that receives params and returns a `Promise`.                                              |
+| `stateRequestKey`                         | Yes      | -                                                           | Unique key for this request in Redux state.                                                         |
+| `serializeRequestParameters`              | No       | -                                                           | Converts params to a string cache key. When set, selectors return `(params) => value`.              |
+| `transformResponse`                       | No       | -                                                           | Transforms `responseSelector` output. Commonly used to provide a default value.                     |
+| `transformError`                          | No       | -                                                           | Transforms `errorSelector` output and rejected action payloads.                                     |
+| `useDebounce`                             | No       | `false`                                                     | Enables debounce for `doRequestAction`, `forcedLoadDataAction`, and `loadDataAction`.               |
+| `debounceWait`                            | No       | `500`                                                       | Debounce wait in milliseconds.                                                                      |
+| `debounceOptions`                         | No       | `{ leading: true, trailing: false, maxWait: debounceWait }` | Options passed to `lodash.debounce`.                                                                |
+| `stringifyParamsForDebounce`              | No       | `JSON.stringify`                                            | Converts params to a debounce key.                                                                  |
+| `fulfilledActions`                        | No       | `[]`                                                        | Actions or action factories dispatched after success.                                               |
+| `rejectedActions`                         | No       | `[]`                                                        | Actions or action factories dispatched after failure.                                               |
+| `includeInGlobalLoading`                  | No       | `true`                                                      | Includes this request in `isSomethingLoadingSelector`.                                              |
+| `globalLoadingTimeout`                    | No       | -                                                           | Removes this request from global loading after the given time in ms.                                |
+| `dispatchFulfilledActionForLoadedRequest` | No       | `false`                                                     | Re-dispatches fulfilled side effects when `loadDataAction` is called for an already loaded request. |
 
 `fulfilledActions` receive `{ request, response, state }`.
 `rejectedActions` receive `{ request, error, state }`.
@@ -353,15 +347,14 @@ function that returns one of those values.
 ```js
 requestsFactory({
   request: loadUserRequest,
-  stateRequestKey: 'user',
+  stateRequestKey: "user",
   fulfilledActions: [
-    { type: 'HIDE_NOTIFICATION' },
-    ({ response }) =>
-      response ? { type: 'USER_LOADED', payload: response } : null,
+    { type: "HIDE_NOTIFICATION" },
+    ({ response }) => (response ? { type: "USER_LOADED", payload: response } : null),
   ],
   rejectedActions: [
     ({ error }) => ({
-      type: 'SHOW_NOTIFICATION',
+      type: "SHOW_NOTIFICATION",
       payload: error.message,
     }),
   ],
@@ -370,17 +363,17 @@ requestsFactory({
 
 ### Actions
 
-| Action creator | Behavior |
-| --- | --- |
-| `loadDataAction(params?, options?)` | Runs the request only if it is not already `loading` or `success`. |
-| `forcedLoadDataAction(params?, options?)` | Runs the request every time. Use it for reload flows. |
-| `doRequestAction(params?, options?)` | Runs the request every time. Use it for create, update, and delete flows. |
-| `cancelRequestAction(params?, options?)` | Cancels the latest active request for this key. |
-| `setErrorAction({ error, params? })` | Writes an error state and dispatches `requestRejectedAction` when it is used. |
+| Action creator                             | Behavior                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `loadDataAction(params?, options?)`        | Runs the request only if it is not already `loading` or `success`.              |
+| `forcedLoadDataAction(params?, options?)`  | Runs the request every time. Use it for reload flows.                           |
+| `doRequestAction(params?, options?)`       | Runs the request every time. Use it for create, update, and delete flows.       |
+| `cancelRequestAction(params?, options?)`   | Cancels the latest active request for this key.                                 |
+| `setErrorAction({ error, params? })`       | Writes an error state and dispatches `requestRejectedAction` when it is used.   |
 | `setResponseAction({ response, params? })` | Writes a success state and dispatches `requestFulfilledAction` when it is used. |
-| `resetRequestAction(params?)` | Resets status to `RequestsStatuses.None` and clears response and error. |
-| `requestFulfilledAction` | Plain action creator for subscriptions. Payload is `{ params, response }`. |
-| `requestRejectedAction` | Plain action creator for subscriptions. Payload is `{ params, error }`. |
+| `resetRequestAction(params?)`              | Resets status to `RequestsStatuses.None` and clears response and error.         |
+| `requestFulfilledAction`                   | Plain action creator for subscriptions. Payload is `{ params, response }`.      |
+| `requestRejectedAction`                    | Plain action creator for subscriptions. Payload is `{ params, error }`.         |
 
 The `options` object currently supports `silent`.
 
@@ -396,38 +389,38 @@ Use `requestFulfilledAction` and `requestRejectedAction` with middleware such
 as `redux-observable` or `redux-saga`.
 
 ```js
-import { ofType } from 'redux-observable';
-import { ignoreElements, tap } from 'rxjs/operators';
+import { ofType } from "redux-observable";
+import { ignoreElements, tap } from "rxjs/operators";
 
 export const { requestFulfilledAction } = requestsFactory({
   request: loadUserRequest,
-  stateRequestKey: 'user',
+  stateRequestKey: "user",
 });
 
-const userLoadedEpic = action$ =>
+const userLoadedEpic = (action$) =>
   action$.pipe(
     ofType(requestFulfilledAction),
     tap(({ payload: { params, response } }) => {
-      console.log('User loaded', params, response);
+      console.log("User loaded", params, response);
     }),
-    ignoreElements()
+    ignoreElements(),
   );
 ```
 
 ### Selectors
 
-| Selector | Without `serializeRequestParameters` | With `serializeRequestParameters` |
-| --- | --- | --- |
-| `responseSelector` | `state => response` | `state => params => response` |
-| `errorSelector` | `state => error` | `state => params => error` |
-| `requestStatusSelector` | `state => RequestsStatuses` | `state => params => RequestsStatuses` |
-| `isLoadingSelector` | `state => boolean` | `state => params => boolean` |
-| `isLoadedSelector` | `state => boolean` | `state => params => boolean` |
+| Selector                | Without `serializeRequestParameters` | With `serializeRequestParameters`     |
+| ----------------------- | ------------------------------------ | ------------------------------------- |
+| `responseSelector`      | `state => response`                  | `state => params => response`         |
+| `errorSelector`         | `state => error`                     | `state => params => error`            |
+| `requestStatusSelector` | `state => RequestsStatuses`          | `state => params => RequestsStatuses` |
+| `isLoadingSelector`     | `state => boolean`                   | `state => params => boolean`          |
+| `isLoadedSelector`      | `state => boolean`                   | `state => params => boolean`          |
 
 Available statuses:
 
 ```js
-import { RequestsStatuses } from 'redux-requests-factory';
+import { RequestsStatuses } from "redux-requests-factory";
 
 RequestsStatuses.None;
 RequestsStatuses.Loading;
@@ -442,8 +435,8 @@ RequestsStatuses.Canceled;
 ```js
 const { responseSelector } = requestsFactory({
   request: loadUsersRequest,
-  stateRequestKey: 'users',
-  transformResponse: response => response || [],
+  stateRequestKey: "users",
+  transformResponse: (response) => response || [],
 });
 
 responseSelector(state); // []
@@ -455,14 +448,14 @@ Use the default export when you need more than one independent request factory,
 for example to store request states under different reducer keys.
 
 ```js
-import createReduxRequestsFactory from 'redux-requests-factory';
+import createReduxRequestsFactory from "redux-requests-factory";
 
 export const apiOne = createReduxRequestsFactory({
-  stateRequestsKey: 'apiOne',
+  stateRequestsKey: "apiOne",
 });
 
 export const apiTwo = createReduxRequestsFactory({
-  stateRequestsKey: 'apiTwo',
+  stateRequestsKey: "apiTwo",
 });
 ```
 
@@ -476,7 +469,7 @@ const {
   requestsReducer,
   isSomethingLoadingSelector,
 } = createReduxRequestsFactory({
-  stateRequestsKey: 'api',
+  stateRequestsKey: "api",
 });
 ```
 
@@ -486,14 +479,10 @@ const {
 all currently tracked requests finish.
 
 ```js
-const makeStore = initialState => {
+const makeStore = (initialState) => {
   const { middleware, toPromise } = createRequestsFactoryMiddleware();
 
-  const store = createStore(
-    reducer,
-    initialState,
-    applyMiddleware(middleware)
-  );
+  const store = createStore(reducer, initialState, applyMiddleware(middleware));
 
   store.asyncRequests = toPromise;
 

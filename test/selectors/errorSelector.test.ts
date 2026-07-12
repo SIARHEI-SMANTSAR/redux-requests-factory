@@ -1,16 +1,20 @@
-import { requestsFactory, RequestsStatuses } from '../../src';
+import { vi, describe, it, expect } from "vitest";
+
+import { requestsFactory, RequestsStatuses } from "../../src";
 import {
   DEFAULT_STATE_REQUESTS_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../../src/constants';
+} from "../../src/constants";
 
-jest.mock('../../src/create-register-request-key', () => () => ({
-  registerRequestKey: (key: string) => key,
+vi.mock("../../src/create-register-request-key", () => ({
+  default: () => ({
+    registerRequestKey: (key: string) => key,
+  }),
 }));
 
-describe('errorSelector', () => {
-  it('when request status is Failed', () => {
+describe("errorSelector", () => {
+  it("when request status is Failed", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -19,7 +23,7 @@ describe('errorSelector', () => {
         [RESPONSES_STATE_KEY]: {
           users: {
             status: RequestsStatuses.Failed,
-            error: 'Error',
+            error: "Error",
           },
         },
       },
@@ -27,13 +31,13 @@ describe('errorSelector', () => {
 
     const { errorSelector } = requestsFactory({
       request: () => Promise.reject([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
-    expect(errorSelector(state)).toBe('Error');
+    expect(errorSelector(state)).toBe("Error");
   });
 
-  it('when request status is not Failed', () => {
+  it("when request status is not Failed", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -42,7 +46,7 @@ describe('errorSelector', () => {
         [RESPONSES_STATE_KEY]: {
           users: {
             status: RequestsStatuses.Success,
-            response: ['test'],
+            response: ["test"],
           },
         },
       },
@@ -50,13 +54,13 @@ describe('errorSelector', () => {
 
     const { errorSelector } = requestsFactory({
       request: () => Promise.reject([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(errorSelector(state)).toBe(undefined);
   });
 
-  it('when request is not started', () => {
+  it("when request is not started", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -68,13 +72,13 @@ describe('errorSelector', () => {
 
     const { errorSelector } = requestsFactory({
       request: () => Promise.reject([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(errorSelector(state)).toBe(undefined);
   });
 
-  it('with transformError when request status is Failed', () => {
+  it("with transformError when request status is Failed", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -83,7 +87,7 @@ describe('errorSelector', () => {
         [RESPONSES_STATE_KEY]: {
           users: {
             status: RequestsStatuses.Failed,
-            error: ['Error_1', 'Error_2', 'Error_3'],
+            error: ["Error_1", "Error_2", "Error_3"],
           },
         },
       },
@@ -91,14 +95,14 @@ describe('errorSelector', () => {
 
     const { errorSelector } = requestsFactory({
       request: () => Promise.reject([]),
-      stateRequestKey: 'users',
-      transformError: (error?: string[]) => error && error.join(', '),
+      stateRequestKey: "users",
+      transformError: (error?: string[]) => error && error.join(", "),
     });
 
-    expect(errorSelector(state)).toBe('Error_1, Error_2, Error_3');
+    expect(errorSelector(state)).toBe("Error_1, Error_2, Error_3");
   });
 
-  it('with transformError when request status is not Failed', () => {
+  it("with transformError when request status is not Failed", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -114,8 +118,8 @@ describe('errorSelector', () => {
 
     const { errorSelector } = requestsFactory({
       request: () => Promise.reject([]),
-      stateRequestKey: 'users',
-      transformError: (error?: string[]) => error && error.join(', '),
+      stateRequestKey: "users",
+      transformError: (error?: string[]) => error && error.join(", "),
     });
 
     expect(errorSelector(state)).toBe(undefined);

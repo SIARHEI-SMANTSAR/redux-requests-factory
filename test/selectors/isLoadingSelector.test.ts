@@ -1,16 +1,20 @@
-import { requestsFactory, RequestsStatuses } from '../../src';
+import { vi, describe, it, expect } from "vitest";
+
+import { requestsFactory, RequestsStatuses } from "../../src";
 import {
   DEFAULT_STATE_REQUESTS_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../../src/constants';
+} from "../../src/constants";
 
-jest.mock('../../src/create-register-request-key', () => () => ({
-  registerRequestKey: (key: string) => key,
+vi.mock("../../src/create-register-request-key", () => ({
+  default: () => ({
+    registerRequestKey: (key: string) => key,
+  }),
 }));
 
-describe('isLoadingSelector', () => {
-  it('when request is not started', () => {
+describe("isLoadingSelector", () => {
+  it("when request is not started", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -22,13 +26,13 @@ describe('isLoadingSelector', () => {
 
     const { isLoadingSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(isLoadingSelector(state)).toBe(false);
   });
 
-  it('when request is started', () => {
+  it("when request is started", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -44,13 +48,13 @@ describe('isLoadingSelector', () => {
 
     const { isLoadingSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(isLoadingSelector(state)).toBe(true);
   });
 
-  it('when request is loaded', () => {
+  it("when request is loaded", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -66,13 +70,13 @@ describe('isLoadingSelector', () => {
 
     const { isLoadingSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(isLoadingSelector(state)).toBe(false);
   });
 
-  it('when request is failed', () => {
+  it("when request is failed", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -88,13 +92,13 @@ describe('isLoadingSelector', () => {
 
     const { isLoadingSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(isLoadingSelector(state)).toBe(false);
   });
 
-  it('when request is canceled', () => {
+  it("when request is canceled", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -110,7 +114,7 @@ describe('isLoadingSelector', () => {
 
     const { isLoadingSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(isLoadingSelector(state)).toBe(false);

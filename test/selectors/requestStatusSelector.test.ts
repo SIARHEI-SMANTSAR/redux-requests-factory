@@ -1,16 +1,19 @@
-import { requestsFactory, RequestsStatuses } from '../../src';
+import { vi, describe, it, expect } from "vitest";
+import { requestsFactory, RequestsStatuses } from "../../src";
 import {
   DEFAULT_STATE_REQUESTS_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../../src/constants';
+} from "../../src/constants";
 
-jest.mock('../../src/create-register-request-key', () => () => ({
-  registerRequestKey: (key: string) => key,
+vi.mock("../../src/create-register-request-key", () => ({
+  default: () => ({
+    registerRequestKey: (key: string) => key,
+  }),
 }));
 
-describe('requestStatusSelector', () => {
-  it('when request is not started', () => {
+describe("requestStatusSelector", () => {
+  it("when request is not started", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -22,13 +25,13 @@ describe('requestStatusSelector', () => {
 
     const { requestStatusSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(requestStatusSelector(state)).toBe(RequestsStatuses.None);
   });
 
-  it('when request is started', () => {
+  it("when request is started", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -44,7 +47,7 @@ describe('requestStatusSelector', () => {
 
     const { requestStatusSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(requestStatusSelector(state)).toBe(RequestsStatuses.Loading);

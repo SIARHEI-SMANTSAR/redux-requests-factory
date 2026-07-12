@@ -1,4 +1,4 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory } from "redux-requests-factory";
 
 interface User {
   id: number;
@@ -6,7 +6,7 @@ interface User {
 }
 
 const loadUsersRequest = (): Promise<User[]> =>
-  fetch('https://jsonplaceholder.typicode.com/users').then((res) => res.json());
+  fetch("https://jsonplaceholder.typicode.com/users").then((res) => res.json());
 
 export const {
   loadDataAction: loadUsersAction,
@@ -15,6 +15,6 @@ export const {
   responseSelector: usersSelector,
 } = requestsFactory({
   request: loadUsersRequest,
-  stateRequestKey: 'users',
+  stateRequestKey: "users",
   transformResponse: (response: User[] | undefined) => response || [],
 });

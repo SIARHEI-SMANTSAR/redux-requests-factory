@@ -1,13 +1,13 @@
-import { createStore, applyMiddleware, combineReducers } from 'redux';
-import { createLogger } from 'redux-logger';
+import { createStore, applyMiddleware, combineReducers } from "redux";
+import { createLogger } from "redux-logger";
 import {
   stateRequestsKey,
   requestsReducer,
   createRequestsFactoryMiddleware,
-} from 'redux-requests-factory';
-import { createEpicMiddleware } from 'redux-observable';
+} from "redux-requests-factory";
+import { createEpicMiddleware } from "redux-observable";
 
-import rootEpic from './rootEpic';
+import rootEpic from "./rootEpic";
 
 export const reducer = combineReducers({
   [stateRequestsKey]: requestsReducer,

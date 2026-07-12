@@ -1,18 +1,12 @@
-import {
-  createStore,
-  applyMiddleware,
-  combineReducers,
-  Store,
-  AnyAction,
-} from 'redux';
-import { createLogger } from 'redux-logger';
-import { MakeStore } from 'next-redux-wrapper';
+import { createStore, applyMiddleware, combineReducers, Store, AnyAction } from "redux";
+import { createLogger } from "redux-logger";
+import { MakeStore } from "next-redux-wrapper";
 import {
   stateRequestsKey,
   requestsReducer,
   createRequestsFactoryMiddleware,
   Actions as FactoryActions,
-} from 'redux-requests-factory';
+} from "redux-requests-factory";
 
 const reducer = combineReducers({
   [stateRequestsKey]: requestsReducer,
@@ -26,9 +20,7 @@ export type StoreWithAsyncRequests = Store<RootState, Actions> & {
   asyncRequests: () => Promise<void>;
 };
 
-const makeStore: MakeStore = (
-  initialState: RootState
-): StoreWithAsyncRequests => {
+const makeStore: MakeStore = (initialState: RootState): StoreWithAsyncRequests => {
   const logger = createLogger({ collapsed: true });
   const { middleware, toPromise } = createRequestsFactoryMiddleware();
   const reduxMiddleware = applyMiddleware(middleware, logger);

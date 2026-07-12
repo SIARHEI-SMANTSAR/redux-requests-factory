@@ -1,24 +1,20 @@
-import React, { useCallback, useEffect, FormEvent, MouseEvent } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { isSomethingLoadingSelector } from 'redux-requests-factory';
+import React, { useCallback, useEffect, FormEvent, MouseEvent } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { isSomethingLoadingSelector } from "redux-requests-factory";
 
 import {
   loadUsersAction,
   forcedLoadUsersAction,
   cancelLoadUsersAction,
   usersSelector,
-} from '../requests/users';
-import './App.css';
+} from "../requests/users";
+import "./App.css";
 import {
   loadUserPostsAction,
   userPostsSelector,
   forcedLoadUserPostsAction,
-} from '../requests/posts-by-user';
-import {
-  addPostAction,
-  isLoadingAddPostSelector,
-  cancelAddPostAction,
-} from '../requests/add-post';
+} from "../requests/posts-by-user";
+import { addPostAction, isLoadingAddPostSelector, cancelAddPostAction } from "../requests/add-post";
 
 const App = () => {
   const users = useSelector(usersSelector);
@@ -26,30 +22,22 @@ const App = () => {
   const isSomethingLoading = useSelector(isSomethingLoadingSelector);
   const isLoadingAddPost = useSelector(isLoadingAddPostSelector);
   const dispatch = useDispatch();
-  const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [
-    dispatch,
-  ]);
-  const onForcedLoadUsers = useCallback(
-    () => dispatch(forcedLoadUsersAction()),
-    [dispatch]
-  );
-  const onCancelLoadUsers = useCallback(
-    () => dispatch(cancelLoadUsersAction()),
-    [dispatch]
-  );
+  const onLoadUsers = useCallback(() => dispatch(loadUsersAction()), [dispatch]);
+  const onForcedLoadUsers = useCallback(() => dispatch(forcedLoadUsersAction()), [dispatch]);
+  const onCancelLoadUsers = useCallback(() => dispatch(cancelLoadUsersAction()), [dispatch]);
   const onLoadUserPosts = useCallback(
     (userId: number) => dispatch(loadUserPostsAction({ userId })),
-    [dispatch]
+    [dispatch],
   );
   const onForcedLoadUserPosts = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       dispatch(
         forcedLoadUserPostsAction({
           userId: (event.currentTarget.dataset as any).userId as number,
-        })
+        }),
       );
     },
-    [dispatch]
+    [dispatch],
   );
   const onAddPost = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -67,10 +55,10 @@ const App = () => {
           userId,
           title: elements.title.value,
           body: elements.body.value,
-        })
+        }),
       );
     },
-    [dispatch]
+    [dispatch],
   );
 
   useEffect(() => {
@@ -87,23 +75,15 @@ const App = () => {
 
   return (
     <div className="app">
-      <div className="app__loading">
-        {isSomethingLoading ? 'Something Loading...' : null}
-      </div>
+      <div className="app__loading">{isSomethingLoading ? "Something Loading..." : null}</div>
 
       <button onClick={onLoadUsers} className="app__button app__load-button">
         Load Users
       </button>
-      <button
-        onClick={onForcedLoadUsers}
-        className="app__button app__forced-load-button"
-      >
+      <button onClick={onForcedLoadUsers} className="app__button app__forced-load-button">
         Forced Load Users
       </button>
-      <button
-        onClick={onCancelLoadUsers}
-        className="app__button app__cancel-load-button"
-      >
+      <button onClick={onCancelLoadUsers} className="app__button app__cancel-load-button">
         Cancel Load Users
       </button>
 
@@ -122,11 +102,7 @@ const App = () => {
               >
                 Forced Load User Posts With Debounce 500ms
               </button>
-              <form
-                className="app__form"
-                data-user-id={id}
-                onSubmit={onAddPost}
-              >
+              <form className="app__form" data-user-id={id} onSubmit={onAddPost}>
                 <h3>Add new post </h3>
                 <label className="app__input-label">
                   Title
@@ -136,11 +112,8 @@ const App = () => {
                   Body
                   <textarea name="body" />
                 </label>
-                <button
-                  type="submit"
-                  disabled={isLoadingAddPost({ userId: id })}
-                >
-                  {isLoadingAddPost({ userId: id }) ? 'Loading...' : 'Add'}
+                <button type="submit" disabled={isLoadingAddPost({ userId: id })}>
+                  {isLoadingAddPost({ userId: id }) ? "Loading..." : "Add"}
                 </button>
               </form>
             </ul>

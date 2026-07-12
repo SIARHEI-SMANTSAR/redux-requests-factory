@@ -1,22 +1,12 @@
-import React, { useCallback, useEffect, FormEvent, MouseEvent } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { isSomethingLoadingSelector } from 'redux-requests-factory';
+import React, { useCallback, useEffect, FormEvent, MouseEvent } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { isSomethingLoadingSelector } from "redux-requests-factory";
 
-import {
-  forcedLoadUsersAction,
-  cancelLoadUsersAction,
-  usersSelector,
-} from '../requests/users';
-import './App.css';
-import {
-  userPostsSelector,
-  forcedLoadUserPostsAction,
-} from '../requests/posts-by-user';
-import {
-  isLoadingAddPostSelector,
-  addPostErrorSelector,
-} from '../requests/add-post';
-import { initAppAction, addUserPostAction } from '../store/actions';
+import { forcedLoadUsersAction, cancelLoadUsersAction, usersSelector } from "../requests/users";
+import "./App.css";
+import { userPostsSelector, forcedLoadUserPostsAction } from "../requests/posts-by-user";
+import { isLoadingAddPostSelector, addPostErrorSelector } from "../requests/add-post";
+import { initAppAction, addUserPostAction } from "../store/actions";
 
 const App = () => {
   const users = useSelector(usersSelector);
@@ -27,23 +17,17 @@ const App = () => {
   const dispatch = useDispatch();
   const onInitApp = useCallback(() => dispatch(initAppAction()), [dispatch]);
 
-  const onForcedLoadUsers = useCallback(
-    () => dispatch(forcedLoadUsersAction()),
-    [dispatch]
-  );
-  const onCancelLoadUsers = useCallback(
-    () => dispatch(cancelLoadUsersAction()),
-    [dispatch]
-  );
+  const onForcedLoadUsers = useCallback(() => dispatch(forcedLoadUsersAction()), [dispatch]);
+  const onCancelLoadUsers = useCallback(() => dispatch(cancelLoadUsersAction()), [dispatch]);
   const onForcedLoadUserPosts = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       dispatch(
         forcedLoadUserPostsAction({
           userId: (event.currentTarget.dataset as any).userId as number,
-        })
+        }),
       );
     },
-    [dispatch]
+    [dispatch],
   );
   const onAddPost = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -60,10 +44,10 @@ const App = () => {
           userId,
           title: elements.title.value,
           body: elements.body.value,
-        })
+        }),
       );
     },
-    [dispatch]
+    [dispatch],
   );
 
   useEffect(() => {
@@ -72,20 +56,12 @@ const App = () => {
 
   return (
     <div className="app">
-      <div className="app__loading">
-        {isSomethingLoading ? 'Something Loading...' : null}
-      </div>
+      <div className="app__loading">{isSomethingLoading ? "Something Loading..." : null}</div>
 
-      <button
-        onClick={onForcedLoadUsers}
-        className="app__button app__forced-load-button"
-      >
+      <button onClick={onForcedLoadUsers} className="app__button app__forced-load-button">
         Forced Load Users
       </button>
-      <button
-        onClick={onCancelLoadUsers}
-        className="app__button app__cancel-load-button"
-      >
+      <button onClick={onCancelLoadUsers} className="app__button app__cancel-load-button">
         Cancel Load Users
       </button>
 
@@ -104,11 +80,7 @@ const App = () => {
               >
                 Forced Load User Posts With Debounce 500ms
               </button>
-              <form
-                className="app__form"
-                data-user-id={id}
-                onSubmit={onAddPost}
-              >
+              <form className="app__form" data-user-id={id} onSubmit={onAddPost}>
                 <h3>Add new post </h3>
                 <label className="app__input-label">
                   Title
@@ -119,11 +91,8 @@ const App = () => {
                   <textarea name="body" />
                 </label>
                 <div>{addPostError({ userId: id })}</div>
-                <button
-                  type="submit"
-                  disabled={isLoadingAddPost({ userId: id })}
-                >
-                  {isLoadingAddPost({ userId: id }) ? 'Loading...' : 'Add'}
+                <button type="submit" disabled={isLoadingAddPost({ userId: id })}>
+                  {isLoadingAddPost({ userId: id }) ? "Loading..." : "Add"}
                 </button>
               </form>
             </ul>

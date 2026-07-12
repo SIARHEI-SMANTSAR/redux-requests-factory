@@ -1,10 +1,10 @@
-import { createStore, applyMiddleware, combineReducers } from 'redux';
-import { createLogger } from 'redux-logger';
+import { createStore, applyMiddleware, combineReducers } from "redux";
+import { createLogger } from "redux-logger";
 import {
   stateRequestsKey,
   requestsReducer,
   createRequestsFactoryMiddleware,
-} from 'redux-requests-factory';
+} from "redux-requests-factory";
 
 export const reducer = combineReducers({
   [stateRequestsKey]: requestsReducer,

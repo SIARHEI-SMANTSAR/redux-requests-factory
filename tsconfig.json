@@ -1,9 +1,10 @@
 {
   "include": ["src", "test"],
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "module": "esnext",
     "lib": ["dom", "esnext"],
+    "types": ["node"],
     "importHelpers": true,
     "declaration": true,
     "sourceMap": true,
@@ -19,12 +20,8 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "downlevelIteration": true,
-    "moduleResolution": "node",
-    "baseUrl": "./",
-    "paths": {
-      "*": ["src/*", "node_modules/*"]
-    },
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
     "jsx": "react",
     "esModuleInterop": true
   }

@@ -9,18 +9,16 @@ import {
   GlobalActionTypes,
   GlobalLoadingIncrementAction,
   GlobalLoadingDecrementAction,
-} from './types';
+} from "./types";
 
-export const commonRequestStartAction = (
-  meta: RequestActionMeta
-): CommonRequestStartAction => ({
+export const commonRequestStartAction = (meta: RequestActionMeta): CommonRequestStartAction => ({
   type: CommonActionTypes.RequestStart,
   meta,
 });
 
 export const commonRequestSuccessAction = (
   meta: RequestActionMeta,
-  response: any
+  response: any,
 ): CommonRequestSuccessAction => ({
   type: CommonActionTypes.RequestSuccess,
   meta,
@@ -29,23 +27,19 @@ export const commonRequestSuccessAction = (
 
 export const commonRequestErrorAction = (
   meta: RequestActionMeta,
-  error: any
+  error: any,
 ): CommonRequestErrorAction => ({
   type: CommonActionTypes.RequestError,
   meta,
   payload: { error },
 });
 
-export const commonRequestCancelAction = (
-  meta: RequestActionMeta
-): CommonRequestCancelAction => ({
+export const commonRequestCancelAction = (meta: RequestActionMeta): CommonRequestCancelAction => ({
   type: CommonActionTypes.RequestCancel,
   meta,
 });
 
-export const commonRequestResetAction = (
-  meta: RequestActionMeta
-): CommonRequestResetAction => ({
+export const commonRequestResetAction = (meta: RequestActionMeta): CommonRequestResetAction => ({
   type: CommonActionTypes.RequestReset,
   meta,
 });

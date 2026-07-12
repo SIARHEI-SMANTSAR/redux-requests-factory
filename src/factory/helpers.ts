@@ -1,5 +1,5 @@
-import memoize from 'lodash.memoize';
-import debounce from 'lodash.debounce';
+import memoize from "lodash.memoize";
+import debounce from "lodash.debounce";
 
 import {
   RequestFactoryConfig,
@@ -9,8 +9,8 @@ import {
   RequestFactoryConfigWithParamsWithSerialize,
   RequestFactoryConfigWithTransformResponse,
   DoRequestMapByKey,
-} from '../types';
-import { RESPONSES_STATE_KEY } from '../constants';
+} from "../types";
+import { RESPONSES_STATE_KEY } from "../constants";
 
 export const actionToObject = function toObject(this: any) {
   return {
@@ -29,83 +29,48 @@ export const actionToString = function toString(this: any) {
 };
 
 export const isWithSerialize = <Resp, Err, Params, State, TransformedResp>(
-  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
-): config is RequestFactoryConfigWithParamsWithSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> =>
-  (config as RequestFactoryConfigWithParamsWithSerialize<
-    Resp,
-    Err,
-    Params,
-    State
-  >).serializeRequestParameters !== undefined;
+  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>,
+): config is RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State> =>
+  (config as RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State>)
+    .serializeRequestParameters !== undefined;
 
-export const isWithTransformResponse = <
-  Resp,
-  Err,
-  Params,
-  State,
-  TransformedResp
->(
-  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
-): config is RequestFactoryConfigWithTransformResponse<
-  Resp,
-  Err,
-  Params,
-  State,
-  TransformedResp
-> =>
-  (config as RequestFactoryConfigWithTransformResponse<
-    Resp,
-    Err,
-    Params,
-    State,
-    TransformedResp
-  >).transformResponse !== undefined;
+export const isWithTransformResponse = <Resp, Err, Params, State, TransformedResp>(
+  config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>,
+): config is RequestFactoryConfigWithTransformResponse<Resp, Err, Params, State, TransformedResp> =>
+  (config as RequestFactoryConfigWithTransformResponse<Resp, Err, Params, State, TransformedResp>)
+    .transformResponse !== undefined;
 
-export const getByPath = <Value = any, Object = any>(
-  ...keys: (string | undefined)[]
-) => (obj: Object): Value | undefined =>
-  keys
-    .filter(Boolean)
-    .reduce<Value | undefined>(
-      (value: any, key) => (value ? value[key as string] : undefined),
-      obj as any
-    );
+export const getByPath =
+  <Value = any, Object = any>(...keys: (string | undefined)[]) =>
+  (obj: Object): Value | undefined =>
+    keys
+      .filter(Boolean)
+      .reduce<Value | undefined>(
+        (value: any, key) => (value ? value[key as string] : undefined),
+        obj as any,
+      );
 
-export const getRequestKey = ({
-  key,
-  serializedKey,
-}: RequestActionMeta): string => `${key}_${serializedKey || ''}`;
+export const getRequestKey = ({ key, serializedKey }: RequestActionMeta): string =>
+  `${key}_${serializedKey || ""}`;
 
 export const getSerializedKey = <Resp, Err, Params, State, TransformedResp>(
-  factoryConfig: RequestFactoryConfig<
-    Resp,
-    Err,
-    Params,
-    State,
-    TransformedResp
-  >,
-  params: Params
+  factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>,
+  params: Params,
 ): string | undefined =>
-  isWithSerialize(factoryConfig)
-    ? factoryConfig.serializeRequestParameters(params)
-    : undefined;
+  isWithSerialize(factoryConfig) ? factoryConfig.serializeRequestParameters(params) : undefined;
 
-export const isFactoryAction = (type: string) =>
-  /^@@REDUX_REQUESTS_FACTORY\//.test(type);
+export const isFactoryAction = (type: string) => type.startsWith("@@REDUX_REQUESTS_FACTORY/");
 
-export const memoizeDebounce = function<
-  Func extends (this: any, ...args: any) => any
->(func: Func, wait = 0, options: any = {}): Func {
-  var mem = memoize(function() {
+export const memoizeDebounce = function <Func extends (this: any, ...args: any) => any>(
+  func: Func,
+  wait = 0,
+  options: any = {},
+): Func {
+  var mem = memoize(function () {
     return debounce(func, wait, options);
   }, options.resolver);
 
-  return function() {
+  return function () {
     // @ts-ignore
     mem.apply(this, arguments).apply(this, arguments);
   } as Func;
@@ -113,7 +78,7 @@ export const memoizeDebounce = function<
 
 export const patchConfig = <Resp, Err, Params, State, TransformedResp, Key>(
   config: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>,
-  preparedConfig: PreparedConfig<Key>
+  preparedConfig: PreparedConfig<Key>,
 ): RequestFactoryConfig<Resp, Err, Params, State, TransformedResp> => ({
   ...config,
   stateRequestKey: preparedConfig.registerRequestKey(config.stateRequestKey),
@@ -122,32 +87,30 @@ export const patchConfig = <Resp, Err, Params, State, TransformedResp, Key>(
 export const isNeedLoadData = <State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
-  state: State
+  state: State,
 ) => {
   const status = getByPath<RequestsStatuses, State>(
     stateRequestsKey,
     RESPONSES_STATE_KEY,
     key,
     serializedKey,
-    'status'
+    "status",
   )(state);
 
-  return !(
-    status === RequestsStatuses.Loading || status === RequestsStatuses.Success
-  );
+  return !(status === RequestsStatuses.Loading || status === RequestsStatuses.Success);
 };
 
 export const isRequestFulfilled = <State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
-  state: State
+  state: State,
 ) => {
   const status = getByPath<RequestsStatuses, State>(
     stateRequestsKey,
     RESPONSES_STATE_KEY,
     key,
     serializedKey,
-    'status'
+    "status",
   )(state);
 
   return status === RequestsStatuses.Success;
@@ -156,14 +119,14 @@ export const isRequestFulfilled = <State, Key extends string>(
 export const getResponse = <State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
-  state: State
+  state: State,
 ) => {
   const response = getByPath<any, State>(
     stateRequestsKey,
     RESPONSES_STATE_KEY,
     key,
     serializedKey,
-    'response'
+    "response",
   )(state);
 
   return response;
@@ -174,36 +137,30 @@ export const identity = <T>(a: T): T => a;
 export const setNewRequestToMap = (
   doRequestMapByKey: DoRequestMapByKey,
   requestKey: string,
-  requestNumber: number
+  requestNumber: number,
 ) => {
   if (doRequestMapByKey.has(requestKey)) {
     doRequestMapByKey.get(requestKey)?.set(requestNumber, { canceled: false });
   } else {
-    doRequestMapByKey.set(
-      requestKey,
-      new Map([[requestNumber, { canceled: false }]])
-    );
+    doRequestMapByKey.set(requestKey, new Map([[requestNumber, { canceled: false }]]));
   }
 };
 
 export const isRequestCanceled = (
   doRequestMapByKey: DoRequestMapByKey,
   requestKey: string,
-  requestNumber: number
+  requestNumber: number,
 ) => doRequestMapByKey.get(requestKey)!.get(requestNumber)!.canceled;
 
 export const deleteRequestFromMap = (
   doRequestMapByKey: DoRequestMapByKey,
   requestKey: string,
-  requestNumber: number
+  requestNumber: number,
 ) => {
   doRequestMapByKey.get(requestKey)?.delete(requestNumber);
 };
 
-export const cancelRequestInMap = (
-  doRequestMapByKey: DoRequestMapByKey,
-  requestKey: string
-) => {
+export const cancelRequestInMap = (doRequestMapByKey: DoRequestMapByKey, requestKey: string) => {
   if (doRequestMapByKey.has(requestKey)) {
     const doRequestMap = doRequestMapByKey.get(requestKey);
     if (doRequestMap) {

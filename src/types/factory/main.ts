@@ -1,15 +1,15 @@
-import { RootState } from '../reducer';
+import { RootState } from "../reducer";
 import {
   RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize,
   RequestsFactoryItemActionsWithParamsWithoutSerialize,
   RequestsFactoryItemActionsWithParamsWithSerialize,
-} from './actions';
+} from "./actions";
 import {
   RequestsFactoryItemSelectorsWithoutSerialize,
   RequestsFactoryItemSelectorsWithSerialize,
   RequestsFactoryItemSelectorsWithSerializeWithTransformResponse,
   RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse,
-} from './selectors';
+} from "./selectors";
 import {
   RequestFactoryConfigWithOptionalParamsWithoutSerialize,
   RequestFactoryConfigWithParamsWithoutSerialize,
@@ -17,31 +17,19 @@ import {
   RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse,
   RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse,
   RequestFactoryConfigWithParamsWithSerializeWithTransformResponse,
-} from './config';
+} from "./config";
 
-export type RequestsFactoryItemWithOptionalParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> = RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params
-> &
-  RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
+export type RequestsFactoryItemWithOptionalParamsWithoutSerialize<Resp, Err, Params, State> =
+  RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<Resp, Err, Params> &
+    RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
 
 export type RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformResponse<
   Resp,
   Err,
   Params,
   State,
-  TransformedResp
-> = RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params
-> &
+  TransformedResp,
+> = RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
     Resp,
     Err,
@@ -50,20 +38,16 @@ export type RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformRe
     TransformedResp
   >;
 
-export type RequestsFactoryItemWithParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> = RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> &
-  RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
+export type RequestsFactoryItemWithParamsWithoutSerialize<Resp, Err, Params, State> =
+  RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> &
+    RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
 
 export type RequestsFactoryItemWithParamsWithoutSerializeWithTransformResponse<
   Resp,
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
     Resp,
@@ -73,20 +57,16 @@ export type RequestsFactoryItemWithParamsWithoutSerializeWithTransformResponse<
     TransformedResp
   >;
 
-export type RequestsFactoryItemWithParamsWithSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> = RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> &
-  RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>;
+export type RequestsFactoryItemWithParamsWithSerialize<Resp, Err, Params, State> =
+  RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> &
+    RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>;
 
 export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
   Resp,
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<
     Resp,
@@ -98,26 +78,11 @@ export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
 
 export interface RequestsFactory<Key extends string> {
   <Resp, Err, Params, State extends RootState<Key>>(
-    config: RequestFactoryConfigWithOptionalParamsWithoutSerialize<
-      Resp,
-      Err,
-      Params,
-      State
-    >
-  ): RequestsFactoryItemWithOptionalParamsWithoutSerialize<
-    Resp,
-    Err,
-    Params,
-    State
-  >;
+    config: RequestFactoryConfigWithOptionalParamsWithoutSerialize<Resp, Err, Params, State>,
+  ): RequestsFactoryItemWithOptionalParamsWithoutSerialize<Resp, Err, Params, State>;
 
   <Resp, Err, Params, State extends RootState<Key>>(
-    config: RequestFactoryConfigWithParamsWithoutSerialize<
-      Resp,
-      Err,
-      Params,
-      State
-    >
+    config: RequestFactoryConfigWithParamsWithoutSerialize<Resp, Err, Params, State>,
   ): RequestsFactoryItemWithParamsWithoutSerialize<Resp, Err, Params, State>;
 
   <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
@@ -127,7 +92,7 @@ export interface RequestsFactory<Key extends string> {
       Params,
       State,
       TransformedResp
-    >
+    >,
   ): RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformResponse<
     Resp,
     Err,
@@ -143,7 +108,7 @@ export interface RequestsFactory<Key extends string> {
       Params,
       State,
       TransformedResp
-    >
+    >,
   ): RequestsFactoryItemWithParamsWithoutSerializeWithTransformResponse<
     Resp,
     Err,
@@ -153,12 +118,7 @@ export interface RequestsFactory<Key extends string> {
   >;
 
   <Resp, Err, Params, State extends RootState<Key>>(
-    config: RequestFactoryConfigWithParamsWithSerialize<
-      Resp,
-      Err,
-      Params,
-      State
-    >
+    config: RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State>,
   ): RequestsFactoryItemWithParamsWithSerialize<Resp, Err, Params, State>;
 
   <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
@@ -168,7 +128,7 @@ export interface RequestsFactory<Key extends string> {
       Params,
       State,
       TransformedResp
-    >
+    >,
   ): RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
     Resp,
     Err,
@@ -179,12 +139,7 @@ export interface RequestsFactory<Key extends string> {
 }
 
 export type RequestsFactoryItem<Resp, Err, Params, State, TransformedResp> =
-  | RequestsFactoryItemWithOptionalParamsWithoutSerialize<
-      Resp,
-      Err,
-      Params,
-      State
-    >
+  | RequestsFactoryItemWithOptionalParamsWithoutSerialize<Resp, Err, Params, State>
   | RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformResponse<
       Resp,
       Err,

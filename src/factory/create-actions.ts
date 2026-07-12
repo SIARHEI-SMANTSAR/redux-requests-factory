@@ -1,4 +1,4 @@
-import { Dispatch } from 'redux';
+import { Dispatch } from "redux";
 
 import {
   PreparedConfig,
@@ -10,7 +10,7 @@ import {
   ExternalActions,
   DoRequestMapByKey,
   ActionOptions,
-} from '../types';
+} from "../types";
 import {
   commonRequestStartAction,
   commonRequestSuccessAction,
@@ -19,7 +19,7 @@ import {
   commonRequestResetAction,
   globalLoadingIncrementAction,
   globalLoadingDecrementAction,
-} from '../actions';
+} from "../actions";
 import {
   actionToString,
   getRequestKey,
@@ -34,18 +34,11 @@ import {
   actionToObject,
   getResponse,
   isRequestFulfilled,
-} from './helpers';
+} from "./helpers";
 
-const createActions = <
-  Resp,
-  Err,
-  Params,
-  State,
-  TransformedResp,
-  Key extends string
->(
+const createActions = <Resp, Err, Params, State, TransformedResp, Key extends string>(
   config: PreparedConfig<Key>,
-  factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>
+  factoryConfig: RequestFactoryConfig<Resp, Err, Params, State, TransformedResp>,
 ): RequestsFactoryItemActions<Resp, Err, Params> => {
   const {
     request,
@@ -72,26 +65,23 @@ const createActions = <
 
   const doRequestMapByKey: DoRequestMapByKey = new Map();
 
-  const getDispatchExternalActions = <Data>(
-    externalActions: ExternalActions<Data>
-  ) => (dispatch: Dispatch, data: Data) => {
-    externalActions.forEach(externalAction => {
-      const action =
-        typeof externalAction === 'function'
-          ? externalAction(data)
-          : externalAction;
+  const getDispatchExternalActions =
+    <Data>(externalActions: ExternalActions<Data>) =>
+    (dispatch: Dispatch, data: Data) => {
+      externalActions.forEach((externalAction) => {
+        const action = typeof externalAction === "function" ? externalAction(data) : externalAction;
 
-      if (Array.isArray(action)) {
-        action.forEach(a => {
-          if (a !== null) {
-            dispatch(a);
-          }
-        });
-      } else if (action !== null) {
-        dispatch(action);
-      }
-    });
-  };
+        if (Array.isArray(action)) {
+          action.forEach((a) => {
+            if (a !== null) {
+              dispatch(a);
+            }
+          });
+        } else if (action !== null) {
+          dispatch(action);
+        }
+      });
+    };
 
   const dispatchFulfilledActions = getDispatchExternalActions(fulfilledActions);
 
@@ -99,9 +89,9 @@ const createActions = <
 
   const createSyncAction = <
     Data,
-    Action extends { type: string; meta: RequestActionMeta; payload: Data }
+    Action extends { type: string; meta: RequestActionMeta; payload: Data },
   >(
-    type: string
+    type: string,
   ) => {
     const syncAction = (data: Data, meta: RequestActionMeta): Action => {
       return { type, meta, payload: data } as Action;
@@ -131,11 +121,11 @@ const createActions = <
       toJSON?(): string;
       toObject?(): any;
     },
-    getParamsFromData: (data: Data) => Params
+    getParamsFromData: (data: Data) => Params,
   ) => {
     const asyncAction = (
       data: Data,
-      options?: ActionOptions
+      options?: ActionOptions,
     ): {
       type: string;
       meta: RequestActionMeta;
@@ -147,13 +137,10 @@ const createActions = <
       const params: Params = getParamsFromData(data);
       const meta: RequestActionMeta = {
         key: stateRequestKey,
-        serializedKey: getSerializedKey<
-          Resp,
-          Err,
-          Params,
-          State,
-          TransformedResp
-        >(factoryConfig, params),
+        serializedKey: getSerializedKey<Resp, Err, Params, State, TransformedResp>(
+          factoryConfig,
+          params,
+        ),
       };
       const requestKey = getRequestKey(meta);
       const silent = options?.silent || false;
@@ -192,11 +179,11 @@ const createActions = <
   };
 
   const requestFulfilledAction = createSyncAction(
-    `${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`
+    `${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`,
   );
 
   const requestRejectedAction = createSyncAction(
-    `${FactoryActionTypes.RequestRejected}/${stateRequestKey}`
+    `${FactoryActionTypes.RequestRejected}/${stateRequestKey}`,
   );
 
   const doRequest = async ({
@@ -263,8 +250,8 @@ const createActions = <
                 params,
                 error: transformedError,
               },
-              meta
-            )
+              meta,
+            ),
           );
         }
         dispatchRejectedActions(dispatch, {
@@ -296,7 +283,7 @@ const createActions = <
       resolver: ({ params }: { params?: Params }) => {
         try {
           return stringifyParamsForDebounce(params);
-        } catch (error) {
+        } catch {
           return params;
         }
       },
@@ -304,58 +291,61 @@ const createActions = <
 
   let memoizedDoRequest = getMemoizedDoRequest();
 
-  const getDoRequestAction = (isForced: boolean = true) => ({
-    params,
-    meta,
-    requestKey,
-    silent,
-  }: {
-    params: Params;
-    requestKey: string;
-    meta: RequestActionMeta;
-    silent: boolean;
-  }) => async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
-    if (isForced || isNeedLoadData(config, meta, getState())) {
-      return await (useDebounce ? memoizedDoRequest : doRequest)({
-        params,
-        dispatch,
-        meta,
-        requestKey,
-        getState,
-        silent,
-      });
-    } else if (
-      dispatchFulfilledActionForLoadedRequest &&
-      isRequestFulfilledActionNeeded &&
-      isRequestFulfilled(config, meta, getState())
-    ) {
-      const response = getResponse(config, meta, getState());
+  const getDoRequestAction =
+    (isForced: boolean = true) =>
+    ({
+      params,
+      meta,
+      requestKey,
+      silent,
+    }: {
+      params: Params;
+      requestKey: string;
+      meta: RequestActionMeta;
+      silent: boolean;
+    }) =>
+    async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
+      if (isForced || isNeedLoadData(config, meta, getState())) {
+        return await (useDebounce ? memoizedDoRequest : doRequest)({
+          params,
+          dispatch,
+          meta,
+          requestKey,
+          getState,
+          silent,
+        });
+      } else if (
+        dispatchFulfilledActionForLoadedRequest &&
+        isRequestFulfilledActionNeeded &&
+        isRequestFulfilled(config, meta, getState())
+      ) {
+        const response = getResponse(config, meta, getState());
 
-      dispatch(requestFulfilledAction({ params, response }, meta));
-      dispatchFulfilledActions(dispatch, {
-        request: params,
-        response, // TODO use transform response
-        state: getState(),
-      });
-    }
-  };
+        dispatch(requestFulfilledAction({ params, response }, meta));
+        dispatchFulfilledActions(dispatch, {
+          request: params,
+          response, // TODO use transform response
+          state: getState(),
+        });
+      }
+    };
 
   return new Proxy(
     {
       doRequestAction: createAsyncAction(
         `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
         getDoRequestAction(),
-        identity
+        identity,
       ),
       forcedLoadDataAction: createAsyncAction(
         `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
         getDoRequestAction(),
-        identity
+        identity,
       ),
       loadDataAction: createAsyncAction(
         `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
         getDoRequestAction(false),
-        identity
+        identity,
       ),
       cancelRequestAction: createAsyncAction(
         `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
@@ -366,11 +356,7 @@ const createActions = <
 
               clearTimeout(globalLoadingTimeoutId);
 
-              if (
-                includeInGlobalLoading &&
-                !silent &&
-                !globalLoadingDecrementedAfterTimeout
-              ) {
+              if (includeInGlobalLoading && !silent && !globalLoadingDecrementedAfterTimeout) {
                 dispatch(globalLoadingDecrementAction());
               }
 
@@ -380,7 +366,7 @@ const createActions = <
             }
           };
         },
-        identity
+        identity,
       ),
       setErrorAction: createAsyncAction(
         `${FactoryActionTypes.SetError}/${stateRequestKey}`,
@@ -392,7 +378,7 @@ const createActions = <
             }
           };
         },
-        ({ params }) => params as Params
+        ({ params }) => params as Params,
       ),
       setResponseAction: createAsyncAction(
         `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
@@ -404,7 +390,7 @@ const createActions = <
             }
           };
         },
-        ({ params }) => params as Params
+        ({ params }) => params as Params,
       ),
       resetRequestAction: createAsyncAction(
         `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
@@ -413,22 +399,22 @@ const createActions = <
             dispatch(commonRequestResetAction(meta));
           };
         },
-        identity
+        identity,
       ),
       requestFulfilledAction,
       requestRejectedAction,
     } as RequestsFactoryItemActions<Resp, Err, Params>,
     {
       get(target: any, prop: any) {
-        if (prop === 'requestFulfilledAction') {
+        if (prop === "requestFulfilledAction") {
           isRequestFulfilledActionNeeded = true;
         }
-        if (prop === 'requestRejectedAction') {
+        if (prop === "requestRejectedAction") {
           isRequestRejectedActionNeeded = true;
         }
         return target[prop];
       },
-    }
+    },
   );
 };
 

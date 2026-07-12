@@ -7,11 +7,8 @@ import {
   RequestState,
   RequestsReducer,
   GlobalActionTypes,
-} from './types';
-import {
-  RESPONSES_STATE_KEY,
-  IS_SOMETHING_LOADING_STATE_KEY,
-} from './constants';
+} from "./types";
+import { RESPONSES_STATE_KEY, IS_SOMETHING_LOADING_STATE_KEY } from "./constants";
 
 const initialState: RequestsState = {
   [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -23,7 +20,7 @@ const initialState: RequestsState = {
 const getNewRequestsState = (
   state: RequestsState,
   { key, serializedKey }: RequestActionMeta,
-  data: RequestState
+  data: RequestState,
 ): RequestsState =>
   serializedKey !== undefined
     ? {
@@ -52,54 +49,54 @@ const getNewRequestsState = (
         },
       };
 
-export const createRequestsReducer = <Key>(
-  _config: PreparedConfig<Key>
-): RequestsReducer => (state = initialState, action) => {
-  switch (action.type) {
-    case CommonActionTypes.RequestStart:
-      return getNewRequestsState(state, action.meta, {
-        status: RequestsStatuses.Loading,
-      });
-    case CommonActionTypes.RequestSuccess:
-      return getNewRequestsState(state, action.meta, {
-        status: RequestsStatuses.Success,
-        response: action.payload.response,
-        error: undefined,
-      });
-    case CommonActionTypes.RequestError:
-      return getNewRequestsState(state, action.meta, {
-        status: RequestsStatuses.Failed,
-        error: action.payload.error,
-      });
-    case CommonActionTypes.RequestCancel:
-      return getNewRequestsState(state, action.meta, {
-        status: RequestsStatuses.Canceled,
-      });
-    case CommonActionTypes.RequestReset:
-      return getNewRequestsState(state, action.meta, {
-        status: RequestsStatuses.None,
-        response: undefined,
-        error: undefined,
-      });
+export const createRequestsReducer =
+  <Key>(_config: PreparedConfig<Key>): RequestsReducer =>
+  (state = initialState, action) => {
+    switch (action.type) {
+      case CommonActionTypes.RequestStart:
+        return getNewRequestsState(state, action.meta, {
+          status: RequestsStatuses.Loading,
+        });
+      case CommonActionTypes.RequestSuccess:
+        return getNewRequestsState(state, action.meta, {
+          status: RequestsStatuses.Success,
+          response: action.payload.response,
+          error: undefined,
+        });
+      case CommonActionTypes.RequestError:
+        return getNewRequestsState(state, action.meta, {
+          status: RequestsStatuses.Failed,
+          error: action.payload.error,
+        });
+      case CommonActionTypes.RequestCancel:
+        return getNewRequestsState(state, action.meta, {
+          status: RequestsStatuses.Canceled,
+        });
+      case CommonActionTypes.RequestReset:
+        return getNewRequestsState(state, action.meta, {
+          status: RequestsStatuses.None,
+          response: undefined,
+          error: undefined,
+        });
 
-    case GlobalActionTypes.LoadingIncrement:
-      return {
-        ...state,
-        [IS_SOMETHING_LOADING_STATE_KEY]: {
-          ...state[IS_SOMETHING_LOADING_STATE_KEY],
-          count: state[IS_SOMETHING_LOADING_STATE_KEY].count + 1,
-        },
-      };
-    case GlobalActionTypes.LoadingDecrement:
-      return {
-        ...state,
-        [IS_SOMETHING_LOADING_STATE_KEY]: {
-          ...state[IS_SOMETHING_LOADING_STATE_KEY],
-          count: state[IS_SOMETHING_LOADING_STATE_KEY].count - 1,
-        },
-      };
+      case GlobalActionTypes.LoadingIncrement:
+        return {
+          ...state,
+          [IS_SOMETHING_LOADING_STATE_KEY]: {
+            ...state[IS_SOMETHING_LOADING_STATE_KEY],
+            count: state[IS_SOMETHING_LOADING_STATE_KEY].count + 1,
+          },
+        };
+      case GlobalActionTypes.LoadingDecrement:
+        return {
+          ...state,
+          [IS_SOMETHING_LOADING_STATE_KEY]: {
+            ...state[IS_SOMETHING_LOADING_STATE_KEY],
+            count: state[IS_SOMETHING_LOADING_STATE_KEY].count - 1,
+          },
+        };
 
-    default:
-      return state;
-  }
-};
+      default:
+        return state;
+    }
+  };

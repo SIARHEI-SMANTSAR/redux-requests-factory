@@ -1,3 +1,5 @@
+import { describe, beforeEach, expect, test } from "vitest";
+
 import {
   requestsReducer,
   CommonActionTypes,
@@ -5,13 +7,10 @@ import {
   RequestsState,
   GlobalActionTypes,
   Actions,
-} from '../src';
-import {
-  IS_SOMETHING_LOADING_STATE_KEY,
-  RESPONSES_STATE_KEY,
-} from '../src/constants';
+} from "../src";
+import { IS_SOMETHING_LOADING_STATE_KEY, RESPONSES_STATE_KEY } from "../src/constants";
 
-describe('requestsReducer responses', () => {
+describe("requestsReducer responses", () => {
   let state: RequestsState;
 
   beforeEach(() => {
@@ -22,7 +21,7 @@ describe('requestsReducer responses', () => {
       [RESPONSES_STATE_KEY]: {
         post: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
       },
     };
@@ -34,7 +33,7 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestStart,
         meta: {
-          key: 'users',
+          key: "users",
         },
       },
       // expected state
@@ -44,7 +43,7 @@ describe('requestsReducer responses', () => {
         },
         post: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
       },
     ],
@@ -53,19 +52,19 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestSuccess,
         meta: {
-          key: 'users',
+          key: "users",
         },
-        payload: { response: ['test'] },
+        payload: { response: ["test"] },
       },
       // expected state
       {
         users: {
           status: RequestsStatuses.Success,
-          response: ['test'],
+          response: ["test"],
         },
         post: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
       },
     ],
@@ -74,19 +73,19 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestError,
         meta: {
-          key: 'users',
+          key: "users",
         },
-        payload: { error: 'error' },
+        payload: { error: "error" },
       },
       // expected state
       {
         users: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
         post: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
       },
     ],
@@ -95,7 +94,7 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestCancel,
         meta: {
-          key: 'posts',
+          key: "posts",
         },
       },
       // expected state
@@ -105,7 +104,7 @@ describe('requestsReducer responses', () => {
         },
         post: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
       },
     ],
@@ -114,7 +113,7 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestReset,
         meta: {
-          key: 'post',
+          key: "post",
         },
       },
       // expected state
@@ -131,15 +130,15 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestSuccess,
         meta: {
-          key: 'post',
+          key: "post",
         },
-        payload: { response: ['test'] },
+        payload: { response: ["test"] },
       },
       // expected state
       {
         post: {
           status: RequestsStatuses.Success,
-          response: ['test'],
+          response: ["test"],
           error: undefined,
         },
       },
@@ -149,48 +148,43 @@ describe('requestsReducer responses', () => {
       {
         type: CommonActionTypes.RequestStart,
         meta: {
-          key: 'user',
-          serializedKey: '25',
+          key: "user",
+          serializedKey: "25",
         },
       },
       // expected state
       {
         user: {
-          '25': {
+          "25": {
             status: RequestsStatuses.Loading,
           },
         },
         post: {
           status: RequestsStatuses.Failed,
-          error: 'error',
+          error: "error",
         },
       },
     ],
-  ])('action: %o, expected: %o', (action, expected) => {
+  ])("action: %o, expected: %o", (action, expected) => {
     const newState = requestsReducer(state, action as Actions);
 
     expect(newState[RESPONSES_STATE_KEY]).toEqual(expected);
   });
 });
 
-describe('requestsReducer is something loading', () => {
+describe("requestsReducer is something loading", () => {
   test.each([
     [0, { type: GlobalActionTypes.LoadingIncrement }, 1],
     [1, { type: GlobalActionTypes.LoadingDecrement }, 0],
-  ])(
-    'countBefore: %n, action: %0, countAfter: %n',
-    (countBefore, action, countAfter) => {
-      const state = {
-        [IS_SOMETHING_LOADING_STATE_KEY]: {
-          count: countBefore,
-        },
-        [RESPONSES_STATE_KEY]: {},
-      };
-      const newState = requestsReducer(state, action as Actions);
+  ])("countBefore: %n, action: %0, countAfter: %n", (countBefore, action, countAfter) => {
+    const state = {
+      [IS_SOMETHING_LOADING_STATE_KEY]: {
+        count: countBefore,
+      },
+      [RESPONSES_STATE_KEY]: {},
+    };
+    const newState = requestsReducer(state, action as Actions);
 
-      expect(newState[IS_SOMETHING_LOADING_STATE_KEY].count).toEqual(
-        countAfter
-      );
-    }
-  );
+    expect(newState[IS_SOMETHING_LOADING_STATE_KEY].count).toEqual(countAfter);
+  });
 });

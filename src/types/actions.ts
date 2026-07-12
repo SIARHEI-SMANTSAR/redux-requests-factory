@@ -1,9 +1,9 @@
 export enum CommonActionTypes {
-  RequestStart = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/START',
-  RequestSuccess = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/SUCCESS',
-  RequestError = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/ERROR',
-  RequestCancel = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/CANCEL',
-  RequestReset = '@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/RESET',
+  RequestStart = "@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/START",
+  RequestSuccess = "@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/SUCCESS",
+  RequestError = "@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/ERROR",
+  RequestCancel = "@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/CANCEL",
+  RequestReset = "@@REDUX_REQUESTS_FACTORY/COMMON/REQUEST/RESET",
 }
 
 export type RequestActionMeta = {
@@ -46,8 +46,8 @@ export type CommonActions =
   | CommonRequestResetAction;
 
 export enum GlobalActionTypes {
-  LoadingIncrement = '@@REDUX_REQUESTS_FACTORY/GLOBAL/LOADING/INCREMENT',
-  LoadingDecrement = '@@REDUX_REQUESTS_FACTORY/GLOBAL/LOADING/DECREMENT',
+  LoadingIncrement = "@@REDUX_REQUESTS_FACTORY/GLOBAL/LOADING/INCREMENT",
+  LoadingDecrement = "@@REDUX_REQUESTS_FACTORY/GLOBAL/LOADING/DECREMENT",
 }
 
 export type GlobalLoadingIncrementAction = {
@@ -58,8 +58,6 @@ export type GlobalLoadingDecrementAction = {
   type: GlobalActionTypes.LoadingDecrement;
 };
 
-export type GlobalActions =
-  | GlobalLoadingIncrementAction
-  | GlobalLoadingDecrementAction;
+export type GlobalActions = GlobalLoadingIncrementAction | GlobalLoadingDecrementAction;
 
 export type Actions = CommonActions | GlobalActions;

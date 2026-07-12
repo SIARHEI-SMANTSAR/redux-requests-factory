@@ -1,17 +1,20 @@
-import { requestsFactory, RequestsStatuses } from '../src';
+import { vi, describe, it, expect } from "vitest";
+import { requestsFactory, RequestsStatuses } from "../src";
 import {
   DEFAULT_STATE_REQUESTS_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../src/constants';
+} from "../src/constants";
 
-jest.mock('../src/create-register-request-key', () => () => ({
-  registerRequestKey: (key: string) => key,
-  resetRegisterRequestKey: () => {},
+vi.mock("../src/create-register-request-key", () => ({
+  default: () => ({
+    registerRequestKey: (key: string) => key,
+    resetRegisterRequestKey: () => {},
+  }),
 }));
 
-describe('serializeRequestParameters', () => {
-  it('selectors shuld return functions', () => {
+describe("serializeRequestParameters", () => {
+  it("selectors shuld return functions", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -19,10 +22,10 @@ describe('serializeRequestParameters', () => {
         },
         [RESPONSES_STATE_KEY]: {
           user: {
-            '25': {
+            "25": {
               status: RequestsStatuses.Success,
-              response: ['test'],
-              error: 'Error',
+              response: ["test"],
+              error: "Error",
             },
           },
         },
@@ -37,16 +40,14 @@ describe('serializeRequestParameters', () => {
       isLoadedSelector,
     } = requestsFactory({
       request: (_params: { id: string }) => Promise.resolve([]),
-      stateRequestKey: 'user',
+      stateRequestKey: "user",
       serializeRequestParameters: ({ id }: { id: string }) => id,
     });
 
-    expect(responseSelector(state)({ id: '25' })).toEqual(['test']);
-    expect(errorSelector(state)({ id: '25' })).toBe('Error');
-    expect(requestStatusSelector(state)({ id: '25' })).toBe(
-      RequestsStatuses.Success
-    );
-    expect(isLoadingSelector(state)({ id: '25' })).toBe(false);
-    expect(isLoadedSelector(state)({ id: '25' })).toBe(true);
+    expect(responseSelector(state)({ id: "25" })).toEqual(["test"]);
+    expect(errorSelector(state)({ id: "25" })).toBe("Error");
+    expect(requestStatusSelector(state)({ id: "25" })).toBe(RequestsStatuses.Success);
+    expect(isLoadingSelector(state)({ id: "25" })).toBe(false);
+    expect(isLoadedSelector(state)({ id: "25" })).toBe(true);
   });
 });

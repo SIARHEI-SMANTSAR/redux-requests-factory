@@ -1,16 +1,20 @@
-import { requestsFactory, RequestsStatuses } from '../../src';
+import { vi, describe, it, expect } from "vitest";
+
+import { requestsFactory, RequestsStatuses } from "../../src";
 import {
   DEFAULT_STATE_REQUESTS_KEY,
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
-} from '../../src/constants';
+} from "../../src/constants";
 
-jest.mock('../../src/create-register-request-key', () => () => ({
-  registerRequestKey: (key: string) => key,
+vi.mock("../../src/create-register-request-key", () => ({
+  default: () => ({
+    registerRequestKey: (key: string) => key,
+  }),
 }));
 
-describe('responseSelector', () => {
-  it('when request status is Success', () => {
+describe("responseSelector", () => {
+  it("when request status is Success", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -19,7 +23,7 @@ describe('responseSelector', () => {
         [RESPONSES_STATE_KEY]: {
           users: {
             status: RequestsStatuses.Success,
-            response: ['test'],
+            response: ["test"],
           },
         },
       },
@@ -27,13 +31,13 @@ describe('responseSelector', () => {
 
     const { responseSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
-    expect(responseSelector(state)).toEqual(['test']);
+    expect(responseSelector(state)).toEqual(["test"]);
   });
 
-  it('when request status is not Success', () => {
+  it("when request status is not Success", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -49,13 +53,13 @@ describe('responseSelector', () => {
 
     const { responseSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(responseSelector(state)).toBe(undefined);
   });
 
-  it('when request is not started', () => {
+  it("when request is not started", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -67,13 +71,13 @@ describe('responseSelector', () => {
 
     const { responseSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
     });
 
     expect(responseSelector(state)).toBe(undefined);
   });
 
-  it('with transformResponse when request status is not Success', () => {
+  it("with transformResponse when request status is not Success", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -89,14 +93,14 @@ describe('responseSelector', () => {
 
     const { responseSelector } = requestsFactory({
       request: () => Promise.resolve([]),
-      stateRequestKey: 'users',
+      stateRequestKey: "users",
       transformResponse: (response: any) => response || [],
     });
 
     expect(responseSelector(state)).toEqual([]);
   });
 
-  it('with transformResponse when request status is Success', () => {
+  it("with transformResponse when request status is Success", () => {
     const state = {
       [DEFAULT_STATE_REQUESTS_KEY]: {
         [IS_SOMETHING_LOADING_STATE_KEY]: {
@@ -105,7 +109,7 @@ describe('responseSelector', () => {
         [RESPONSES_STATE_KEY]: {
           users: {
             status: RequestsStatuses.Success,
-            response: ['test'],
+            response: ["test"],
           },
         },
       },
@@ -113,11 +117,10 @@ describe('responseSelector', () => {
 
     const { responseSelector } = requestsFactory({
       request: (): Promise<string[]> => Promise.resolve([]),
-      stateRequestKey: 'users',
-      transformResponse: (response?: string[]) =>
-        (response || []).map(value => ({ value })),
+      stateRequestKey: "users",
+      transformResponse: (response?: string[]) => (response || []).map((value) => ({ value })),
     });
 
-    expect(responseSelector(state)).toEqual([{ value: 'test' }]);
+    expect(responseSelector(state)).toEqual([{ value: "test" }]);
   });
 });

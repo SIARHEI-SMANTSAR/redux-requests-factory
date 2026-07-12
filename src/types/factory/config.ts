@@ -1,4 +1,4 @@
-import { Action } from 'redux';
+import { Action } from "redux";
 
 export type ExternalActions<Data> = (
   | ((data: Data) => Action | (Action | null)[] | null)
@@ -23,86 +23,66 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   globalLoadingTimeout?: number;
 }
 
-export type RequestFactoryConfigCommonWithTransformResponse<
-  Resp,
-  TransformedResp
-> = {
+export type RequestFactoryConfigCommonWithTransformResponse<Resp, TransformedResp> = {
   transformResponse: (response: Resp | undefined) => TransformedResp;
 };
 
-export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
-  request: (params?: Params) => Promise<Resp>;
-  stringifyParamsForDebounce?: (params?: Params) => string;
-  fulfilledActions?: ExternalActions<{
-    request: Params | undefined;
-    response: Resp;
-    state: State;
-  }>;
-  rejectedActions?: ExternalActions<{
-    request: Params | undefined;
-    error: Err;
-    state: State;
-  }>;
-};
+export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<Resp, Err, Params, State> =
+  RequestFactoryConfigCommon<Resp, Err, Params, State> & {
+    request: (params?: Params) => Promise<Resp>;
+    stringifyParamsForDebounce?: (params?: Params) => string;
+    fulfilledActions?: ExternalActions<{
+      request: Params | undefined;
+      response: Resp;
+      state: State;
+    }>;
+    rejectedActions?: ExternalActions<{
+      request: Params | undefined;
+      error: Err;
+      state: State;
+    }>;
+  };
 
-export type RequestFactoryConfigWithParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
-  request: (params: Params) => Promise<Resp>;
-  stringifyParamsForDebounce?: (params: Params) => string;
-  fulfilledActions?: ExternalActions<{
-    request: Params;
-    response: Resp;
-    state: State;
-  }>;
-  rejectedActions?: ExternalActions<{
-    request: Params;
-    error: Err;
-    state: State;
-  }>;
-};
+export type RequestFactoryConfigWithParamsWithoutSerialize<Resp, Err, Params, State> =
+  RequestFactoryConfigCommon<Resp, Err, Params, State> & {
+    request: (params: Params) => Promise<Resp>;
+    stringifyParamsForDebounce?: (params: Params) => string;
+    fulfilledActions?: ExternalActions<{
+      request: Params;
+      response: Resp;
+      state: State;
+    }>;
+    rejectedActions?: ExternalActions<{
+      request: Params;
+      error: Err;
+      state: State;
+    }>;
+  };
 
-export type RequestFactoryConfigWithParamsWithSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
-  request: (params: Params) => Promise<Resp>;
-  stringifyParamsForDebounce?: (params: Params) => string;
-  serializeRequestParameters: (params: Params) => string;
-  fulfilledActions?: ExternalActions<{
-    request: Params;
-    response: Resp;
-    state: State;
-  }>;
-  rejectedActions?: ExternalActions<{
-    request: Params;
-    error: Err;
-    state: State;
-  }>;
-};
+export type RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State> =
+  RequestFactoryConfigCommon<Resp, Err, Params, State> & {
+    request: (params: Params) => Promise<Resp>;
+    stringifyParamsForDebounce?: (params: Params) => string;
+    serializeRequestParameters: (params: Params) => string;
+    fulfilledActions?: ExternalActions<{
+      request: Params;
+      response: Resp;
+      state: State;
+    }>;
+    rejectedActions?: ExternalActions<{
+      request: Params;
+      error: Err;
+      state: State;
+    }>;
+  };
 
 export type RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse<
   Resp,
   Err,
   Params,
   State,
-  TransformedResp
-> = RequestFactoryConfigWithOptionalParamsWithoutSerialize<
-  Resp,
-  Err,
-  Params,
-  State
-> &
+  TransformedResp,
+> = RequestFactoryConfigWithOptionalParamsWithoutSerialize<Resp, Err, Params, State> &
   RequestFactoryConfigCommonWithTransformResponse<Resp, TransformedResp>;
 
 export type RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse<
@@ -110,7 +90,7 @@ export type RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestFactoryConfigWithParamsWithoutSerialize<Resp, Err, Params, State> &
   RequestFactoryConfigCommonWithTransformResponse<Resp, TransformedResp>;
 
@@ -119,17 +99,11 @@ export type RequestFactoryConfigWithParamsWithSerializeWithTransformResponse<
   Err,
   Params,
   State,
-  TransformedResp
+  TransformedResp,
 > = RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State> &
   RequestFactoryConfigCommonWithTransformResponse<Resp, TransformedResp>;
 
-export type RequestFactoryConfigWithTransformResponse<
-  Resp,
-  Err,
-  Params,
-  State,
-  TransformedResp
-> =
+export type RequestFactoryConfigWithTransformResponse<Resp, Err, Params, State, TransformedResp> =
   | RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse<
       Resp,
       Err,
@@ -153,18 +127,7 @@ export type RequestFactoryConfigWithTransformResponse<
     >;
 
 export type RequestFactoryConfig<Resp, Err, Params, State, TransformedResp> =
-  | RequestFactoryConfigWithOptionalParamsWithoutSerialize<
-      Resp,
-      Err,
-      Params,
-      State
-    >
+  | RequestFactoryConfigWithOptionalParamsWithoutSerialize<Resp, Err, Params, State>
   | RequestFactoryConfigWithParamsWithoutSerialize<Resp, Err, Params, State>
   | RequestFactoryConfigWithParamsWithSerialize<Resp, Err, Params, State>
-  | RequestFactoryConfigWithTransformResponse<
-      Resp,
-      Err,
-      Params,
-      State,
-      TransformedResp
-    >;
+  | RequestFactoryConfigWithTransformResponse<Resp, Err, Params, State, TransformedResp>;

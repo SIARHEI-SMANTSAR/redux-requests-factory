@@ -1,4 +1,4 @@
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === "production";
 
 const createRegisterRequestKey = () => {
   let keyHashMap: {
@@ -17,7 +17,7 @@ const createRegisterRequestKey = () => {
 
       if (!isProduction) {
         console.error(
-          `Register Request Key: "${key}" request key already exist. Will be used new key: "${registeredKey}"`
+          `Register Request Key: "${key}" request key already exist. Will be used new key: "${registeredKey}"`,
         );
       }
     } else {
