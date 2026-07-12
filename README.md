@@ -520,7 +520,7 @@ const loadData = async ({ isServer, store }) => {
 - [Create React App simple modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
 - [Create React App simple legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-legacy)
 - [Next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
-- [Redux Observable](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable)
+- [Redux Observable legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable-legacy)
 
 ## TypeScript
 

@@ -1,5 +1,5 @@
 {
-  "name": "redux-requests-factory~create-react-app~redux-observable",
+  "name": "redux-requests-factory~create-react-app~redux-observable-legacy",
   "version": "0.0.1",
   "private": true,
   "dependencies": {
@@ -21,9 +21,12 @@
     "redux-actions": "^2.6.5",
     "redux-logger": "^3.0.6",
     "redux-observable": "^1.2.0",
-    "redux-requests-factory": "latest",
+    "redux-requests-factory": "file:../../..",
     "rxjs": "^6.5.5",
     "typescript": "^3.7.5"
+  },
+  "overrides": {
+    "@types/babel__traverse": "7.17.1"
   },
   "scripts": {
     "start": "react-scripts start",
