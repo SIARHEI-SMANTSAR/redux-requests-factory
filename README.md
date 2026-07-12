@@ -517,6 +517,8 @@ const loadData = async ({ isServer, store }) => {
 
 - [All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples)
 - [Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
+- [Create React App simple modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
+- [Create React App simple legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-legacy)
 - [Next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
 - [Redux Observable](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable)
 
@@ -526,7 +528,7 @@ The package ships with TypeScript declarations.
 
 Examples:
 
-- [TypeScript + Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
+- [TypeScript + Create React App modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
 - [TypeScript + Next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
 
 ## License
