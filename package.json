@@ -4,20 +4,20 @@
   "description": "Redux requests factory",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "module": "dist/mylib.esm.js",
+  "module": "dist/index.esm.js",
   "files": [
     "dist"
   ],
   "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build"
+    "start": "tsup --watch",
+    "build": "tsup",
+    "test": "jest",
+    "lint": "tsc --noEmit",
+    "prepare": "tsup"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "tsdx lint && tsdx test"
+      "pre-commit": "npm run lint && npm run test"
     }
   },
   "prettier": {
@@ -53,14 +53,17 @@
     "redux": "^4"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.20",
+    "@swc/core": "^1.15.43",
+    "@types/jest": "^29.5.14",
     "@types/lodash.debounce": "^4.0.6",
     "@types/lodash.memoize": "^4.1.6",
     "husky": "^5.1.3",
+    "jest": "^29.7.0",
     "redux": "^4",
-    "tsdx": "^0.14.1",
+    "ts-jest": "^29.4.11",
     "tslib": "^2.1.0",
-    "typescript": "^4.2.3"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "lodash.debounce": "^4.0.8",
