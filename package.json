@@ -60,7 +60,6 @@
     "prettier": "^3.9.5",
     "redux": "^4",
     "ts-jest": "^29.4.11",
-    "tslib": "^2.1.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   },
