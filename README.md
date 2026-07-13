@@ -501,17 +501,50 @@ const makeStore = initialState => {
 };
 ```
 
-On the server, dispatch request actions and then wait for them.
+In Next.js Pages Router, dispatch request actions in `getServerSideProps` and
+then wait for them before returning props.
 
-```js
-const loadData = async ({ isServer, store }) => {
-  store.dispatch(loadUsersAction());
+```ts
+export const getServerSideProps = wrapper.getServerSideProps(
+  (store) => async () => {
+    store.dispatch(loadUsersAction());
 
-  if (isServer) {
     await store.asyncRequests();
+
+    return {
+      props: {},
+    };
   }
-};
+);
 ```
+
+You can also chain dependent requests by reading the Redux state after the first
+await.
+
+```ts
+export const getServerSideProps = wrapper.getServerSideProps(
+  (store) => async () => {
+    store.dispatch(loadUsersAction());
+
+    await store.asyncRequests();
+
+    const users = usersSelector(store.getState());
+
+    users.forEach(({ id }) => {
+      store.dispatch(loadUserPostsAction({ userId: id }));
+    });
+
+    await store.asyncRequests();
+
+    return {
+      props: {},
+    };
+  }
+);
+```
+
+See the Next.js Pages Router example for a complete setup with
+`next-redux-wrapper`.
 
 ## Examples
 
@@ -519,7 +552,7 @@ const loadData = async ({ isServer, store }) => {
 - [Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
 - [Create React App simple modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
 - [Create React App simple legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-legacy)
-- [Next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
+- [Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 - [Redux Observable modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable-modern)
 - [Redux Observable legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable-legacy)
 
@@ -530,7 +563,7 @@ The package ships with TypeScript declarations.
 Examples:
 
 - [TypeScript + Create React App modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
-- [TypeScript + Next.js](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js)
+- [TypeScript + Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 
 ## License
 

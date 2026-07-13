@@ -1,0 +1,26 @@
+{
+  "name": "redux-requests-factory~next.js~pages-router",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "15.5.18",
+    "next-redux-wrapper": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^9.1.0",
+    "redux": "^5.0.1",
+    "redux-requests-factory": "file:../../.."
+  },
+  "devDependencies": {
+    "@types/node": "20.2.5",
+    "@types/react": "18.2.37",
+    "@types/react-dom": "^18.2.18",
+    "typescript": "^5.3.3"
+  },
+  "license": "MIT"
+}

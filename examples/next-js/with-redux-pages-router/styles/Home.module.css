@@ -1,0 +1,50 @@
+.app {
+  width: min(960px, 100%);
+  padding: 24px;
+  margin: 0 auto;
+}
+
+.loading {
+  min-height: 24px;
+  margin-bottom: 16px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.users {
+  display: grid;
+  gap: 24px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.user {
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+
+.posts {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 500px;
+  margin-top: 12px;
+}
+
+.inputLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
