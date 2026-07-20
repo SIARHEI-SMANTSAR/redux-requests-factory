@@ -9,7 +9,7 @@ module.exports = [
   {
     ...common,
     format: ['cjs'],
-    dts: true,
+    dts: false,
     clean: true,
     outExtension: () => ({ js: '.js' }),
   },

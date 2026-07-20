@@ -10,13 +10,13 @@
   ],
   "scripts": {
     "start": "tsup --watch",
-    "build": "tsup",
+    "build": "tsup && tsc --project tsconfig.build.json",
     "test": "jest",
     "check:types": "tsc --noEmit",
     "format": "prettier --write .",
     "check:format": "prettier --check .",
     "lint": "npm run check:types && npm run check:format",
-    "prepare": "tsup"
+    "prepare": "npm run build"
   },
   "prettier": {
     "printWidth": 80,
@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@swc/core": "^1.15.46",
+    "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
     "@types/lodash.debounce": "^4.0.9",
     "@types/lodash.memoize": "^4.1.9",
@@ -60,9 +61,8 @@
     "jest": "^30.4.2",
     "prettier": "^3.9.5",
     "redux": "^5.0.1",
-    "ts-jest": "^29.4.11",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "lodash.debounce": "^4.0.8",

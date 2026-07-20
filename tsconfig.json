@@ -1,7 +1,7 @@
 {
   "include": ["src", "test"],
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "module": "esnext",
     "lib": ["dom", "esnext"],
     "types": ["node", "jest"],
@@ -19,13 +19,8 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "downlevelIteration": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
-    "baseUrl": "./",
-    "paths": {
-      "*": ["src/*", "node_modules/*"]
-    },
     "jsx": "react",
     "esModuleInterop": true
   }
