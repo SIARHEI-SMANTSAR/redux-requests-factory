@@ -24,7 +24,6 @@ export const {
 } = requestsFactory({
   request: loadUserPostsRequest,
   stateRequestKey: "user-posts",
-  useDebounce: true,
   serializeRequestParameters: ({ userId }: UserPostsParams) => `${userId}`,
   transformResponse: (response: Post[] | undefined) => response || [],
 });

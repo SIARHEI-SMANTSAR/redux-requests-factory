@@ -10,6 +10,12 @@ import {
 import { isWithSerialize, getByPath, isWithTransformResponse } from './helpers';
 import { RESPONSES_STATE_KEY } from '../constants';
 
+const transformSelectorOptions = {
+  devModeChecks: {
+    identityFunctionCheck: 'never',
+  },
+} as const;
+
 const createSelectors = <
   Resp,
   Err,
@@ -124,10 +130,18 @@ const createSelectors = <
         State,
         TransformedResp
       >(factoryConfig)
-        ? createSelector([responseSelector], factoryConfig.transformResponse)
+        ? createSelector(
+            [responseSelector],
+            factoryConfig.transformResponse,
+            transformSelectorOptions
+          )
         : responseSelector,
       errorSelector: transformError
-        ? createSelector([errorSelector], transformError)
+        ? createSelector(
+            [errorSelector],
+            transformError,
+            transformSelectorOptions
+          )
         : errorSelector,
       requestStatusSelector: createSelector([getCommonSate], (commonSate) => {
         const status = getByPath<RequestsStatuses, RequestsState | undefined>(

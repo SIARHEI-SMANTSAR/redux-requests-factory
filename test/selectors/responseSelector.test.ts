@@ -120,4 +120,32 @@ describe('responseSelector', () => {
 
     expect(responseSelector(state)).toEqual([{ value: 'test' }]);
   });
+
+  it('with transformResponse when result can be the original response', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const state = {
+      [DEFAULT_STATE_REQUESTS_KEY]: {
+        [IS_SOMETHING_LOADING_STATE_KEY]: {
+          count: 0,
+        },
+        [RESPONSES_STATE_KEY]: {
+          users: {
+            status: RequestsStatuses.Success,
+            response: ['test'],
+          },
+        },
+      },
+    };
+
+    const { responseSelector } = requestsFactory({
+      request: (): Promise<string[]> => Promise.resolve([]),
+      stateRequestKey: 'users',
+      transformResponse: (response?: string[]) => response || [],
+    });
+
+    expect(responseSelector(state)).toEqual(['test']);
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
 });

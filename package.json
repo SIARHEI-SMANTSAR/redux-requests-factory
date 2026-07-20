@@ -52,7 +52,7 @@
     "redux": "^4 || ^5"
   },
   "devDependencies": {
-    "@swc/core": "^1.15.43",
+    "@swc/core": "^1.15.46",
     "@types/jest": "^30.0.0",
     "@types/lodash.debounce": "^4.0.9",
     "@types/lodash.memoize": "^4.1.9",
@@ -67,6 +67,6 @@
   "dependencies": {
     "lodash.debounce": "^4.0.8",
     "lodash.memoize": "^4.1.2",
-    "reselect": "^4.0.0"
+    "reselect": "^5.2.0"
   }
 }
