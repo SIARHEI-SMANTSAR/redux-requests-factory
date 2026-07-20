@@ -1,7 +1,7 @@
-# Modern Create React App example with redux-observable
+# Create React App example with redux-observable
 
 This example shows `redux-requests-factory` used together with
-`redux-observable` in a modern Create React App project.
+`redux-observable` in a Create React App project.
 
 It uses React 19, Redux 5, React Redux 9, redux-observable 3, RxJS 7, and
 Create React App 5.
@@ -22,4 +22,3 @@ npm start
   `cancelAddPostAction` and `addPostAction`.
 - `addPostFulfilledAction` updates cached user posts through
   `setUserPostsAction`.
-

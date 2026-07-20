@@ -543,18 +543,16 @@ export const getServerSideProps = wrapper.getServerSideProps(
 );
 ```
 
-See the Next.js Pages Router example for a complete setup with
-`next-redux-wrapper`.
+See the [Next.js Pages Router example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
+for a complete setup with `next-redux-wrapper`.
 
 ## Examples
 
 - [All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples)
 - [Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
-- [Create React App simple modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
-- [Create React App simple legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-legacy)
+- [Create React App: simple](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple)
 - [Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
-- [Redux Observable modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable-modern)
-- [Redux Observable legacy](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable-legacy)
+- [Create React App: Redux Observable](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable)
 
 ## TypeScript
 
@@ -562,7 +560,7 @@ The package ships with TypeScript declarations.
 
 Examples:
 
-- [TypeScript + Create React App modern](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple-modern)
+- [TypeScript + Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple)
 - [TypeScript + Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 
 ## License
