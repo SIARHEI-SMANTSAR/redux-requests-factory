@@ -1,6 +1,5 @@
-import { Reducer } from 'redux';
+import type { Reducer } from 'redux';
 
-import { Actions } from './actions';
 import {
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
@@ -33,7 +32,7 @@ export type RequestsState = {
   };
 };
 
-export type RequestsReducer = Reducer<RequestsState, Actions>;
+export type RequestsReducer = Reducer<RequestsState>;
 
 export type RootState<Key extends string> = {
   [key in Key]: RequestsState;

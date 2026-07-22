@@ -5,6 +5,7 @@ import { createRequestsFactory } from './factory';
 import { createRequestsReducer } from './reducer';
 import { DEFAULT_STATE_REQUESTS_KEY } from './constants';
 import createGlobalSelectors from './selectors';
+import { createHydrateRequestsAction } from './actions';
 
 const createReduxRequestsFactory = <
   Key extends string = typeof DEFAULT_STATE_REQUESTS_KEY,
@@ -19,6 +20,7 @@ const createReduxRequestsFactory = <
       getCreateRequestsFactoryMiddleware<Key>(preparedConfig),
     requestsFactory: createRequestsFactory<Key>(preparedConfig),
     requestsReducer: createRequestsReducer<Key>(preparedConfig),
+    hydrateRequestsAction: createHydrateRequestsAction<Key>(preparedConfig),
     ...createGlobalSelectors<Key>(preparedConfig),
   };
 };

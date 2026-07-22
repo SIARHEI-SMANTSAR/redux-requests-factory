@@ -5,7 +5,9 @@ import {
   RequestsState,
   GlobalActionTypes,
   Actions,
+  hydrateRequestsAction,
 } from '../src';
+import createReduxRequestsFactory from '../src';
 import {
   IS_SOMETHING_LOADING_STATE_KEY,
   RESPONSES_STATE_KEY,
@@ -193,4 +195,109 @@ describe('requestsReducer is something loading', () => {
       );
     }
   );
+});
+
+describe('requestsReducer hydration', () => {
+  it('merges request keys and serialized keys without hydrating global loading', () => {
+    const state: RequestsState = {
+      [IS_SOMETHING_LOADING_STATE_KEY]: { count: 2 },
+      [RESPONSES_STATE_KEY]: {
+        users: {
+          status: RequestsStatuses.Success,
+          response: ['client user'],
+        },
+        posts: {
+          '1': {
+            status: RequestsStatuses.Success,
+            response: ['client post 1'],
+          },
+          '2': {
+            status: RequestsStatuses.Loading,
+          },
+        },
+        clientOnly: {
+          status: RequestsStatuses.Success,
+          response: 'client value',
+        },
+      },
+    };
+    const serverState: RequestsState = {
+      [IS_SOMETHING_LOADING_STATE_KEY]: { count: 0 },
+      [RESPONSES_STATE_KEY]: {
+        users: {
+          status: RequestsStatuses.Success,
+          response: ['server user'],
+        },
+        posts: {
+          '1': {
+            status: RequestsStatuses.Success,
+            response: ['server post 1'],
+          },
+          '3': {
+            status: RequestsStatuses.Success,
+            response: ['server post 3'],
+          },
+        },
+        settings: {
+          status: RequestsStatuses.Success,
+          response: { theme: 'system' },
+        },
+      },
+    };
+
+    expect(requestsReducer(state, hydrateRequestsAction(serverState))).toEqual({
+      [IS_SOMETHING_LOADING_STATE_KEY]: { count: 2 },
+      [RESPONSES_STATE_KEY]: {
+        users: {
+          status: RequestsStatuses.Success,
+          response: ['server user'],
+        },
+        posts: {
+          '1': {
+            status: RequestsStatuses.Success,
+            response: ['server post 1'],
+          },
+          '2': {
+            status: RequestsStatuses.Loading,
+          },
+          '3': {
+            status: RequestsStatuses.Success,
+            response: ['server post 3'],
+          },
+        },
+        clientOnly: {
+          status: RequestsStatuses.Success,
+          response: 'client value',
+        },
+        settings: {
+          status: RequestsStatuses.Success,
+          response: { theme: 'system' },
+        },
+      },
+    });
+  });
+
+  it('ignores hydration actions for another factory instance', () => {
+    const apiOne = createReduxRequestsFactory({ stateRequestsKey: 'apiOne' });
+    const apiTwo = createReduxRequestsFactory({ stateRequestsKey: 'apiTwo' });
+    const state: RequestsState = {
+      [IS_SOMETHING_LOADING_STATE_KEY]: { count: 0 },
+      [RESPONSES_STATE_KEY]: {},
+    };
+
+    const newState = apiTwo.requestsReducer(
+      state,
+      apiOne.hydrateRequestsAction({
+        [IS_SOMETHING_LOADING_STATE_KEY]: { count: 0 },
+        [RESPONSES_STATE_KEY]: {
+          users: {
+            status: RequestsStatuses.Success,
+            response: [],
+          },
+        },
+      })
+    );
+
+    expect(newState).toBe(state);
+  });
 });

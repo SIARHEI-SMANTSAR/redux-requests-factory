@@ -1,3 +1,5 @@
+import type { UnknownAction } from 'redux';
+
 import { RequestActionMeta } from '../actions';
 
 export enum FactoryActionTypes {
@@ -12,13 +14,13 @@ export enum FactoryActionTypes {
   ResetRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/RESET',
 }
 
-export interface RequestFactoryActionCommon {
+export interface RequestFactoryActionCommon extends UnknownAction {
   type: string;
   toString(): string;
   getType(): string;
 }
 
-export interface RequestFactoryActionCommonWithSerializeReturnType {
+export interface RequestFactoryActionCommonWithSerializeReturnType extends UnknownAction {
   type: string;
   meta: {
     key: string;
@@ -28,7 +30,7 @@ export interface RequestFactoryActionCommonWithSerializeReturnType {
   toJSON(): string;
 }
 
-export interface RequestFactoryActionCommonWithoutSerializeReturnType {
+export interface RequestFactoryActionCommonWithoutSerializeReturnType extends UnknownAction {
   type: string;
   meta: {
     key: string;

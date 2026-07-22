@@ -9,6 +9,9 @@ import {
   GlobalActionTypes,
   GlobalLoadingIncrementAction,
   GlobalLoadingDecrementAction,
+  HydrateRequestsActionCreator,
+  PreparedConfig,
+  RequestsState,
 } from './types';
 
 export const commonRequestStartAction = (
@@ -58,4 +61,14 @@ export const globalLoadingIncrementAction =
 export const globalLoadingDecrementAction =
   (): GlobalLoadingDecrementAction => ({
     type: GlobalActionTypes.LoadingDecrement,
+  });
+
+export const createHydrateRequestsAction =
+  <Key extends string>({
+    stateRequestsKey,
+  }: PreparedConfig<Key>): HydrateRequestsActionCreator<Key> =>
+  (requestsState: RequestsState) => ({
+    type: GlobalActionTypes.HydrateRequests,
+    meta: { stateRequestsKey },
+    payload: requestsState,
   });

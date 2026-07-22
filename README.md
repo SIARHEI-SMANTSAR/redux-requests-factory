@@ -27,6 +27,7 @@ It is useful when you want the same request lifecycle everywhere:
 - [API Reference](#api-reference)
 - [Custom Factory Instances](#custom-factory-instances)
 - [SSR](#ssr)
+  - [React Server Components](#react-server-components)
 - [Examples](#examples)
 - [TypeScript](#typescript)
 - [License](#license)
@@ -73,6 +74,33 @@ export default store;
 
 The default `stateRequestsKey` is `requests`.
 
+### Redux Toolkit
+
+With Redux Toolkit, prepend the requests middleware so it can handle factory
+actions before the default thunk middleware:
+
+```ts
+import { configureStore } from '@reduxjs/toolkit';
+import {
+  createRequestsFactoryMiddleware,
+  requestsReducer,
+  stateRequestsKey,
+} from 'redux-requests-factory';
+
+export const makeStore = () => {
+  const { middleware: requestsFactoryMiddleware } =
+    createRequestsFactoryMiddleware();
+
+  return configureStore({
+    reducer: {
+      [stateRequestsKey]: requestsReducer,
+    },
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware().prepend(requestsFactoryMiddleware),
+  });
+};
+```
+
 ## Quick Start
 
 Create a request module and export only the actions and selectors your app
@@ -95,7 +123,6 @@ export const {
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
-  transformResponse: response => response || [],
 });
 ```
 
@@ -114,7 +141,7 @@ import {
 
 const Users = () => {
   const dispatch = useDispatch();
-  const users = useSelector(usersSelector);
+  const users = useSelector(usersSelector) ?? [];
   const isLoading = useSelector(isLoadingUsersSelector);
 
   const loadUsers = useCallback(() => {
@@ -141,6 +168,11 @@ const Users = () => {
 
 `loadDataAction` runs the request only while it has not succeeded yet.
 `forcedLoadDataAction` always runs the request again.
+
+`responseSelector` returns the original response, or `undefined` before the
+request succeeds. Apply UI defaults such as `?? []` at the rendering boundary.
+Use `transformResponse` only when the selector itself should expose a
+transformed value.
 
 ## Requests With Parameters
 
@@ -449,6 +481,34 @@ const { responseSelector } = requestsFactory({
 responseSelector(state); // []
 ```
 
+### Request-state hydration
+
+`requestsStateSelector` returns the complete requests slice without exposing
+the configured `stateRequestsKey`:
+
+```ts
+const requestsState = requestsStateSelector(store.getState());
+```
+
+Dispatch `hydrateRequestsAction` to merge that slice into another store using
+the standard `requestsReducer`:
+
+```ts
+store.dispatch(hydrateRequestsAction(requestsState));
+```
+
+The reducer applies these rules:
+
+- the receiving store keeps its current global loading count;
+- different `stateRequestKey` values are merged;
+- different `serializedKey` values for a parameterized request are merged;
+- the same `stateRequestKey` and `serializedKey` identity is replaced by the
+  hydrated request state.
+
+The action creator is tied to its factory instance. When multiple custom
+factories are mounted in one store, only the matching reducer handles the
+hydration action.
+
 ## Custom Factory Instances
 
 Use the default export when you need more than one independent request factory,
@@ -475,6 +535,8 @@ const {
   requestsFactory,
   requestsReducer,
   isSomethingLoadingSelector,
+  requestsStateSelector,
+  hydrateRequestsAction,
 } = createReduxRequestsFactory({
   stateRequestsKey: 'api',
 });
@@ -546,12 +608,148 @@ export const getServerSideProps = wrapper.getServerSideProps(
 See the [Next.js Pages Router example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 for a complete setup with `next-redux-wrapper`.
 
+### React Server Components
+
+Create a new store for every server render. After its requests finish, pass the
+requests slice—not the store object—across the Server/Client Component boundary.
+Responses and errors included in that state must be serializable.
+
+```tsx
+import { requestsStateSelector } from 'redux-requests-factory';
+
+export default async function ServerUsers() {
+  const store = makeStore();
+
+  store.dispatch(loadUsersAction());
+  await store.asyncRequests();
+
+  const requestsState = requestsStateSelector(store.getState());
+
+  return (
+    <RequestsHydrator requestsState={requestsState}>
+      <Users />
+    </RequestsHydrator>
+  );
+}
+```
+
+`RequestsHydrator` can dispatch the state into a store owned by a shared client
+Provider:
+
+```tsx
+'use client';
+
+import { useLayoutEffect } from 'react';
+import { useStore } from 'react-redux';
+import {
+  hydrateRequestsAction,
+  type RequestsState,
+} from 'redux-requests-factory';
+
+type Props = {
+  children: React.ReactNode;
+  requestsState: RequestsState;
+};
+
+const RequestsHydrator = ({ children, requestsState }: Props) => {
+  const store = useStore();
+
+  useLayoutEffect(() => {
+    store.dispatch(hydrateRequestsAction(requestsState));
+  }, [requestsState, store]);
+
+  return children;
+};
+```
+
+Place the shared Provider in a layout when its browser store should survive
+client-side navigation:
+
+```tsx
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <StoreProvider>{children}</StoreProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+Because that Provider already exists above the route, a nested component must
+not dispatch hydration during render. The layout effect reconciles the state
+after commit and before passive effects such as a component's client-side load
+effect. If request data must be present in the initial HTML generated by client
+components, use a route-level Provider initialized with `preloadedState`
+instead of a shared layout Provider.
+
+#### Loading several requests with one server store
+
+Dispatch every independent request before awaiting. They start concurrently,
+and one `asyncRequests()` call waits for all requests currently tracked by that
+middleware instance.
+
+```tsx
+export default async function Page() {
+  const store = makeStore();
+
+  store.dispatch(loadUsersAction());
+  store.dispatch(loadPostsAction());
+  store.dispatch(loadSettingsAction());
+
+  await store.asyncRequests();
+
+  return (
+    <RequestsHydrator
+      requestsState={requestsStateSelector(store.getState())}
+    >
+      <Users />
+      <Posts />
+      <Settings />
+    </RequestsHydrator>
+  );
+}
+```
+
+#### Streaming independent server components
+
+For finer streaming, give each async Server Component its own request-scoped
+store and `Suspense` boundary:
+
+```tsx
+export default function Page() {
+  return (
+    <>
+      <Suspense fallback={<UsersSkeleton />}>
+        <ServerUsers />
+      </Suspense>
+      <Suspense fallback={<PostsSkeleton />}>
+        <ServerPosts />
+      </Suspense>
+      <Suspense fallback={<SettingsSkeleton />}>
+        <ServerSettings />
+      </Suspense>
+    </>
+  );
+}
+```
+
+Each component hydrates only the request state created in its temporary store.
+The library reducer merges those independently arriving request keys into the
+one browser store owned by the shared Provider.
+
+See the [complete Next.js App Router example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app),
+including [batched server loading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app/app/server-redux-batch)
+and [independent streamed components](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app/app/server-redux-streams).
+
 ## Examples
 
 - [All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples)
 - [Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app)
 - [Create React App: simple](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple)
 - [Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
+- [Next.js App Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app)
 - [Create React App: Redux Observable](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/with-redux-observable)
 
 ## TypeScript
@@ -562,6 +760,7 @@ Examples:
 
 - [TypeScript + Create React App](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/create-react-app/simple)
 - [TypeScript + Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
+- [TypeScript + Next.js App Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app)
 
 ## License
 

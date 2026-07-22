@@ -10,6 +10,8 @@ export const {
   requestsFactory,
   requestsReducer,
   isSomethingLoadingSelector,
+  requestsStateSelector,
+  hydrateRequestsAction,
 }: ReduxRequestsFactory<typeof DEFAULT_STATE_REQUESTS_KEY> =
   createReduxRequestsFactory();
 
