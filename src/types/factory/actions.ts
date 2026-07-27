@@ -2,52 +2,93 @@ import type { UnknownAction } from 'redux';
 
 import { RequestActionMeta } from '../actions';
 
+/** Public command and lifecycle action type identifiers. */
 export enum FactoryActionTypes {
+  /** Direct request command. */
   DoRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/DO',
+  /** Cancellation marker command. */
   CancelRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/CANCEL',
+  /** Cache-bypassing load command. */
   ForcedLoadData = '@@REDUX_REQUESTS_FACTORY/FORCED_LOAD',
+  /** Cache-aware load command. */
   LoadData = '@@REDUX_REQUESTS_FACTORY/LOAD',
+  /** Request-specific success subscription action. */
   RequestFulfilled = '@@REDUX_REQUESTS_FACTORY/REQUEST/FULFILLED',
+  /** Request-specific failure subscription action. */
   RequestRejected = '@@REDUX_REQUESTS_FACTORY/REQUEST/REJECTED',
+  /** Manual error-state command. */
   SetError = '@@REDUX_REQUESTS_FACTORY/REQUEST/SET/ERROR',
+  /** Manual response-state command. */
   SetResponse = '@@REDUX_REQUESTS_FACTORY/REQUEST/SET/RESPONSE',
+  /** Request-state reset command. */
   ResetRequest = '@@REDUX_REQUESTS_FACTORY/REQUEST/RESET',
 }
 
+/** Shared fields exposed by every generated action creator. */
 export interface RequestFactoryActionCommon extends UnknownAction {
+  /** Redux action type generated for this request factory. */
   type: string;
+  /** Returns the action creator's Redux type. */
   toString(): string;
+  /** Returns the action creator's Redux type. */
   getType(): string;
 }
 
+/** Factory command value for a request with serialized params. */
 export interface RequestFactoryActionCommonWithSerializeReturnType extends UnknownAction {
+  /** Redux action type. */
   type: string;
+  /** Request-state identity used by the middleware and reducer. */
   meta: {
+    /** Registered request-state key. */
     key: string;
+    /** Cache key produced by `serializeRequestParameters`. */
     serializedKey: string;
   };
+  /** Serializes the complete command identity. */
   toString(): string;
+  /** Serializes the complete command identity. */
   toJSON(): string;
 }
 
+/** Factory command value for a request without serialized params. */
 export interface RequestFactoryActionCommonWithoutSerializeReturnType extends UnknownAction {
+  /** Redux action type. */
   type: string;
+  /** Request-state identity used by the middleware and reducer. */
   meta: {
+    /** Registered request-state key. */
     key: string;
   };
+  /** Serializes the complete command identity. */
   toString(): string;
+  /** Serializes the complete command identity. */
   toJSON(): string;
 }
 
+/** Per-dispatch behavior supported by request and cancellation commands. */
 export interface ActionOptions {
+  /**
+   * Excludes a started request from global loading state updates. Pass the
+   * same value when canceling that request.
+   *
+   * @default false
+   */
   silent?: boolean;
+  /**
+   * Overrides the middleware's `forwardFactoryActions` value for this command.
+   * By default, the middleware-level value is inherited.
+   */
+  forwardFactoryAction?: boolean;
 }
 
+/** Generated actions for a request with optional params and no serialized cache key. */
 export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
   Params,
 > = {
+  /** Runs direct request work without using the successful-response cache. */
   doRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -63,6 +104,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Reloads the request without using the successful-response cache. */
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -78,6 +120,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Loads only when needed and reuses the in-flight Promise for this request key. */
   loadDataAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -93,6 +136,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Marks the latest active request as canceled without aborting its underlying work. */
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -108,6 +152,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Accessing this subscription action creator enables fulfilled dispatches. */
   requestFulfilledAction: RequestFactoryActionCommon & {
     (
       data: any,
@@ -119,6 +164,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Accessing this subscription action creator enables rejected dispatches. */
   requestRejectedAction: RequestFactoryActionCommon & {
     (
       data: any,
@@ -130,6 +176,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Writes an error into this request's Redux state. */
   setErrorAction: RequestFactoryActionCommon & {
     (data: {
       error: Err;
@@ -151,6 +198,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Writes a response into this request's Redux state. */
   setResponseAction: RequestFactoryActionCommon & {
     (data: {
       response: Resp;
@@ -172,6 +220,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
+  /** Resets state to `None`; it does not cancel active request work. */
   resetRequestAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
@@ -186,11 +235,13 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
   };
 };
 
+/** Generated actions for required params stored in one shared cache entry. */
 export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   Resp,
   Err,
   Params,
 > = {
+  /** Runs direct request work without using the successful-response cache. */
   doRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -206,6 +257,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Reloads the request without using the successful-response cache. */
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -221,6 +273,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Loads only when needed and reuses the in-flight Promise for this request key. */
   loadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -236,6 +289,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Marks the latest active request as canceled without aborting its underlying work. */
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -251,6 +305,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Accessing this subscription action creator enables fulfilled dispatches. */
   requestFulfilledAction: RequestFactoryActionCommon & {
     (
       data: any,
@@ -262,6 +317,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Accessing this subscription action creator enables rejected dispatches. */
   requestRejectedAction: RequestFactoryActionCommon & {
     (
       data: any,
@@ -273,6 +329,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Writes an error into this request's Redux state. */
   setErrorAction: RequestFactoryActionCommon & {
     (data: {
       error: Err;
@@ -294,6 +351,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Writes a response into this request's Redux state. */
   setResponseAction: RequestFactoryActionCommon & {
     (data: {
       response: Resp;
@@ -315,6 +373,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
+  /** Resets state to `None`; it does not cancel active request work. */
   resetRequestAction: RequestFactoryActionCommon & {
     (params?: Params): RequestFactoryActionCommonWithoutSerializeReturnType & {
       payload?: Params;
@@ -329,11 +388,13 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
   };
 };
 
+/** Generated actions for required params stored by serialized cache key. */
 export type RequestsFactoryItemActionsWithParamsWithSerialize<
   Resp,
   Err,
   Params,
 > = {
+  /** Runs direct request work without using the successful-response cache. */
   doRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -350,6 +411,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Reloads the request without using the successful-response cache. */
   forcedLoadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -366,6 +428,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Loads only when needed and reuses the in-flight Promise for this request key. */
   loadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -382,6 +445,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Marks the latest active request as canceled without aborting its underlying work. */
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -398,6 +462,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Accessing this subscription action creator enables fulfilled dispatches. */
   requestFulfilledAction: RequestFactoryActionCommon & {
     (
       data: any,
@@ -409,6 +474,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Accessing this subscription action creator enables rejected dispatches. */
   requestRejectedAction: RequestFactoryActionCommon & {
     (
       data: any,
@@ -420,6 +486,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Writes an error into this request's Redux state. */
   setErrorAction: RequestFactoryActionCommon & {
     (data: {
       error: Err;
@@ -442,6 +509,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Writes a response into this request's Redux state. */
   setResponseAction: RequestFactoryActionCommon & {
     (data: {
       response: Resp;
@@ -464,6 +532,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
+  /** Resets state to `None`; it does not cancel active request work. */
   resetRequestAction: RequestFactoryActionCommon & {
     (params: Params): RequestFactoryActionCommonWithSerializeReturnType & {
       payload: Params;
@@ -479,6 +548,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
   };
 };
 
+/** Union of all generated request action sets. */
 export type RequestsFactoryItemActions<Resp, Err, Params> =
   | RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       Resp,

@@ -11,8 +11,7 @@ export default async function ServerPosts() {
 
   const store = makeStore();
 
-  store.dispatch(loadPostsAction());
-  await store.asyncRequests();
+  await store.dispatch(loadPostsAction());
 
   return (
     <RequestsHydrator requestsState={requestsStateSelector(store.getState())}>

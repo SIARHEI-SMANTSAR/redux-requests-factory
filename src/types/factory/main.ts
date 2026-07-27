@@ -19,6 +19,7 @@ import {
   RequestFactoryConfigWithParamsWithSerializeWithTransformResponse,
 } from './config';
 
+/** Factory result for optional params, one cache entry, and the original response type. */
 export type RequestsFactoryItemWithOptionalParamsWithoutSerialize<
   Resp,
   Err,
@@ -31,6 +32,7 @@ export type RequestsFactoryItemWithOptionalParamsWithoutSerialize<
 > &
   RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
 
+/** Factory result for optional params, one cache entry, and a transformed response. */
 export type RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformResponse<
   Resp,
   Err,
@@ -50,6 +52,7 @@ export type RequestsFactoryItemWithOptionalParamsWithoutSerializeWithTransformRe
     TransformedResp
   >;
 
+/** Factory result for required params, one cache entry, and the original response type. */
 export type RequestsFactoryItemWithParamsWithoutSerialize<
   Resp,
   Err,
@@ -58,6 +61,7 @@ export type RequestsFactoryItemWithParamsWithoutSerialize<
 > = RequestsFactoryItemActionsWithParamsWithoutSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithoutSerialize<Resp, Err, Params, State>;
 
+/** Factory result for required params, one cache entry, and a transformed response. */
 export type RequestsFactoryItemWithParamsWithoutSerializeWithTransformResponse<
   Resp,
   Err,
@@ -73,6 +77,7 @@ export type RequestsFactoryItemWithParamsWithoutSerializeWithTransformResponse<
     TransformedResp
   >;
 
+/** Factory result for required params cached by serialized key. */
 export type RequestsFactoryItemWithParamsWithSerialize<
   Resp,
   Err,
@@ -81,6 +86,7 @@ export type RequestsFactoryItemWithParamsWithSerialize<
 > = RequestsFactoryItemActionsWithParamsWithSerialize<Resp, Err, Params> &
   RequestsFactoryItemSelectorsWithSerialize<Resp, Err, Params, State>;
 
+/** Factory result for serialized params and a transformed response. */
 export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
   Resp,
   Err,
@@ -96,7 +102,9 @@ export type RequestsFactoryItemWithParamsWithSerializeWithTransformResponse<
     TransformedResp
   >;
 
+/** Creates request-specific command actions, lifecycle actions, and selectors. */
 export interface RequestsFactory<Key extends string> {
+  /** Creates a request factory with optional params and one shared cache entry. */
   <Resp, Err, Params, State extends RootState<Key>>(
     config: RequestFactoryConfigWithOptionalParamsWithoutSerialize<
       Resp,
@@ -111,6 +119,7 @@ export interface RequestsFactory<Key extends string> {
     State
   >;
 
+  /** Creates a request factory with required params and one shared cache entry. */
   <Resp, Err, Params, State extends RootState<Key>>(
     config: RequestFactoryConfigWithParamsWithoutSerialize<
       Resp,
@@ -120,6 +129,7 @@ export interface RequestsFactory<Key extends string> {
     >
   ): RequestsFactoryItemWithParamsWithoutSerialize<Resp, Err, Params, State>;
 
+  /** Creates an optional-param request factory with a transformed selector response. */
   <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithOptionalParamsWithoutSerializeWithTransformResponse<
       Resp,
@@ -136,6 +146,7 @@ export interface RequestsFactory<Key extends string> {
     TransformedResp
   >;
 
+  /** Creates a required-param request factory with a transformed selector response. */
   <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithParamsWithoutSerializeWithTransformResponse<
       Resp,
@@ -152,6 +163,7 @@ export interface RequestsFactory<Key extends string> {
     TransformedResp
   >;
 
+  /** Creates a request factory with a separate cache entry per serialized params key. */
   <Resp, Err, Params, State extends RootState<Key>>(
     config: RequestFactoryConfigWithParamsWithSerialize<
       Resp,
@@ -161,6 +173,7 @@ export interface RequestsFactory<Key extends string> {
     >
   ): RequestsFactoryItemWithParamsWithSerialize<Resp, Err, Params, State>;
 
+  /** Creates a serialized request factory with a transformed selector response. */
   <Resp, Err, Params, State extends RootState<Key>, TransformedResp = Resp>(
     config: RequestFactoryConfigWithParamsWithSerializeWithTransformResponse<
       Resp,
@@ -178,6 +191,7 @@ export interface RequestsFactory<Key extends string> {
   >;
 }
 
+/** Union of every action-and-selector result returned by `requestsFactory`. */
 export type RequestsFactoryItem<Resp, Err, Params, State, TransformedResp> =
   | RequestsFactoryItemWithOptionalParamsWithoutSerialize<
       Resp,

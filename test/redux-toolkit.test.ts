@@ -26,20 +26,28 @@ describe('Redux Toolkit integration', () => {
         getDefaultMiddleware().prepend(middleware),
     });
 
-    store.dispatch(loadDataAction());
-    await toPromise();
+    const plainAction = { type: 'PLAIN_ACTION' };
+    expect(store.dispatch(plainAction)).toBe(plainAction);
+
+    const loadPromise: Promise<void> = store.dispatch(loadDataAction());
+    const duplicateLoadPromise: Promise<void> =
+      store.dispatch(loadDataAction());
+
+    expect(duplicateLoadPromise).toBe(loadPromise);
+
+    await loadPromise;
 
     expect(responseSelector(store.getState())).toBe(response);
     expect(request).toHaveBeenCalledTimes(1);
 
-    store.dispatch(loadDataAction());
-    await toPromise();
+    await store.dispatch(loadDataAction());
 
     expect(request).toHaveBeenCalledTimes(1);
 
-    store.dispatch(forcedLoadDataAction());
-    await toPromise();
+    await store.dispatch(forcedLoadDataAction());
 
     expect(request).toHaveBeenCalledTimes(2);
+
+    await toPromise();
   });
 });

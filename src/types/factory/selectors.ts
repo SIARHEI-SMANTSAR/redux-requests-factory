@@ -6,9 +6,13 @@ type RequestsFactoryItemCommonSelectorsWithoutSerialize<
   _Params,
   State,
 > = {
+  /** Returns the current request error, transformed when configured. */
   errorSelector: (state: State) => Err;
+  /** Returns the current request lifecycle status. */
   requestStatusSelector: (state: State) => RequestsStatuses;
+  /** Returns whether the request is currently loading. */
   isLoadingSelector: (state: State) => boolean;
+  /** Returns whether the request completed successfully. */
   isLoadedSelector: (state: State) => boolean;
 };
 
@@ -18,12 +22,17 @@ type RequestsFactoryItemCommonSelectorsWithSerialize<
   Params,
   State,
 > = {
+  /** Returns a params selector for the current request error. */
   errorSelector: (state: State) => (params: Params) => Err;
+  /** Returns a params selector for the current request lifecycle status. */
   requestStatusSelector: (state: State) => (params: Params) => RequestsStatuses;
+  /** Returns a params selector indicating whether the request is loading. */
   isLoadingSelector: (state: State) => (params: Params) => boolean;
+  /** Returns a params selector indicating whether the request succeeded. */
   isLoadedSelector: (state: State) => (params: Params) => boolean;
 };
 
+/** Selectors for a request with one cache entry and its original response type. */
 export type RequestsFactoryItemSelectorsWithoutSerialize<
   Resp,
   Err,
@@ -35,9 +44,11 @@ export type RequestsFactoryItemSelectorsWithoutSerialize<
   Params,
   State
 > & {
+  /** Returns the stored response, or `undefined` before a response exists. */
   responseSelector: (state: State) => Resp | undefined;
 };
 
+/** Selectors for one cache entry with a transformed response result. */
 export type RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
   Resp,
   Err,
@@ -50,9 +61,11 @@ export type RequestsFactoryItemSelectorsWithoutSerializeWithTransformResponse<
   Params,
   State
 > & {
+  /** Returns the value produced by `transformResponse`. */
   responseSelector: (state: State) => TransformedResp;
 };
 
+/** Parameterized selectors whose responses retain their original type. */
 export type RequestsFactoryItemSelectorsWithSerialize<
   Resp,
   Err,
@@ -64,9 +77,11 @@ export type RequestsFactoryItemSelectorsWithSerialize<
   Params,
   State
 > & {
+  /** Returns a params selector for the stored response. */
   responseSelector: (state: State) => (params: Params) => Resp | undefined;
 };
 
+/** Parameterized selectors whose responses are transformed. */
 export type RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<
   Resp,
   Err,
@@ -79,9 +94,11 @@ export type RequestsFactoryItemSelectorsWithSerializeWithTransformResponse<
   Params,
   State
 > & {
+  /** Returns a params selector for the value produced by `transformResponse`. */
   responseSelector: (state: State) => (params: Params) => TransformedResp;
 };
 
+/** Union of every selector set returned by `requestsFactory`. */
 export type RequestsFactoryItemSelectors<
   Resp,
   Err,

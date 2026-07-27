@@ -17,7 +17,7 @@ export type RootState = ReturnType<typeof rootReducer>;
 
 export const makeStore = (preloadedState?: RootState) => {
   const { middleware: requestsFactoryMiddleware, toPromise } =
-    createRequestsFactoryMiddleware();
+    createRequestsFactoryMiddleware({ forwardFactoryActions: false });
 
   return Object.assign(
     configureStore({

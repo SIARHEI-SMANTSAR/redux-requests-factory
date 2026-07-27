@@ -1,20 +1,22 @@
 import { Middleware } from 'redux';
 
 import {
+  AsyncRequestFactoryAction,
   PreparedConfig,
   CreateRequestsFactoryMiddleware,
   MiddlewareConfig,
+  RequestsFactoryDispatch,
 } from './types';
 import { isFactoryAction } from './factory/helpers';
 
-type RunnableFactoryAction = {
+type RunnableFactoryAction = AsyncRequestFactoryAction & {
+  forwardFactoryAction?: boolean;
   type: string;
-  toObject: () => unknown;
   (params: {
     dispatch: Parameters<Middleware>[0]['dispatch'];
     getState: Parameters<Middleware>[0]['getState'];
     middlewareConfig: MiddlewareConfig;
-  }): Promise<void>;
+  }): void | Promise<void>;
 };
 
 export const getCreateRequestsFactoryMiddleware =
@@ -24,10 +26,10 @@ export const getCreateRequestsFactoryMiddleware =
 
     const actions: Set<Promise<void>> = new Set();
 
-    const middleware: Middleware =
+    const middleware: Middleware<RequestsFactoryDispatch> =
       ({ dispatch, getState }) =>
       (next) =>
-      async (action) => {
+      (action) => {
         if (typeof action === 'function') {
           const factoryAction = action as RunnableFactoryAction;
 
@@ -35,21 +37,42 @@ export const getCreateRequestsFactoryMiddleware =
             return next(action);
           }
 
-          next(factoryAction.toObject());
+          const forwardFactoryAction =
+            factoryAction.forwardFactoryAction ??
+            middlewareConfig.forwardFactoryActions ??
+            true;
 
-          const asyncAction = factoryAction({
-            dispatch,
-            getState,
-            middlewareConfig,
-          });
+          if (forwardFactoryAction) {
+            next(factoryAction.toObject());
+          }
 
-          actions.add(asyncAction);
+          let asyncAction: Promise<void>;
 
-          await asyncAction;
+          try {
+            asyncAction = Promise.resolve(
+              factoryAction({
+                dispatch,
+                getState,
+                middlewareConfig,
+              })
+            );
+          } catch (error) {
+            asyncAction = Promise.reject(error);
+          }
 
-          actions.delete(asyncAction);
+          if (!actions.has(asyncAction)) {
+            actions.add(asyncAction);
+            asyncAction.then(
+              () => {
+                actions.delete(asyncAction);
+              },
+              () => {
+                actions.delete(asyncAction);
+              }
+            );
+          }
 
-          return;
+          return asyncAction;
         }
 
         return next(action);

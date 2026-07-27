@@ -3,6 +3,7 @@ import Link from 'next/link';
 const links = [
   { href: '/', label: 'Client loading' },
   { href: '/server-redux', label: 'Async component' },
+  { href: '/server-redux-use', label: 'use(promise)' },
   { href: '/server-redux-batch', label: 'Batched loading' },
   { href: '/server-redux-streams', label: 'Independent streams' },
 ];

@@ -44,7 +44,9 @@ const reducer = (state: RootState | undefined, action: AnyAction) => {
 };
 
 const makeStore = (_context: Context): StoreWithAsyncRequests => {
-  const { middleware, toPromise } = createRequestsFactoryMiddleware();
+  const { middleware, toPromise } = createRequestsFactoryMiddleware({
+    forwardFactoryActions: false,
+  });
   const store = createStore(
     reducer,
     undefined,

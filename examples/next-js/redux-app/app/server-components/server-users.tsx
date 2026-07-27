@@ -11,8 +11,7 @@ export default async function ServerUsers() {
 
   const store = makeStore();
 
-  store.dispatch(loadUsersAction());
-  await store.asyncRequests();
+  await store.dispatch(loadUsersAction());
 
   return (
     <RequestsHydrator requestsState={requestsStateSelector(store.getState())}>

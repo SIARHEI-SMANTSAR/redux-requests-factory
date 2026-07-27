@@ -111,7 +111,7 @@ export const memoizeDebounce = function <
 
   return function () {
     // @ts-ignore
-    mem.apply(this, arguments).apply(this, arguments);
+    return mem.apply(this, arguments).apply(this, arguments);
   } as Func;
 };
 

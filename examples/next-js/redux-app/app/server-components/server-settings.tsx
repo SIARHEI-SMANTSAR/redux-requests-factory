@@ -11,8 +11,7 @@ export default async function ServerSettings() {
 
   const store = makeStore();
 
-  store.dispatch(loadSettingsAction());
-  await store.asyncRequests();
+  await store.dispatch(loadSettingsAction());
 
   return (
     <RequestsHydrator requestsState={requestsStateSelector(store.getState())}>

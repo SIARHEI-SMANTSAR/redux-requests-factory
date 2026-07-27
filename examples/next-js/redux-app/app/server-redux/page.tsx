@@ -15,7 +15,7 @@ export default function ServerReduxPage() {
           </h1>
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
             The page renders immediately. Only the users component waits for
-            store.asyncRequests() inside its Suspense boundary.
+            dispatch(loadUsersAction()) inside its Suspense boundary.
           </p>
         </div>
 

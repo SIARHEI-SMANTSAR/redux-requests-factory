@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "Ada Lovelace",
+    "role": "Computing pioneer",
+    "location": "London"
+  },
+  {
+    "id": 2,
+    "name": "Grace Hopper",
+    "role": "Computer scientist",
+    "location": "New York"
+  },
+  {
+    "id": 3,
+    "name": "Margaret Hamilton",
+    "role": "Software engineer",
+    "location": "Cambridge"
+  },
+  {
+    "id": 4,
+    "name": "Evelyn Boyd Granville",
+    "role": "Mathematician",
+    "location": "Washington"
+  },
+  {
+    "id": 5,
+    "name": "Mary Jackson",
+    "role": "Aerospace engineer",
+    "location": "Hampton"
+  },
+  {
+    "id": 6,
+    "name": "Radia Perlman",
+    "role": "Network engineer",
+    "location": "Seattle"
+  }
+]

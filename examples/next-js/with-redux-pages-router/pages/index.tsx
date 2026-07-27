@@ -143,9 +143,7 @@ const Home: NextPage = () => {
 
 export const getServerSideProps = wrapper.getServerSideProps(
   (store) => async () => {
-    store.dispatch(loadUsersAction());
-
-    await store.asyncRequests();
+    await store.dispatch(loadUsersAction());
 
     const users = usersSelector(store.getState());
 

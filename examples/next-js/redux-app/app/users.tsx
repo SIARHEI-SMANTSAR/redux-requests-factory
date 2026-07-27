@@ -55,14 +55,14 @@ export default function Users() {
           <strong>Try cached load</strong> dispatches{' '}
           <code>loadDataAction</code>. After a successful request, the cached
           result prevents another network request. Open the browser Console: you
-          will see the LOAD action, but no REQUEST/START or REQUEST/SUCCESS
-          actions after it.
+          will not see new REQUEST/START or REQUEST/SUCCESS actions.
         </p>
         <p>
           <strong>Force reload</strong> dispatches{' '}
           <code>forcedLoadDataAction</code>, ignores the cached result, and
-          always performs a new request. The Console will show FORCED_LOAD,
-          REQUEST/START, and REQUEST/SUCCESS actions.
+          always performs a new request. The Console will show REQUEST/START
+          and REQUEST/SUCCESS actions. Factory command actions are hidden by
+          the middleware configuration.
         </p>
       </div>
 

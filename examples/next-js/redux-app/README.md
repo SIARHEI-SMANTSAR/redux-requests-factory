@@ -9,6 +9,7 @@ integrated with the Next.js App Router.
 | --- | --- |
 | `/` | Client-side loading, cache-aware loading, and forced reloads. |
 | `/server-redux` | One async Server Component inside a `Suspense` boundary. |
+| `/server-redux-use` | A Client Component reading server work with `use(promise)`. |
 | `/server-redux-batch` | One server store starting and awaiting three requests. |
 | `/server-redux-streams` | Three independent async Server Components and streams. |
 
@@ -16,10 +17,11 @@ integrated with the Next.js App Router.
 - `app/store-provider.tsx` owns the browser store, while the shared root layout
   keeps its Provider mounted across client-side route transitions.
 - `lib/hooks.ts` exports typed Redux hooks.
-- `lib/logger-middleware.ts` logs every Redux action and the resulting state to
-  the browser Console for client actions and the terminal for server actions.
-- `store.asyncRequests()` exposes the middleware's `toPromise` helper and lets
-  callers wait until all currently tracked requests have finished.
+- `lib/logger-middleware.ts` logs every Redux action that reaches it and the
+  resulting state to the browser Console for client actions and the terminal
+  for server actions.
+- Dispatching a request action returns a promise for that action, while
+  `store.asyncRequests()` waits until all currently tracked requests finish.
 - `app/page.tsx` remains a Server Component and renders an interactive counter.
 - `lib/features/users/users-requests.ts` defines a request factory for users.
 - `app/api/users/route.ts` provides a local Route Handler used by the example.
@@ -40,10 +42,14 @@ The users example demonstrates both cache-aware and forced loading:
 
 Open the browser Console to compare the action sequences:
 
-- After **Try cached load**, the logger prints `LOAD/users`, but a cached
-  successful request does not produce `REQUEST/START` or `REQUEST/SUCCESS`.
-- After **Force reload**, the logger prints `FORCED_LOAD/users`, followed by
-  `REQUEST/START` and `REQUEST/SUCCESS` because a network request is executed.
+- After a cached **Try cached load**, no new request lifecycle actions are
+  logged because the successful response is reused.
+- After **Force reload**, the logger prints `REQUEST/START` and
+  `REQUEST/SUCCESS` because a network request is executed.
+
+Factory command forwarding is disabled in this example, so `LOAD/users` and
+`FORCED_LOAD/users` are consumed by the requests middleware and do not reach
+the logger. The request lifecycle state actions still do.
 
 `responseSelector` returns the unmodified `User[] | undefined` response. The UI
 uses `usersSelector(state) ?? []` only at the rendering boundary; the request
@@ -58,8 +64,8 @@ example:
    inside a `Suspense` boundary.
 2. The async `app/server-components/server-users.tsx` component creates a new
    store for its current server render.
-3. The component dispatches `loadUsersAction()` and waits for all tracked
-   requests with `await store.asyncRequests()`.
+3. The component waits for its specific request with
+   `await store.dispatch(loadUsersAction())`.
 4. `requestsStateSelector(store.getState())` returns the serializable requests
    slice without exposing the configured Redux state key.
 5. After the hydration boundary commits, its layout effect dispatches the
@@ -86,6 +92,53 @@ boundary instead of sharing one Provider across routes.
 
 The users request supports both runtimes. On the server it calls the data
 function directly; in the browser it calls the `/api/users` Route Handler.
+
+## React `use(promise)`
+
+The `/server-redux-use` route demonstrates React's alternative promise-reading
+pattern. The synchronous Server Component starts an async function without
+awaiting it and passes the resulting promise to `RequestsPromise`:
+
+```tsx
+export default function ServerReduxUsePage() {
+  const requestsStatePromise = loadUsersRequestsState();
+
+  return (
+    <Suspense fallback={<div>Loading…</div>}>
+      <RequestsPromise requestsStatePromise={requestsStatePromise}>
+        <Users />
+      </RequestsPromise>
+    </Suspense>
+  );
+}
+```
+
+`RequestsPromise` is a Client Component. It reads the server-created promise
+with `use()` and suspends until the serializable requests state is available:
+
+```tsx
+'use client';
+
+import { use } from 'react';
+
+export default function RequestsPromise({
+  children,
+  requestsStatePromise,
+}) {
+  const requestsState = use(requestsStatePromise);
+
+  return (
+    <RequestsHydrator requestsState={requestsState}>
+      {children}
+    </RequestsHydrator>
+  );
+}
+```
+
+The promise resolves to `RequestsState`, not the Redux store. Store instances
+are not serializable and must not cross the Server/Client Component boundary.
+Inside that promise, `await store.dispatch(loadUsersAction())` waits only for
+the users action, not for every request currently tracked by the middleware.
 
 ## Batched server loading
 
@@ -132,6 +185,8 @@ This keeps the linked library inside the app's Turbopack root and prevents its
 Install dependencies and run the development server:
 
 ```bash
+npm run build
+cd examples/next-js/redux-app
 npm install
 npm run dev
 ```

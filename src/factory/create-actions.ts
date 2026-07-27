@@ -71,6 +71,7 @@ const createActions = <
   let globalLoadingDecrementedAfterTimeout = false;
 
   const doRequestMapByKey: DoRequestMapByKey = new Map();
+  const loadPromiseMapByKey = new Map<string, Promise<void>>();
 
   const getDispatchExternalActions =
     <Data>(externalActions: ExternalActions<Data>) =>
@@ -124,6 +125,7 @@ const createActions = <
       silent: boolean;
     }) => {
       (props: ActionPropsFromMiddleware<State>): void;
+      forwardFactoryAction?: boolean;
       type?: string;
       meta?: RequestActionMeta;
       payload?: Data;
@@ -143,6 +145,7 @@ const createActions = <
       toString(): string;
       toJSON(): string;
       toObject(): any;
+      forwardFactoryAction?: boolean;
     } => {
       const params: Params = getParamsFromData(data);
       const meta: RequestActionMeta = {
@@ -169,6 +172,7 @@ const createActions = <
       action.type = type;
       action.meta = meta;
       action.payload = data;
+      action.forwardFactoryAction = options?.forwardFactoryAction;
 
       action.toString = actionToString;
       action.toJSON = actionToString;
@@ -181,6 +185,7 @@ const createActions = <
         toString(): string;
         toJSON(): string;
         toObject(): any;
+        forwardFactoryAction?: boolean;
       };
     };
 
@@ -317,16 +322,49 @@ const createActions = <
       meta: RequestActionMeta;
       silent: boolean;
     }) =>
-    async ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
+    ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
+      if (!isForced) {
+        const runningPromise = loadPromiseMapByKey.get(requestKey);
+
+        if (runningPromise) {
+          return runningPromise;
+        }
+      }
+
       if (isForced || isNeedLoadData(config, meta, getState())) {
-        return await (useDebounce ? memoizedDoRequest : doRequest)({
-          params,
-          dispatch,
-          meta,
-          requestKey,
-          getState,
-          silent,
+        let resolveRequestPromise!: () => void;
+        let rejectRequestPromise!: (error: unknown) => void;
+        const requestPromise = new Promise<void>((resolve, reject) => {
+          resolveRequestPromise = resolve;
+          rejectRequestPromise = reject;
         });
+
+        loadPromiseMapByKey.set(requestKey, requestPromise);
+
+        try {
+          Promise.resolve(
+            (useDebounce ? memoizedDoRequest : doRequest)({
+              params,
+              dispatch,
+              meta,
+              requestKey,
+              getState,
+              silent,
+            })
+          ).then(resolveRequestPromise, rejectRequestPromise);
+        } catch (error) {
+          rejectRequestPromise(error);
+        }
+
+        const clearPromise = () => {
+          if (loadPromiseMapByKey.get(requestKey) === requestPromise) {
+            loadPromiseMapByKey.delete(requestKey);
+          }
+        };
+
+        requestPromise.then(clearPromise, clearPromise);
+
+        return requestPromise;
       } else if (
         dispatchFulfilledActionForLoadedRequest &&
         isRequestFulfilledActionNeeded &&
@@ -341,6 +379,8 @@ const createActions = <
           state: getState(),
         });
       }
+
+      return undefined;
     };
 
   return new Proxy(
