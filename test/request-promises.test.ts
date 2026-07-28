@@ -2,6 +2,77 @@ import { RequestsStatuses, requestsFactory } from '../src';
 import { createDeferred, createRequestsTestStore } from './helpers';
 
 describe('request Promise lifecycle', () => {
+  it('isolates in-flight Promises between middleware instances', async () => {
+    const firstRequest = createDeferred<string>();
+    const secondRequest = createDeferred<string>();
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(secondRequest.promise);
+    const { loadDataAction, responseSelector } = requestsFactory({
+      request,
+      stateRequestKey: 'middleware-isolated-promises',
+    });
+    const firstStore = createRequestsTestStore().store;
+    const secondStore = createRequestsTestStore().store;
+
+    const firstPromise = firstStore.dispatch(loadDataAction());
+    const secondPromise = secondStore.dispatch(loadDataAction());
+
+    expect(firstPromise).not.toBe(secondPromise);
+    expect(request).toHaveBeenCalledTimes(2);
+
+    firstRequest.resolve('first store response');
+    secondRequest.resolve('second store response');
+    await Promise.all([firstPromise, secondPromise]);
+
+    expect(responseSelector(firstStore.getState())).toBe(
+      'first store response'
+    );
+    expect(responseSelector(secondStore.getState())).toBe(
+      'second store response'
+    );
+  });
+
+  it('isolates cancellation state between middleware instances', async () => {
+    const firstRequest = createDeferred<string>();
+    const secondRequest = createDeferred<string>();
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(secondRequest.promise);
+    const {
+      cancelRequestAction,
+      forcedLoadDataAction,
+      requestStatusSelector,
+      responseSelector,
+    } = requestsFactory({
+      request,
+      stateRequestKey: 'middleware-isolated-cancellation',
+    });
+    const firstStore = createRequestsTestStore().store;
+    const secondStore = createRequestsTestStore().store;
+
+    const firstPromise = firstStore.dispatch(forcedLoadDataAction());
+    const secondPromise = secondStore.dispatch(forcedLoadDataAction());
+    await firstStore.dispatch(cancelRequestAction());
+
+    firstRequest.resolve('ignored first response');
+    secondRequest.resolve('second store response');
+    await Promise.all([firstPromise, secondPromise]);
+
+    expect(requestStatusSelector(firstStore.getState())).toBe(
+      RequestsStatuses.Canceled
+    );
+    expect(responseSelector(firstStore.getState())).toBeUndefined();
+    expect(requestStatusSelector(secondStore.getState())).toBe(
+      RequestsStatuses.Success
+    );
+    expect(responseSelector(secondStore.getState())).toBe(
+      'second store response'
+    );
+  });
+
   it('keeps the latest forced Promise when an older forced request settles', async () => {
     const { store } = createRequestsTestStore();
     const firstRequest = createDeferred<string>();
@@ -216,6 +287,9 @@ describe('request Promise lifecycle', () => {
     const aggregatePromise = toPromise().then(() => {
       aggregateResolved = true;
     });
+    const trackedAggregatePromise = toPromise();
+
+    expect(toPromise()).toBe(trackedAggregatePromise);
 
     usersRequest.resolve('users');
     await usersPromise;
@@ -225,6 +299,7 @@ describe('request Promise lifecycle', () => {
     postsRequest.resolve('posts');
     await postsPromise;
     await aggregatePromise;
+    expect(toPromise()).toBe(trackedAggregatePromise);
     expect(aggregateResolved).toBe(true);
   });
 });

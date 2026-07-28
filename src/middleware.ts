@@ -6,17 +6,14 @@ import {
   CreateRequestsFactoryMiddleware,
   MiddlewareConfig,
   RequestsFactoryDispatch,
+  ActionPropsFromMiddleware,
 } from './types';
 import { isFactoryAction } from './factory/helpers';
 
 type RunnableFactoryAction = AsyncRequestFactoryAction & {
   forwardFactoryAction?: boolean;
   type: string;
-  (params: {
-    dispatch: Parameters<Middleware>[0]['dispatch'];
-    getState: Parameters<Middleware>[0]['getState'];
-    middlewareConfig: MiddlewareConfig;
-  }): void | Promise<void>;
+  (params: ActionPropsFromMiddleware<unknown>): void | Promise<void>;
 };
 
 export const getCreateRequestsFactoryMiddleware =
@@ -25,6 +22,18 @@ export const getCreateRequestsFactoryMiddleware =
     config.resetRegisterRequestKey();
 
     const actions: Set<Promise<void>> = new Set();
+    let aggregatePromise: Promise<void> | undefined;
+    const runtimeStateByFactory = new WeakMap<object, unknown>();
+    const getRuntimeState = <RuntimeState>(
+      key: object,
+      createState: () => RuntimeState
+    ): RuntimeState => {
+      if (!runtimeStateByFactory.has(key)) {
+        runtimeStateByFactory.set(key, createState());
+      }
+
+      return runtimeStateByFactory.get(key) as RuntimeState;
+    };
 
     const middleware: Middleware<RequestsFactoryDispatch> =
       ({ dispatch, getState }) =>
@@ -54,6 +63,7 @@ export const getCreateRequestsFactoryMiddleware =
                 dispatch,
                 getState,
                 middlewareConfig,
+                getRuntimeState,
               })
             );
           } catch (error) {
@@ -62,6 +72,7 @@ export const getCreateRequestsFactoryMiddleware =
 
           if (!actions.has(asyncAction)) {
             actions.add(asyncAction);
+            aggregatePromise = undefined;
             asyncAction.then(
               () => {
                 actions.delete(asyncAction);
@@ -78,10 +89,14 @@ export const getCreateRequestsFactoryMiddleware =
         return next(action);
       };
 
-    const toPromise = async () => {
-      for (let action of actions) {
-        await action;
-      }
+    const toPromise = () => {
+      aggregatePromise ??= (async () => {
+        for (let action of actions) {
+          await action;
+        }
+      })();
+
+      return aggregatePromise;
     };
 
     return { middleware, toPromise };

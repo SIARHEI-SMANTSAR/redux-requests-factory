@@ -1,0 +1,31 @@
+{
+  "name": "react-ssr-render-to-string-component-data-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "npm run build:client && npm run build:server && tsc --noEmit",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "vite build --ssr src/entry-server.tsx --outDir dist/server",
+    "start": "NODE_ENV=production tsx server.ts"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-redux": "^9.3.0",
+    "react-router": "^8.3.0",
+    "redux": "^5.0.1",
+    "redux-requests-factory": "file:../../.."
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "tsx": "^4.20.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  }
+}
