@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 
+import { ForceReloadButton } from '../components/ForceReloadButton';
 import { UsersFallback, UsersList } from '../components/UsersList';
+import { reloadUsersAction } from '../users-request';
 
 export function SingleRequestPage() {
   return (
@@ -15,6 +17,12 @@ export function SingleRequestPage() {
       <Suspense fallback={<UsersFallback />}>
         <UsersList />
       </Suspense>
+
+      <div className="reload-actions">
+        <ForceReloadButton action={reloadUsersAction}>
+          Force reload users
+        </ForceReloadButton>
+      </div>
     </section>
   );
 }

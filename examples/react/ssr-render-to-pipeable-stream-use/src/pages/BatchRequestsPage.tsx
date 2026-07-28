@@ -8,6 +8,12 @@ import {
   SuccessRateCard,
   TeamMembersCard,
 } from '../components/Dashboard';
+import { ForceReloadButton } from '../components/ForceReloadButton';
+import {
+  reloadActivityAction,
+  reloadStatsAction,
+} from '../dashboard-requests';
+import { reloadUsersAction } from '../users-request';
 
 export function BatchRequestsPage() {
   return (
@@ -18,6 +24,18 @@ export function BatchRequestsPage() {
         Every component owns its Redux request. Independent Suspense boundaries
         stream as their cached Promises resolve.
       </p>
+
+      <div className="reload-actions" aria-label="Force reload requests">
+        <ForceReloadButton action={reloadUsersAction}>
+          Force reload users
+        </ForceReloadButton>
+        <ForceReloadButton action={reloadStatsAction}>
+          Force reload stats
+        </ForceReloadButton>
+        <ForceReloadButton action={reloadActivityAction}>
+          Force reload activity
+        </ForceReloadButton>
+      </div>
 
       <div className="dashboard">
         <Suspense fallback={<CardFallback label="Team members" />}>

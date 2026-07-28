@@ -66,6 +66,11 @@ delays. Activity resolves first, followed by users, then stats. Projects and
 SuccessRate request the same stats action and share the in-flight Promise
 cached by their store's middleware.
 
+The force reload buttons dispatch each request factory's
+`forcedLoadDataAction`. The resulting `Loading` status makes the data component
+read the same in-flight Promise through `use` again, so its nearest `Suspense`
+boundary temporarily returns to the fallback until the fresh response arrives.
+
 Vite builds `src/entry-client.tsx` through an explicit Rollup input. There is no
 `index.html`: React owns the complete streamed document, and the server reads
 the hashed client entry and CSS files from Vite's manifest.
