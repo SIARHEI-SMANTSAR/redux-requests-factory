@@ -39,4 +39,9 @@ export interface ActionPropsFromMiddleware<State> {
   getState: () => State;
   /** Normalized middleware configuration. */
   middlewareConfig: MiddlewareConfig;
+  /** Returns mutable request runtime state owned by this middleware instance. */
+  getRuntimeState<RuntimeState>(
+    key: object,
+    createState: () => RuntimeState
+  ): RuntimeState;
 }

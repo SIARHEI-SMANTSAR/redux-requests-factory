@@ -65,14 +65,6 @@ const createActions = <
   let isRequestFulfilledActionNeeded = false;
   let isRequestRejectedActionNeeded = false;
 
-  let lastRequestNumber = 0;
-
-  let globalLoadingTimeoutId: ReturnType<typeof setTimeout>;
-  let globalLoadingDecrementedAfterTimeout = false;
-
-  const doRequestMapByKey: DoRequestMapByKey = new Map();
-  const loadPromiseMapByKey = new Map<string, Promise<void>>();
-
   const getDispatchExternalActions =
     <Data>(externalActions: ExternalActions<Data>) =>
     (dispatch: Dispatch, data: Data) => {
@@ -204,24 +196,39 @@ const createActions = <
     `${FactoryActionTypes.RequestRejected}/${stateRequestKey}`
   );
 
-  const doRequest = async ({
-    params,
-    dispatch,
-    meta,
-    requestKey,
-    getState,
-    silent,
-  }: {
+  type DoRequestArgs = {
     params: Params;
     dispatch: Dispatch;
     meta: RequestActionMeta;
     requestKey: string;
     getState: () => State;
     silent: boolean;
-  }) => {
-    const requestNumber = ++lastRequestNumber;
+    runtime: RequestRuntimeState;
+  };
 
-    setNewRequestToMap(doRequestMapByKey, requestKey, requestNumber);
+  type DoRequest = (args: DoRequestArgs) => Promise<void>;
+
+  type RequestRuntimeState = {
+    doRequestMapByKey: DoRequestMapByKey;
+    globalLoadingDecrementedAfterTimeout: boolean;
+    globalLoadingTimeoutId?: ReturnType<typeof setTimeout>;
+    lastRequestNumber: number;
+    loadPromiseMapByKey: Map<string, Promise<void>>;
+    memoizedDoRequest: DoRequest;
+  };
+
+  const doRequest: DoRequest = async ({
+    params,
+    dispatch,
+    meta,
+    requestKey,
+    getState,
+    silent,
+    runtime,
+  }) => {
+    const requestNumber = ++runtime.lastRequestNumber;
+
+    setNewRequestToMap(runtime.doRequestMapByKey, requestKey, requestNumber);
 
     dispatch(commonRequestStartAction(meta));
 
@@ -230,10 +237,16 @@ const createActions = <
     }
 
     if (globalLoadingTimeout) {
-      globalLoadingTimeoutId = setTimeout(() => {
-        if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
+      runtime.globalLoadingTimeoutId = setTimeout(() => {
+        if (
+          !isRequestCanceled(
+            runtime.doRequestMapByKey,
+            requestKey,
+            requestNumber
+          )
+        ) {
           if (includeInGlobalLoading && !silent) {
-            globalLoadingDecrementedAfterTimeout = true;
+            runtime.globalLoadingDecrementedAfterTimeout = true;
 
             dispatch(globalLoadingDecrementAction());
           }
@@ -244,9 +257,11 @@ const createActions = <
     try {
       const response = await request(params);
 
-      clearTimeout(globalLoadingTimeoutId);
+      clearTimeout(runtime.globalLoadingTimeoutId);
 
-      if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
+      if (
+        !isRequestCanceled(runtime.doRequestMapByKey, requestKey, requestNumber)
+      ) {
         dispatch(commonRequestSuccessAction(meta, response));
         if (isRequestFulfilledActionNeeded) {
           dispatch(requestFulfilledAction({ params, response }, meta));
@@ -258,7 +273,9 @@ const createActions = <
         });
       }
     } catch (error) {
-      if (!isRequestCanceled(doRequestMapByKey, requestKey, requestNumber)) {
+      if (
+        !isRequestCanceled(runtime.doRequestMapByKey, requestKey, requestNumber)
+      ) {
         dispatch(commonRequestErrorAction(meta, error));
         const transformedError = transformError<Err>(error);
         if (isRequestRejectedActionNeeded) {
@@ -282,13 +299,21 @@ const createActions = <
       if (
         includeInGlobalLoading &&
         !silent &&
-        !isRequestCanceled(doRequestMapByKey, requestKey, requestNumber) &&
-        !globalLoadingDecrementedAfterTimeout
+        !isRequestCanceled(
+          runtime.doRequestMapByKey,
+          requestKey,
+          requestNumber
+        ) &&
+        !runtime.globalLoadingDecrementedAfterTimeout
       ) {
         dispatch(globalLoadingDecrementAction());
       }
 
-      deleteRequestFromMap(doRequestMapByKey, requestKey, requestNumber);
+      deleteRequestFromMap(
+        runtime.doRequestMapByKey,
+        requestKey,
+        requestNumber
+      );
     }
   };
 
@@ -307,7 +332,14 @@ const createActions = <
       },
     });
 
-  let memoizedDoRequest = getMemoizedDoRequest();
+  const requestFactoryRuntimeKey = {};
+  const createRuntimeState = (): RequestRuntimeState => ({
+    doRequestMapByKey: new Map(),
+    globalLoadingDecrementedAfterTimeout: false,
+    lastRequestNumber: 0,
+    loadPromiseMapByKey: new Map(),
+    memoizedDoRequest: getMemoizedDoRequest(),
+  });
 
   const getDoRequestAction =
     (isForced: boolean = true) =>
@@ -322,9 +354,18 @@ const createActions = <
       meta: RequestActionMeta;
       silent: boolean;
     }) =>
-    ({ dispatch, getState }: ActionPropsFromMiddleware<State>) => {
+    ({
+      dispatch,
+      getState,
+      getRuntimeState,
+    }: ActionPropsFromMiddleware<State>) => {
+      const runtime = getRuntimeState(
+        requestFactoryRuntimeKey,
+        createRuntimeState
+      );
+
       if (!isForced) {
-        const runningPromise = loadPromiseMapByKey.get(requestKey);
+        const runningPromise = runtime.loadPromiseMapByKey.get(requestKey);
 
         if (runningPromise) {
           return runningPromise;
@@ -339,17 +380,18 @@ const createActions = <
           rejectRequestPromise = reject;
         });
 
-        loadPromiseMapByKey.set(requestKey, requestPromise);
+        runtime.loadPromiseMapByKey.set(requestKey, requestPromise);
 
         try {
           Promise.resolve(
-            (useDebounce ? memoizedDoRequest : doRequest)({
+            (useDebounce ? runtime.memoizedDoRequest : doRequest)({
               params,
               dispatch,
               meta,
               requestKey,
               getState,
               silent,
+              runtime,
             })
           ).then(resolveRequestPromise, rejectRequestPromise);
         } catch (error) {
@@ -357,8 +399,8 @@ const createActions = <
         }
 
         const clearPromise = () => {
-          if (loadPromiseMapByKey.get(requestKey) === requestPromise) {
-            loadPromiseMapByKey.delete(requestKey);
+          if (runtime.loadPromiseMapByKey.get(requestKey) === requestPromise) {
+            runtime.loadPromiseMapByKey.delete(requestKey);
           }
         };
 
@@ -403,22 +445,30 @@ const createActions = <
       cancelRequestAction: createAsyncAction(
         `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
         ({ meta, requestKey, silent }) => {
-          return ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-            if (cancelRequestInMap(doRequestMapByKey, requestKey)) {
+          return ({
+            dispatch,
+            getRuntimeState,
+          }: ActionPropsFromMiddleware<State>) => {
+            const runtime = getRuntimeState(
+              requestFactoryRuntimeKey,
+              createRuntimeState
+            );
+
+            if (cancelRequestInMap(runtime.doRequestMapByKey, requestKey)) {
               dispatch(commonRequestCancelAction(meta));
 
-              clearTimeout(globalLoadingTimeoutId);
+              clearTimeout(runtime.globalLoadingTimeoutId);
 
               if (
                 includeInGlobalLoading &&
                 !silent &&
-                !globalLoadingDecrementedAfterTimeout
+                !runtime.globalLoadingDecrementedAfterTimeout
               ) {
                 dispatch(globalLoadingDecrementAction());
               }
 
               if (useDebounce) {
-                memoizedDoRequest = getMemoizedDoRequest();
+                runtime.memoizedDoRequest = getMemoizedDoRequest();
               }
             }
           };

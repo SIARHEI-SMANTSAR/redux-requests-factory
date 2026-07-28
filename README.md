@@ -882,6 +882,25 @@ The in-flight Promise is removed after it settles. When `useDebounce` is
 enabled, all three request-starting actions remain subject to the configured
 debounce behavior.
 
+The in-flight Promise, cancellation bookkeeping, and debounce state belong to
+the middleware instance returned by `createRequestsFactoryMiddleware()`. They
+are not stored globally in the request factory. Reusing singleton request
+actions across several stores is therefore safe as long as every store gets
+its own middleware instance, which is also the required setup for SSR.
+
+Internally, each `requestsFactory(config)` call creates one stable request
+factory runtime key. The key is only an identity token; it contains no mutable
+state. Each middleware instance owns a separate `WeakMap` and stores its own
+runtime state under that shared key:
+
+```text
+middleware A: requestFactoryRuntimeKey -> runtime state A
+middleware B: requestFactoryRuntimeKey -> runtime state B
+```
+
+Consequently, the same singleton request actions can be dispatched through
+several stores without sharing in-flight Promises or cancellation state.
+
 Dispatch promises represent completion, not response values: they resolve to
 `void`. A rejected request is normally caught by the factory, written to Redux,
 and exposed by `errorSelector`; it is not rethrown through the dispatch Promise.
@@ -1111,6 +1130,14 @@ const makeStore = initialState => {
 };
 ```
 
+Call `createRequestsFactoryMiddleware()` inside `makeStore`. Every SSR request
+then gets its own store, middleware, tracked-request set, in-flight Promise
+cache, cancellation state, and debounce state. Request action modules can stay
+as application-level singletons without leaking runtime state between server
+requests. Their stable request factory keys identify the request definition in
+each middleware's private runtime map; the keys themselves do not hold cache
+data.
+
 In Next.js Pages Router, dispatch request actions in `getServerSideProps` and
 then wait for them before returning props.
 
@@ -1151,6 +1178,59 @@ export const getServerSideProps = wrapper.getServerSideProps(
 
 See the [Next.js Pages Router example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 for a complete setup with `next-redux-wrapper`.
+
+For a new framework-free React 19 SSR integration, start with the
+[modern streaming SSR example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream-use).
+It is the primary SSR reference in this repository and demonstrates the full
+document lifecycle with `renderToPipeableStream`, component-owned data loading,
+`use(promise)`, independent `Suspense` boundaries, progressive HTML streaming,
+Redux state transfer, `hydrateRoot`, and React Router navigation.
+
+### React `renderToString`
+
+The classic React SSR examples show two ways to decide which requests must
+finish before HTML is returned:
+
+| Approach | Server flow | Best fit |
+| --- | --- | --- |
+| [Route-level preloading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string) | Dispatch known route actions, await them, render once | Routes with an explicit data-loading contract |
+| [Component-driven loading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string-component-data) | Discovery render, `await store.asyncRequests()`, result render | Pages where nested components own and dynamically declare their requests |
+
+In the preloading approach, the server entry knows all data required by the
+route. In the component-driven approach, a loading hook dispatches immediately
+during server rendering and uses `useEffect` in the browser. The first server
+render mounts only the requested route and discovers its actions; after the
+aggregate promise settles, the second render reads the loaded state and its HTML
+is sent to the client.
+
+### React `renderToPipeableStream`
+
+The [modern Suspense and `use(promise)` streaming example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream-use)
+is the recommended reference for new React SSR integrations. It combines the
+current React 19 primitives without a framework:
+
+- `renderToPipeableStream` renders the complete `<html>`, `<head>`, and
+  `<body>` document;
+- data loading stays inside the components that consume it;
+- components pass stable middleware-owned dispatch Promises directly to
+  `use`;
+- independent `Suspense` boundaries let React flush the shell and fallbacks
+  first, then stream completed content as each request resolves;
+- a final boundary transfers the completed Redux state and starts
+  `hydrateRoot(document, ...)` without repeating server requests;
+- React Router takes over navigation after hydration, while a full reload
+  performs a fresh isolated SSR render.
+
+This example is the clearest demonstration of how the library supports modern
+progressive SSR: request modules remain singleton application code, while every
+server request creates its own store, middleware runtime, Promise cache, and
+React stream.
+
+For comparison, the simpler
+[preload-first streaming example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream)
+loads all route data before starting the React stream. It still renders the
+complete document and hydrates it with `hydrateRoot`, but it does not stream
+data-driven `Suspense` boundaries independently.
 
 ### React Server Components
 
@@ -1334,6 +1414,10 @@ and [independent streamed components](https://github.com/SIARHEI-SMANTSAR/redux-
 - [All examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples)
 - [React + Vite examples](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react)
 - [React + Vite: simple](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/simple)
+- [Recommended: modern React streaming SSR with `Suspense` and `use(promise)`](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream-use)
+- [React SSR with `renderToString`: route-level preloading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string)
+- [React SSR with `renderToString`: component-driven two-pass loading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string-component-data)
+- [React streaming SSR with `renderToPipeableStream`](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream)
 - [React `use(promise)` SPA](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/use-promise)
 - [Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 - [Next.js App Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app)
@@ -1448,6 +1532,10 @@ when building reusable abstractions around the library.
 Examples:
 
 - [TypeScript + React + Vite](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/simple)
+- [Recommended: TypeScript + modern React streaming SSR with `Suspense` and `use(promise)`](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream-use)
+- [TypeScript + React SSR with route-level preloading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string)
+- [TypeScript + React SSR with component-driven two-pass loading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string-component-data)
+- [TypeScript + React streaming SSR with `renderToPipeableStream`](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream)
 - [TypeScript + Next.js Pages Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/with-redux-pages-router)
 - [TypeScript + Next.js App Router](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app)
 
