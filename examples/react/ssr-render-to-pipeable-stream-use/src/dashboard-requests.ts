@@ -29,6 +29,7 @@ const requestJson = async <Response>(
 };
 
 export const {
+  forcedLoadDataAction: reloadStatsAction,
   loadDataAction: loadStatsAction,
   requestStatusSelector: statsStatusSelector,
   responseSelector: statsSelector,
@@ -38,6 +39,7 @@ export const {
 });
 
 export const {
+  forcedLoadDataAction: reloadActivityAction,
   loadDataAction: loadActivityAction,
   requestStatusSelector: activityStatusSelector,
   responseSelector: activitySelector,
