@@ -18,7 +18,7 @@ Use `npm run build` to type-check the example and create a production bundle.
 
 ## Flow
 
-- Factory command forwarding is disabled globally in the requests middleware.
+- Factory command forwarding is disabled by default in v2.
 - `initAppAction` is handled by an epic and dispatches `loadUsersAction` with
   `forwardFactoryAction: true` for that action only.
 - `loadUsersActionEpic` listens to the forwarded `loadUsersAction` command and

@@ -20,9 +20,7 @@ export const reducer = combineReducers({
 type RootState = ReturnType<typeof reducer>;
 
 const logger = createLogger({ collapsed: true });
-const { middleware } = createRequestsFactoryMiddleware({
-  forwardFactoryActions: false,
-});
+const { middleware } = createRequestsFactoryMiddleware();
 const epicMiddleware = createEpicMiddleware<any, any, RootState>();
 const reduxMiddleware = applyMiddleware(middleware, epicMiddleware, logger);
 

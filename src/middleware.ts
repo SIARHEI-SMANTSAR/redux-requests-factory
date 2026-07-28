@@ -40,7 +40,7 @@ export const getCreateRequestsFactoryMiddleware =
           const forwardFactoryAction =
             factoryAction.forwardFactoryAction ??
             middlewareConfig.forwardFactoryActions ??
-            true;
+            false;
 
           if (forwardFactoryAction) {
             next(factoryAction.toObject());

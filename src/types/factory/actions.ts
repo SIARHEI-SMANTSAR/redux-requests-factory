@@ -77,7 +77,10 @@ export interface ActionOptions {
   silent?: boolean;
   /**
    * Overrides the middleware's `forwardFactoryActions` value for this command.
-   * By default, the middleware-level value is inherited.
+   * Prefer this per-command option over globally enabling factory-action
+   * forwarding when an epic, saga, reducer, or other middleware needs to
+   * observe a specific command. By default, the middleware-level value is
+   * inherited.
    */
   forwardFactoryAction?: boolean;
 }

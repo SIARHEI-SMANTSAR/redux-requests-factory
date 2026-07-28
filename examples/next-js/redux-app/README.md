@@ -47,9 +47,9 @@ Open the browser Console to compare the action sequences:
 - After **Force reload**, the logger prints `REQUEST/START` and
   `REQUEST/SUCCESS` because a network request is executed.
 
-Factory command forwarding is disabled in this example, so `LOAD/users` and
-`FORCED_LOAD/users` are consumed by the requests middleware and do not reach
-the logger. The request lifecycle state actions still do.
+Factory command forwarding is disabled by the v2 default, so `LOAD/users` and
+`FORCED_LOAD/users` are consumed by the requests middleware and do not reach the
+logger. The request lifecycle state actions still do.
 
 `responseSelector` returns the unmodified `User[] | undefined` response. The UI
 uses `usersSelector(state) ?? []` only at the rendering boundary; the request

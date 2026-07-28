@@ -14,12 +14,18 @@ import {
 
 describe('Redux integration', () => {
   it.each([
-    ['by default', undefined, undefined, 1],
+    ['by default', undefined, undefined, 0],
     [
       'when middleware forwarding is disabled',
       { forwardFactoryActions: false },
       undefined,
       0,
+    ],
+    [
+      'when middleware forwarding is enabled',
+      { forwardFactoryActions: true },
+      undefined,
+      1,
     ],
     [
       'when enabled for one action',

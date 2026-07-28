@@ -19,8 +19,8 @@ A client-only React 19 and Vite example integrating
 - Force reload uses a normal `dispatch(forceLoadUsersAction())`. The status
   change renders `useLoadUsers` again, and `loadUsersAction` returns the latest
   in-flight Promise.
-- Factory command forwarding is disabled for this middleware instance, so a
-  cached `loadUsersAction` read during render does not notify Redux subscribers.
+- Factory command forwarding is disabled by the v2 default, so a cached
+  `loadUsersAction` read during render does not notify Redux subscribers.
 - Request data and errors are read normally with `useAppSelector` and rendered
   as JSX. Request failures are stored in Redux instead of being thrown through
   the dispatch Promise, so an Error Boundary is not required for this flow.

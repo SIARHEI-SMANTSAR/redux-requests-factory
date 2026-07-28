@@ -33,6 +33,7 @@ It is useful when you want the same request lifecycle everywhere:
 
 - [What the factory optimizes](#what-the-factory-optimizes)
 - [Installation](#installation)
+- [Breaking changes: migrating from v1 to v2](#breaking-changes-migrating-from-v1-to-v2)
 - [Store Setup](#store-setup)
 - [Quick Start](#quick-start)
 - [React Suspense with `use(promise)`](#react-suspense-with-usepromise)
@@ -208,15 +209,13 @@ cache between consumers.
 
 ### A cleaner Redux action stream
 
-The requests middleware can consume factory command actions internally. When
-the application does not need reducers, epics, or other middleware to observe
-commands such as `loadDataAction`, disable forwarding globally:
+In v2, the requests middleware consumes factory command actions internally by
+default. Commands such as `loadDataAction` do not continue to later middleware
+or reducers unless forwarding is explicitly enabled:
 
 ```ts
 const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware({
-    forwardFactoryActions: false,
-  });
+  createRequestsFactoryMiddleware();
 ```
 
 This keeps factory command actions out of subsequent middleware, reducers, and
@@ -252,6 +251,67 @@ npm install redux-requests-factory
 npm install redux
 ```
 
+## Breaking changes: migrating from v1 to v2
+
+Version 2 changes the default command-forwarding behavior. In v1, factory
+commands were forwarded as plain Redux actions to subsequent middleware and
+reducers. In v2, they are consumed by the requests middleware by default.
+
+| Behavior | v1 default | v2 default |
+| --- | --- | --- |
+| Execute the request command | Yes | Yes |
+| Update request state through the built-in reducer | Yes | Yes |
+| Return a request `Promise<void>` from dispatch | Yes | Yes |
+| Forward the factory command to later middleware and reducers | Yes | No |
+| Dispatch enabled `requestFulfilledAction` and `requestRejectedAction` events | Yes | Yes |
+
+If your application only dispatches factory commands and reads request data
+through factory selectors, no compatibility setting is needed:
+
+```ts
+const { middleware } = createRequestsFactoryMiddleware();
+```
+
+Requests, caching, selectors, global loading, dispatch Promises, and enabled
+fulfilled/rejected lifecycle events continue to work.
+
+If application reducers, epics, sagas, analytics, logging, or custom middleware
+must still observe every factory command, restore the v1 behavior globally:
+
+```ts
+const { middleware } = createRequestsFactoryMiddleware({
+  forwardFactoryActions: true,
+});
+```
+
+> **Performance warning:** avoid enabling `forwardFactoryActions: true` in
+> application code. It forwards every factory command through all subsequent
+> middleware and reducers. This adds unnecessary work, can degrade application
+> performance, and creates action-stream noise, especially when load actions
+> are dispatched frequently or by multiple components. Use this setting only
+> as a temporary v1 compatibility measure.
+
+The preferred v2 migration is to enable forwarding only for commands that have
+an external consumer:
+
+```ts
+dispatch(
+  loadUsersAction(undefined, {
+    forwardFactoryAction: true,
+  })
+);
+```
+
+Before upgrading, search the application for consumers of command action types,
+including `loadDataAction.type`, `forcedLoadDataAction.type`,
+`doRequestAction.type`, and `cancelRequestAction.type`. Typical places are
+`ofType(...)`, saga watchers, reducer cases, analytics middleware, and tests
+that assert command actions in Redux DevTools or logger output.
+
+Consumers of `requestFulfilledAction` and `requestRejectedAction` do not require
+`forwardFactoryAction: true`. Those are separate lifecycle events dispatched by
+the factory after their action creators have been accessed.
+
 ## Store Setup
 
 Add the requests reducer under `stateRequestsKey`, then apply the middleware.
@@ -270,9 +330,7 @@ export const reducer = combineReducers({
 });
 
 const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware({
-    forwardFactoryActions: false,
-  });
+  createRequestsFactoryMiddleware();
 
 const store = createStore(
   reducer,
@@ -299,9 +357,7 @@ import {
 
 export const makeStore = () => {
   const { middleware: requestsFactoryMiddleware } =
-    createRequestsFactoryMiddleware({
-      forwardFactoryActions: false,
-    });
+    createRequestsFactoryMiddleware();
 
   return configureStore({
     reducer: {
@@ -313,28 +369,25 @@ export const makeStore = () => {
 };
 ```
 
-The examples disable factory command forwarding because the application does
-not subscribe to those commands. By default, however, command actions are
-forwarded as plain objects to the next middleware and reducers. This preserves
-support for epics, custom reducers, logging, and Redux DevTools integrations
-that observe actions such as `loadDataAction` itself. Enabled request lifecycle
-actions are dispatched separately.
-
-Disable forwarding whenever factory commands are implementation details, and
-especially when they can be dispatched during render by a Suspense integration:
+Factory commands are implementation details by default in v2. To let epics,
+custom reducers, logging, or another integration observe every command, enable
+forwarding explicitly. Global forwarding is provided primarily for temporary
+v1 compatibility and is not recommended for regular application usage:
 
 ```ts
 const { middleware: requestsFactoryMiddleware } =
   createRequestsFactoryMiddleware({
-    forwardFactoryActions: false,
+    forwardFactoryActions: true,
   });
 ```
 
-With forwarding disabled, requests and the built-in reducer continue to work,
-but subsequent middleware and reducers receive the internal request-state
-actions plus any lazy fulfilled or rejected actions that have been enabled.
+With the default forwarding disabled, requests and the built-in reducer
+continue to work. Subsequent middleware and reducers receive internal
+request-state actions plus any lazy fulfilled or rejected actions that have
+been enabled.
 
-The middleware setting can be overridden for one dispatch:
+Prefer overriding the setting only for the dispatch that an external consumer
+needs:
 
 ```ts
 dispatch(
@@ -344,8 +397,8 @@ dispatch(
 );
 ```
 
-Likewise, `forwardFactoryAction: false` suppresses forwarding for one action
-when middleware forwarding is enabled globally.
+Likewise, `forwardFactoryAction: false` suppresses one command when middleware
+forwarding is enabled globally.
 
 ## Quick Start
 
@@ -423,15 +476,13 @@ stable in-flight Promise read by React's `use()` API. Suspense handles the
 pending state, while response and error data continue to come from normal Redux
 selectors.
 
-Disable factory command forwarding for this integration. The hook dispatches a
-factory command during render, so that command must not notify later middleware
-or Redux subscribers. Internal request-state actions still update the reducer.
+The v2 default is suitable for this integration. The hook dispatches a factory
+command during render, so that command must not notify later middleware or
+Redux subscribers. Internal request-state actions still update the reducer.
 
 ```ts
 const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware({
-    forwardFactoryActions: false,
-  });
+  createRequestsFactoryMiddleware();
 ```
 
 Create a hook that reads the current request status and passes the load Promise
@@ -685,23 +736,21 @@ Creates the Redux middleware and a helper for awaiting requests started through
 that middleware instance.
 
 ```ts
-const { middleware, toPromise } = createRequestsFactoryMiddleware({
-  forwardFactoryActions: false,
-});
+const { middleware, toPromise } = createRequestsFactoryMiddleware();
 ```
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `forwardFactoryActions` | `true` | Forwards factory command actions as plain Redux actions to later middleware and reducers. Internal request lifecycle actions are unaffected. |
+| `forwardFactoryActions` | `false` | Forwards factory command actions as plain Redux actions to later middleware and reducers when enabled. Internal request lifecycle actions are unaffected. |
 
 Add `middleware` to the Redux middleware chain. Calling `toPromise()` waits for
 the requests tracked by this middleware instance. Dispatching one factory
 command returns that command's own `Promise<void>`, which is usually preferable
 when only one request must be awaited.
 
-`forwardFactoryActions: false` keeps command actions such as `loadDataAction`
-out of later middleware, reducers, loggers, and Redux DevTools. Override the
-setting for one supported command with its `forwardFactoryAction` option.
+By default, command actions such as `loadDataAction` stay out of later
+middleware, reducers, loggers, and Redux DevTools. Override the setting for one
+supported command with its `forwardFactoryAction` option.
 
 ### `requestsFactory(config)`
 
@@ -866,7 +915,7 @@ handled consistently.
 dispatch(loadDataAction({ id: 1 }));
 dispatch(forcedLoadDataAction({ id: 1 }));
 dispatch(doRequestAction({ id: 1 }, { silent: true }));
-dispatch(loadDataAction({ id: 1 }, { forwardFactoryAction: false }));
+dispatch(loadDataAction({ id: 1 }, { forwardFactoryAction: true }));
 dispatch(cancelRequestAction({ id: 1 }));
 dispatch(resetRequestAction({ id: 1 }));
 ```
@@ -1048,9 +1097,7 @@ are deliberately started together.
 
 ```js
 const makeStore = initialState => {
-  const { middleware, toPromise } = createRequestsFactoryMiddleware({
-    forwardFactoryActions: false,
-  });
+  const { middleware, toPromise } = createRequestsFactoryMiddleware();
 
   const store = createStore(
     reducer,

@@ -21,7 +21,14 @@ export type MiddlewareConfig = {
    * later middleware and reducers. Internal request-state actions are always
    * dispatched.
    *
-   * @default true
+   * Enabling this globally forwards every factory command through the rest of
+   * the Redux chain. This adds unnecessary processing, can degrade application
+   * performance, and creates action-stream noise. Prefer
+   * `forwardFactoryAction: true` on only the individual commands that external
+   * middleware or reducers need to observe. Use the global option primarily as
+   * a temporary v1 compatibility measure.
+   *
+   * @default false
    */
   forwardFactoryActions?: boolean;
 };

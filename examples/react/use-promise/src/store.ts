@@ -12,7 +12,7 @@ import {
 } from 'redux-requests-factory';
 
 const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware({ forwardFactoryActions: false });
+  createRequestsFactoryMiddleware();
 const loggerMiddleware = createLogger({ collapsed: true });
 
 const rootReducer = combineReducers({

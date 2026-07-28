@@ -39,9 +39,7 @@ export const createRequestsTestStore = () => {
 
     return next(action);
   };
-  const { middleware, toPromise } = createRequestsFactoryMiddleware({
-    forwardFactoryActions: false,
-  });
+  const { middleware, toPromise } = createRequestsFactoryMiddleware();
   const reducer = combineReducers({
     [stateRequestsKey]: requestsReducer,
   });

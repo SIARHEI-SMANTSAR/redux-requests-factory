@@ -15,9 +15,7 @@ export const reducer = combineReducers({
 });
 
 const logger = createLogger({ collapsed: true });
-const { middleware } = createRequestsFactoryMiddleware({
-  forwardFactoryActions: false,
-});
+const { middleware } = createRequestsFactoryMiddleware();
 const reduxMiddleware = applyMiddleware(middleware, logger);
 
 const store = createStore(reducer, undefined, reduxMiddleware);
