@@ -10,6 +10,8 @@ import {
   createRequestsFactoryMiddleware,
   requestsReducer,
   type RequestsFactoryDispatch,
+  type MiddlewareConfig,
+  type RequestsState,
   stateRequestsKey,
 } from '../src';
 
@@ -30,7 +32,10 @@ export const createDeferred = <Value>(): Deferred<Value> => {
   return { promise, reject, resolve };
 };
 
-export const createRequestsTestStore = () => {
+export const createRequestsTestStore = (
+  middlewareConfig?: MiddlewareConfig,
+  preloadedState?: { [stateRequestsKey]: RequestsState }
+) => {
   const recordedActions: UnknownAction[] = [];
   const recorderMiddleware: Middleware = () => (next) => (action) => {
     if (typeof action === 'object' && action !== null && 'type' in action) {
@@ -40,12 +45,13 @@ export const createRequestsTestStore = () => {
     return next(action);
   };
   const { cancelAllRequests, middleware, toPromise } =
-    createRequestsFactoryMiddleware();
+    createRequestsFactoryMiddleware(middlewareConfig);
   const reducer = combineReducers({
     [stateRequestsKey]: requestsReducer,
   });
   const store = createStore(
     reducer,
+    preloadedState,
     applyMiddleware(middleware, recorderMiddleware)
   );
   const typedStore = store as Omit<typeof store, 'dispatch'> & {

@@ -102,7 +102,7 @@ describe('Redux integration', () => {
 
     const cachedLoadPromise = store.dispatch(loadDataAction());
 
-    expect(cachedLoadPromise).not.toBe(loadPromise);
+    expect(cachedLoadPromise).toBe(loadPromise);
 
     await cachedLoadPromise;
 

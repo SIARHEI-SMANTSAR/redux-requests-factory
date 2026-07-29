@@ -64,6 +64,7 @@ describe('requestsFactory public contract', () => {
         'requestFulfilledAction',
         'requestRejectedAction',
         'requestStatusSelector',
+        'requestVersionSelector',
         'resetRequestAction',
         'responseSelector',
         'setErrorAction',
@@ -248,24 +249,28 @@ describe('requestsFactory public contract', () => {
     const response = api.responseSelector(store.getState());
     const error = api.errorSelector(store.getState());
     const status = api.requestStatusSelector(store.getState());
+    const version = api.requestVersionSelector(store.getState());
     const isLoading = api.isLoadingSelector(store.getState());
     const isLoaded = api.isLoadedSelector(store.getState());
 
     expect(response({ id: 1 })).toBe('RESPONSE-1');
     expect(error({ id: 1 })).toBeUndefined();
     expect(status({ id: 1 })).toBe(RequestsStatuses.Success);
+    expect(version({ id: 1 })).toBe(1);
     expect(isLoading({ id: 1 })).toBe(false);
     expect(isLoaded({ id: 1 })).toBe(true);
 
     expect(response({ id: 2 })).toBeUndefined();
     expect(error({ id: 2 })).toBe('error-2');
     expect(status({ id: 2 })).toBe(RequestsStatuses.Failed);
+    expect(version({ id: 2 })).toBe(1);
     expect(isLoading({ id: 2 })).toBe(false);
     expect(isLoaded({ id: 2 })).toBe(false);
 
     expect(response({ id: 3 })).toBeUndefined();
     expect(error({ id: 3 })).toBeUndefined();
     expect(status({ id: 3 })).toBe(RequestsStatuses.None);
+    expect(version({ id: 3 })).toBe(0);
     expect(isLoading({ id: 3 })).toBe(false);
     expect(isLoaded({ id: 3 })).toBe(false);
   });
@@ -292,12 +297,16 @@ describe('requestsFactory public actions Redux state', () => {
       ] as RequestState;
 
     const loadPromise = store.dispatch(api.loadDataAction());
-    expect(storedState()).toEqual({ status: RequestsStatuses.Loading });
+    expect(storedState()).toEqual({
+      status: RequestsStatuses.Loading,
+      requestVersion: 1,
+    });
 
     loadRequest.resolve('loaded');
     await loadPromise;
     expect(storedState()).toEqual({
       status: RequestsStatuses.Success,
+      requestVersion: 1,
       response: 'loaded',
       error: undefined,
       fulfilledAt: expect.any(Number),
@@ -307,6 +316,7 @@ describe('requestsFactory public actions Redux state', () => {
     const forcedPromise = store.dispatch(api.forcedLoadDataAction());
     expect(storedState()).toEqual({
       status: RequestsStatuses.Loading,
+      requestVersion: 2,
       response: 'loaded',
       error: undefined,
       fulfilledAt: firstFulfilledAt,
@@ -316,6 +326,7 @@ describe('requestsFactory public actions Redux state', () => {
     await forcedPromise;
     expect(storedState()).toEqual({
       status: RequestsStatuses.Success,
+      requestVersion: 2,
       response: 'forced',
       error: undefined,
       fulfilledAt: expect.any(Number),
@@ -325,6 +336,7 @@ describe('requestsFactory public actions Redux state', () => {
     const directPromise = store.dispatch(api.doRequestAction());
     expect(storedState()).toEqual({
       status: RequestsStatuses.Loading,
+      requestVersion: 3,
       response: 'forced',
       error: undefined,
       fulfilledAt: forcedFulfilledAt,
@@ -334,6 +346,7 @@ describe('requestsFactory public actions Redux state', () => {
     await directPromise;
     expect(storedState()).toEqual({
       status: RequestsStatuses.Success,
+      requestVersion: 3,
       response: 'direct',
       error: undefined,
       fulfilledAt: expect.any(Number),
@@ -409,6 +422,7 @@ describe('requestsFactory public actions Redux state', () => {
 
     expect(storedState()).toEqual({
       status: RequestsStatuses.Canceled,
+      requestVersion: 1,
       response: 'previous',
       error: previousError,
       fulfilledAt,
@@ -419,6 +433,7 @@ describe('requestsFactory public actions Redux state', () => {
     await Promise.resolve();
     expect(storedState()).toEqual({
       status: RequestsStatuses.Canceled,
+      requestVersion: 1,
       response: 'previous',
       error: previousError,
       fulfilledAt,
@@ -472,6 +487,7 @@ describe('requestsFactory public actions Redux state', () => {
     expect(storedStates()['1'].status).toBe(RequestsStatuses.Failed);
     expect(storedStates()['2']).toEqual({
       status: RequestsStatuses.Canceled,
+      requestVersion: 1,
       response: 'second',
       error: undefined,
       fulfilledAt: secondFulfilledAt,

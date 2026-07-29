@@ -1,5 +1,7 @@
 import { Action } from 'redux';
 
+import type { LoadDataRetryStatus } from '../reducer';
+
 /** Runtime capabilities passed to every request implementation. */
 export type RequestContext = {
   /**
@@ -49,6 +51,21 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
    * @default Infinity
    */
   staleTime?: number;
+  /**
+   * Terminal statuses on which `loadDataAction` starts another request.
+   * Overrides the middleware setting for this request factory.
+   *
+   * @default [RequestsStatuses.Failed, RequestsStatuses.Canceled]
+   */
+  loadDataRetryStatuses?: readonly LoadDataRetryStatus[];
+  /**
+   * Terminal statuses imported into a new middleware runtime that
+   * `loadDataAction` may retry once per hydration cycle and request key.
+   * Overrides the middleware setting for this request factory.
+   *
+   * @default loadDataRetryStatuses
+   */
+  loadDataHydratedRetryStatuses?: readonly LoadDataRetryStatus[];
   /**
    * Re-dispatches fulfilled lifecycle side effects for an already cached load
    * when `requestFulfilledAction` has been enabled.

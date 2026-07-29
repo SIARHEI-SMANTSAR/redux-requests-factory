@@ -47,6 +47,13 @@ response, while errors before the shell is ready use the Express error path.
 Navigation after hydration uses React Router's `NavLink` and remains
 client-side. Normal request actions reuse the hydrated cache.
 
+The middleware keeps server-local `failed` and `canceled` states terminal, but
+allows one normal client request when either status arrives through hydration.
+The existing client loading effects therefore retry an unsuccessful or aborted
+server request once. If that client attempt also fails or is canceled, another
+normal load does not retry it; the reload controls still use an explicit forced
+load.
+
 ## Run in development
 
 Build the library from the repository root, then install and run the example:

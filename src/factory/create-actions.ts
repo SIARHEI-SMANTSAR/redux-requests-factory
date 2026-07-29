@@ -10,6 +10,8 @@ import {
   ExternalActions,
   DoRequestMapByKey,
   ActionOptions,
+  LoadDataRetryStatus,
+  RequestsStatuses,
 } from '../types';
 import {
   commonRequestStartAction,
@@ -36,6 +38,11 @@ import {
   isRequestFulfilled,
 } from './helpers';
 
+const defaultLoadDataRetryStatuses: readonly LoadDataRetryStatus[] = [
+  RequestsStatuses.Failed,
+  RequestsStatuses.Canceled,
+];
+
 const createActions = <
   Resp,
   Err,
@@ -58,6 +65,8 @@ const createActions = <
     rejectedActions = [],
     includeInGlobalLoading = true,
     staleTime = Infinity,
+    loadDataRetryStatuses,
+    loadDataHydratedRetryStatuses,
     transformError = identity,
     dispatchFulfilledActionForLoadedRequest = false,
     globalLoadingTimeout,
@@ -214,10 +223,22 @@ const createActions = <
 
   type DoRequest = (args: DoRequestArgs) => Promise<void>;
 
+  type LoadPromiseState = {
+    pending: boolean;
+    promise: Promise<void>;
+  };
+
   type RequestRuntimeState = {
     doRequestMapByKey: DoRequestMapByKey;
+    // The hydration generation for which this middleware runtime most recently
+    // started work. A missing entry differs from initial generation 0, allowing
+    // one retry for terminal state supplied through initial preloaded state.
+    loadAttemptHydrationVersionByKey: Map<string, number>;
     lastRequestNumber: number;
-    loadPromiseMapByKey: Map<string, Promise<void>>;
+    // React use() requires the same thenable when a suspended component is
+    // retried. Keep the latest Promise after settlement as well as in flight;
+    // a real reload replaces the complete entry with a new Promise.
+    loadPromiseStateMapByKey: Map<string, LoadPromiseState>;
     memoizedDoRequest: DoRequest;
   };
 
@@ -267,7 +288,6 @@ const createActions = <
       unregisterRequestCancellation();
       activeRequest.abortController?.abort();
       activeRequest.resolveCancellation();
-      runtime.loadPromiseMapByKey.delete(requestKey);
 
       dispatch(commonRequestCancelAction(meta));
       clearTimeout(activeRequest.globalLoadingTimeoutId);
@@ -411,8 +431,9 @@ const createActions = <
   const requestFactoryRuntimeKey = {};
   const createRuntimeState = (): RequestRuntimeState => ({
     doRequestMapByKey: new Map(),
+    loadAttemptHydrationVersionByKey: new Map(),
     lastRequestNumber: 0,
-    loadPromiseMapByKey: new Map(),
+    loadPromiseStateMapByKey: new Map(),
     memoizedDoRequest: getMemoizedDoRequest(),
   });
 
@@ -434,21 +455,57 @@ const createActions = <
       getState,
       getRuntimeState,
       registerRequestCancellation,
+      middlewareConfig,
+      getRequestHydrationVersion,
     }: ActionPropsFromMiddleware<State>) => {
       const runtime = getRuntimeState(
         requestFactoryRuntimeKey,
         createRuntimeState
       );
+      const cachedLoadPromiseState =
+        runtime.loadPromiseStateMapByKey.get(requestKey);
 
-      if (!isForced) {
-        const runningPromise = runtime.loadPromiseMapByKey.get(requestKey);
-
-        if (runningPromise) {
-          return runningPromise;
-        }
+      if (!isForced && cachedLoadPromiseState?.pending) {
+        return cachedLoadPromiseState.promise;
       }
 
-      if (isForced || isNeedLoadData(config, meta, getState(), staleTime)) {
+      const resolvedLoadDataRetryStatuses =
+        loadDataRetryStatuses ??
+        middlewareConfig.loadDataRetryStatuses ??
+        defaultLoadDataRetryStatuses;
+      const resolvedLoadDataHydratedRetryStatuses =
+        loadDataHydratedRetryStatuses ??
+        middlewareConfig.loadDataHydratedRetryStatuses ??
+        resolvedLoadDataRetryStatuses;
+      const hydrationVersion = getRequestHydrationVersion(requestKey);
+      // A local SSR request records generation 0 before it starts, so its
+      // terminal state uses loadDataRetryStatuses. A new client middleware has
+      // no recorded attempt for preloaded terminal state and may use
+      // loadDataHydratedRetryStatuses once. Each matching hydrate action bumps
+      // the generation and makes one new hydrated retry possible.
+      const canRetryHydratedState =
+        runtime.loadAttemptHydrationVersionByKey.get(requestKey) !==
+        hydrationVersion;
+
+      if (
+        isForced ||
+        isNeedLoadData(
+          config,
+          meta,
+          getState(),
+          staleTime,
+          resolvedLoadDataRetryStatuses,
+          resolvedLoadDataHydratedRetryStatuses,
+          canRetryHydratedState
+        )
+      ) {
+        // Claim this hydration generation before starting work. Concurrent
+        // dispatches then reuse the in-flight Promise and a failed or canceled
+        // client retry cannot consume the same hydrated allowance again.
+        runtime.loadAttemptHydrationVersionByKey.set(
+          requestKey,
+          hydrationVersion
+        );
         const execution = { canceled: false, started: false };
         let executionPromise: Promise<void>;
 
@@ -497,18 +554,25 @@ const createActions = <
           executionPromise,
           cancellationPromise,
         ]);
+        const loadPromiseState: LoadPromiseState = {
+          pending: true,
+          promise: requestPromise,
+        };
 
-        runtime.loadPromiseMapByKey.set(requestKey, requestPromise);
+        runtime.loadPromiseStateMapByKey.set(requestKey, loadPromiseState);
 
-        const clearPromise = () => {
+        const settlePromise = () => {
           unregisterRequestCancellation();
 
-          if (runtime.loadPromiseMapByKey.get(requestKey) === requestPromise) {
-            runtime.loadPromiseMapByKey.delete(requestKey);
+          if (
+            runtime.loadPromiseStateMapByKey.get(requestKey) ===
+            loadPromiseState
+          ) {
+            loadPromiseState.pending = false;
           }
         };
 
-        requestPromise.then(clearPromise, clearPromise);
+        requestPromise.then(settlePromise, settlePromise);
 
         return requestPromise;
       } else if (
@@ -526,7 +590,21 @@ const createActions = <
         });
       }
 
-      return undefined;
+      if (cachedLoadPromiseState) {
+        return cachedLoadPromiseState.promise;
+      }
+
+      // Hydrated success or a terminal state excluded from retry has no
+      // Promise in this new middleware runtime. Create one stable fulfilled
+      // thenable and retain it so React can retry the render without receiving
+      // a fresh Promise on every dispatch.
+      const settledPromise = Promise.resolve();
+      runtime.loadPromiseStateMapByKey.set(requestKey, {
+        pending: false,
+        promise: settledPromise,
+      });
+
+      return settledPromise;
     };
 
   return new Proxy(

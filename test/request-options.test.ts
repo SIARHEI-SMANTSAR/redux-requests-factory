@@ -224,16 +224,19 @@ describe('request cache freshness', () => {
       staleTime: 100,
     });
 
-    await store.dispatch(loadDataAction());
-    await store.dispatch(loadDataAction());
+    const initialPromise = store.dispatch(loadDataAction());
+    await initialPromise;
+    expect(store.dispatch(loadDataAction())).toBe(initialPromise);
     expect(request).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(99);
-    await store.dispatch(loadDataAction());
+    expect(store.dispatch(loadDataAction())).toBe(initialPromise);
     expect(request).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(1);
-    await store.dispatch(loadDataAction());
+    const refreshPromise = store.dispatch(loadDataAction());
+    expect(refreshPromise).not.toBe(initialPromise);
+    await refreshPromise;
     expect(request).toHaveBeenCalledTimes(2);
   });
 });

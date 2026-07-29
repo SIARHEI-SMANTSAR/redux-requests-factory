@@ -1,3 +1,5 @@
+import type { LoadDataRetryStatus } from './reducer';
+
 /** Configuration for creating an independent Redux requests factory. */
 export type CreateConfig<Key> = {
   /** Redux state key under which this factory's request state is mounted. @default 'requests' */
@@ -16,6 +18,21 @@ export type PreparedConfig<Key> = {
 
 /** Configuration accepted by `createRequestsFactoryMiddleware`. */
 export type MiddlewareConfig = {
+  /**
+   * Terminal statuses on which `loadDataAction` starts another request.
+   * Individual request factory configurations override this value.
+   *
+   * @default [RequestsStatuses.Failed, RequestsStatuses.Canceled]
+   */
+  loadDataRetryStatuses?: readonly LoadDataRetryStatus[];
+  /**
+   * Terminal statuses imported into a new middleware runtime that
+   * `loadDataAction` may retry once per hydration cycle and request key.
+   * Individual request factory configurations override this value.
+   *
+   * @default loadDataRetryStatuses
+   */
+  loadDataHydratedRetryStatuses?: readonly LoadDataRetryStatus[];
   /**
    * Whether factory command actions are forwarded as plain Redux actions to
    * later middleware and reducers. Internal request-state actions are always

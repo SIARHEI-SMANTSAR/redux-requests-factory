@@ -23,6 +23,12 @@ the route's data, and calls `renderToString` to produce the page HTML. It embeds
 the resulting Redux state in that HTML so the browser can recreate the store
 and attach React with `hydrateRoot` without requesting the same data again.
 
+The request middleware does not retry terminal states again in the same store.
+It allows one normal client request for `failed` or `canceled` state received
+through SSR hydration. The page's existing client-side loading effects
+therefore retry an unsuccessful server preload once, while another client
+failure or cancellation stays terminal until an explicit forced reload.
+
 Every request forwards its factory-provided `AbortSignal` to `fetch`. Express
 creates an abort controller for the render; if the HTTP response closes while
 data is loading, the server calls `store.cancelAsyncRequests()`, aborts all

@@ -85,6 +85,14 @@ const createSelectors = <
           return status || RequestsStatuses.None;
         }
       ),
+      requestVersionSelector: createSelector(
+        [getCommonSate],
+        (commonSate) => (params: Params) =>
+          getByPath<number, RequestsState | undefined>(
+            serializeRequestParameters(params),
+            'requestVersion'
+          )(commonSate) ?? 0
+      ),
       isLoadingSelector: createSelector(
         [getCommonSate],
         (commonSate) => (params: Params) => {
@@ -150,6 +158,13 @@ const createSelectors = <
 
         return status || RequestsStatuses.None;
       }),
+      requestVersionSelector: createSelector(
+        [getCommonSate],
+        (commonSate) =>
+          getByPath<number, RequestsState | undefined>('requestVersion')(
+            commonSate
+          ) ?? 0
+      ),
       isLoadingSelector: createSelector([getCommonSate], (commonSate) => {
         const status = getByPath<RequestsStatuses, RequestsState | undefined>(
           'status'

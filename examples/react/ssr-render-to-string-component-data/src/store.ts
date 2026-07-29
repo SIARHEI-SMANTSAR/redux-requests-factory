@@ -5,6 +5,7 @@ import {
 } from 'redux';
 import {
   createRequestsFactoryMiddleware,
+  RequestsStatuses,
   requestsReducer,
   stateRequestsKey,
   type RequestsFactoryDispatch,
@@ -18,7 +19,13 @@ export type RootState = ReturnType<typeof rootReducer>;
 
 export const makeStore = (preloadedState?: RootState) => {
   const { cancelAllRequests, middleware, toPromise } =
-    createRequestsFactoryMiddleware();
+    createRequestsFactoryMiddleware({
+      loadDataRetryStatuses: [],
+      loadDataHydratedRetryStatuses: [
+        RequestsStatuses.Failed,
+        RequestsStatuses.Canceled,
+      ],
+    });
   const store = createStore(
     rootReducer,
     preloadedState,

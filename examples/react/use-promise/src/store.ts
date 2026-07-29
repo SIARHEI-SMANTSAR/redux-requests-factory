@@ -12,7 +12,9 @@ import {
 } from 'redux-requests-factory';
 
 const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware();
+  createRequestsFactoryMiddleware({
+    loadDataRetryStatuses: [],
+  });
 const loggerMiddleware = createLogger({ collapsed: true });
 
 const rootReducer = combineReducers({

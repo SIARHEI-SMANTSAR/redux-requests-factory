@@ -43,6 +43,7 @@ describe('requestsReducer responses', () => {
       {
         users: {
           status: RequestsStatuses.Loading,
+          requestVersion: 1,
         },
         post: {
           status: RequestsStatuses.Failed,
@@ -160,6 +161,7 @@ describe('requestsReducer responses', () => {
         user: {
           '25': {
             status: RequestsStatuses.Loading,
+            requestVersion: 1,
           },
         },
         post: {
@@ -172,6 +174,28 @@ describe('requestsReducer responses', () => {
     const newState = requestsReducer(state, action as Actions);
 
     expect(newState[RESPONSES_STATE_KEY]).toEqual(expected);
+  });
+
+  it('increments the request version even when the request is already loading', () => {
+    const loadingState: RequestsState = {
+      [IS_SOMETHING_LOADING_STATE_KEY]: { count: 0 },
+      [RESPONSES_STATE_KEY]: {
+        users: {
+          status: RequestsStatuses.Loading,
+          requestVersion: 3,
+        },
+      },
+    };
+
+    const newState = requestsReducer(loadingState, {
+      type: CommonActionTypes.RequestStart,
+      meta: { key: 'users' },
+    });
+
+    expect(newState[RESPONSES_STATE_KEY].users).toEqual({
+      status: RequestsStatuses.Loading,
+      requestVersion: 4,
+    });
   });
 });
 

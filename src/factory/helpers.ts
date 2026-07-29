@@ -10,6 +10,7 @@ import {
   RequestFactoryConfigWithTransformResponse,
   DoRequestMapByKey,
   ActiveRequestState,
+  LoadDataRetryStatus,
 } from '../types';
 import { RESPONSES_STATE_KEY } from '../constants';
 
@@ -178,7 +179,10 @@ export const isNeedLoadData = <State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
   state: State,
-  staleTime: number
+  staleTime: number,
+  loadDataRetryStatuses: readonly LoadDataRetryStatus[],
+  loadDataHydratedRetryStatuses: readonly LoadDataRetryStatus[],
+  canRetryHydratedState: boolean
 ) => {
   const requestState = getByPath<
     { status?: RequestsStatuses; fulfilledAt?: number },
@@ -194,8 +198,23 @@ export const isNeedLoadData = <State, Key extends string>(
     return false;
   }
 
-  if (requestState?.status !== RequestsStatuses.Success) {
+  if (requestState?.status === undefined) {
     return true;
+  }
+
+  if (requestState.status === RequestsStatuses.None) {
+    return true;
+  }
+
+  if (
+    requestState.status === RequestsStatuses.Failed ||
+    requestState.status === RequestsStatuses.Canceled
+  ) {
+    const retryStatuses = canRetryHydratedState
+      ? loadDataHydratedRetryStatuses
+      : loadDataRetryStatuses;
+
+    return retryStatuses.indexOf(requestState.status) !== -1;
   }
 
   if (staleTime === Infinity) {

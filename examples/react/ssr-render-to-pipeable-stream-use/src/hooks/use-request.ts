@@ -1,21 +1,18 @@
 import { use } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  RequestsStatuses,
-  type AsyncRequestFactoryAction,
-} from 'redux-requests-factory';
+import type { AsyncRequestFactoryAction } from 'redux-requests-factory';
 
 import {
   loadActivityAction,
   loadStatsAction,
-  activityStatusSelector,
-  statsStatusSelector,
+  activityRequestVersionSelector,
+  statsRequestVersionSelector,
 } from '../dashboard-requests';
 import { useRequestBaseUrl } from '../request-base-url';
-import type { AppDispatch } from '../store';
+import type { AppDispatch, RootState } from '../store';
 import {
   loadUsersAction,
-  usersStatusSelector,
+  usersRequestVersionSelector,
 } from '../users-request';
 
 type RequestParams = {
@@ -25,28 +22,23 @@ type RequestParams = {
 type LoadAction = (params?: RequestParams) => AsyncRequestFactoryAction;
 
 const useRequest = (
-  status: RequestsStatuses,
-  loadAction: LoadAction
+  loadAction: LoadAction,
+  requestVersionSelector: (state: RootState) => number
 ) => {
   const dispatch = useDispatch<AppDispatch>();
   const baseUrl = useRequestBaseUrl();
+  // Each real request start replaces the Promise cached by loadDataAction.
+  // Subscribe to its version so this render reads that Promise through use().
+  useSelector(requestVersionSelector);
 
-  if (
-    status === RequestsStatuses.None ||
-    status === RequestsStatuses.Loading
-  ) {
-    use(dispatch(loadAction({ baseUrl })));
-  }
+  use(dispatch(loadAction({ baseUrl })));
 };
 
 export const useUsersRequest = () =>
-  useRequest(useSelector(usersStatusSelector), loadUsersAction);
+  useRequest(loadUsersAction, usersRequestVersionSelector);
 
 export const useStatsRequest = () =>
-  useRequest(useSelector(statsStatusSelector), loadStatsAction);
+  useRequest(loadStatsAction, statsRequestVersionSelector);
 
 export const useActivityRequest = () =>
-  useRequest(
-    useSelector(activityStatusSelector),
-    loadActivityAction
-  );
+  useRequest(loadActivityAction, activityRequestVersionSelector);

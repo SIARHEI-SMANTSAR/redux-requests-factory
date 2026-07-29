@@ -26,7 +26,7 @@ const loadUsersRequest = async (
 export const {
   forcedLoadDataAction: reloadUsersAction,
   loadDataAction: loadUsersAction,
-  requestStatusSelector: usersStatusSelector,
+  requestVersionSelector: usersRequestVersionSelector,
   responseSelector: usersSelector,
 } = requestsFactory({
   request: loadUsersRequest,

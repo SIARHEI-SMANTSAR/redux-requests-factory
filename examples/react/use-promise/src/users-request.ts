@@ -48,7 +48,7 @@ export const {
   errorSelector: usersErrorSelector,
   forcedLoadDataAction: forceLoadUsersAction,
   loadDataAction: loadUsersAction,
-  requestStatusSelector: usersStatusSelector,
+  requestVersionSelector: usersRequestVersionSelector,
   responseSelector: usersSelector,
 } = requestsFactory<User[], unknown, undefined, RootState>({
   request: loadUsersRequest,

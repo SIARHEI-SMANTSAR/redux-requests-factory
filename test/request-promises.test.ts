@@ -1,7 +1,9 @@
 import {
   isSomethingLoadingSelector,
+  hydrateRequestsAction,
   RequestsStatuses,
   requestsFactory,
+  stateRequestsKey,
 } from '../src';
 import { createDeferred, createRequestsTestStore } from './helpers';
 
@@ -107,6 +109,36 @@ describe('request Promise lifecycle', () => {
     expect(request).toHaveBeenCalledTimes(2);
   });
 
+  it('changes requestVersion only when a replacement Promise starts', async () => {
+    const { store } = createRequestsTestStore();
+    const firstRequest = createDeferred<string>();
+    const forcedRequest = createDeferred<string>();
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(forcedRequest.promise);
+    const { forcedLoadDataAction, loadDataAction, requestVersionSelector } =
+      requestsFactory({ request, stateRequestKey: 'request-version' });
+
+    expect(requestVersionSelector(store.getState())).toBe(0);
+
+    const firstPromise = store.dispatch(loadDataAction());
+    expect(requestVersionSelector(store.getState())).toBe(1);
+
+    expect(store.dispatch(loadDataAction())).toBe(firstPromise);
+    expect(requestVersionSelector(store.getState())).toBe(1);
+
+    const forcedPromise = store.dispatch(forcedLoadDataAction());
+    expect(forcedPromise).not.toBe(firstPromise);
+    expect(requestVersionSelector(store.getState())).toBe(2);
+
+    firstRequest.resolve('old response');
+    forcedRequest.resolve('latest response');
+    await Promise.all([firstPromise, forcedPromise]);
+
+    expect(requestVersionSelector(store.getState())).toBe(2);
+  });
+
   it('deduplicates each serialized key independently', async () => {
     const { store } = createRequestsTestStore();
     const firstRequest = createDeferred<string>();
@@ -151,20 +183,412 @@ describe('request Promise lifecycle', () => {
       responseSelector,
     } = requestsFactory({ request, stateRequestKey: 'retry-after-error' });
 
-    await expect(store.dispatch(loadDataAction())).resolves.toBeUndefined();
+    const failedPromise = store.dispatch(loadDataAction());
+    await expect(failedPromise).resolves.toBeUndefined();
 
     expect(requestStatusSelector(store.getState())).toBe(
       RequestsStatuses.Failed
     );
     expect(errorSelector(store.getState())).toBe(error);
 
-    await expect(store.dispatch(loadDataAction())).resolves.toBeUndefined();
+    const retryPromise = store.dispatch(loadDataAction());
+    expect(retryPromise).not.toBe(failedPromise);
+    await expect(retryPromise).resolves.toBeUndefined();
 
     expect(request).toHaveBeenCalledTimes(2);
     expect(requestStatusSelector(store.getState())).toBe(
       RequestsStatuses.Success
     );
     expect(responseSelector(store.getState())).toBe('recovered');
+  });
+
+  it('can disable retries for failed loads in one request factory', async () => {
+    const { store } = createRequestsTestStore();
+    const error = new Error('failed');
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce('recovered');
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'factory-no-retry-after-error',
+      loadDataRetryStatuses: [],
+    });
+
+    const failedPromise = store.dispatch(api.loadDataAction());
+    await failedPromise;
+    const cachedFailedPromise = store.dispatch(api.loadDataAction());
+
+    expect(cachedFailedPromise).toBe(failedPromise);
+    await cachedFailedPromise;
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(api.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Failed
+    );
+    expect(api.errorSelector(store.getState())).toBe(error);
+
+    await store.dispatch(api.forcedLoadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(api.responseSelector(store.getState())).toBe('recovered');
+  });
+
+  it('can disable retries for canceled loads in one request factory', async () => {
+    const { store } = createRequestsTestStore();
+    const firstRequest = createDeferred<string>();
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockResolvedValueOnce('recovered');
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'factory-no-retry-after-cancel',
+      loadDataRetryStatuses: [],
+    });
+
+    const requestPromise = store.dispatch(api.loadDataAction());
+    await store.dispatch(api.cancelRequestAction());
+    await requestPromise;
+    const cachedCanceledPromise = store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(cachedCanceledPromise).toBe(requestPromise);
+    expect(api.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Canceled
+    );
+
+    await store.dispatch(api.forcedLoadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(api.responseSelector(store.getState())).toBe('recovered');
+  });
+
+  it('uses middleware retry statuses when a factory has no override', async () => {
+    const { store } = createRequestsTestStore({
+      loadDataRetryStatuses: [],
+    });
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValue(new Error('failed'));
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'middleware-no-retry-after-error',
+    });
+
+    await store.dispatch(api.loadDataAction());
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers factory retry statuses over the middleware setting', async () => {
+    const { store } = createRequestsTestStore({
+      loadDataRetryStatuses: [],
+    });
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValueOnce(new Error('failed'))
+      .mockResolvedValueOnce('recovered');
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'factory-retry-override',
+      loadDataRetryStatuses: [RequestsStatuses.Failed],
+    });
+
+    await store.dispatch(api.loadDataAction());
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(api.responseSelector(store.getState())).toBe('recovered');
+  });
+
+  it('retries a preloaded failure only once in a new middleware runtime', async () => {
+    const stateRequestKey = 'preloaded-failed-retry';
+    const preloadedError = new Error('server failed');
+    const { store } = createRequestsTestStore(
+      {
+        loadDataRetryStatuses: [],
+        loadDataHydratedRetryStatuses: [RequestsStatuses.Failed],
+      },
+      {
+        [stateRequestsKey]: {
+          global_loading: { count: 0 },
+          responses: {
+            [stateRequestKey]: {
+              status: RequestsStatuses.Failed,
+              error: preloadedError,
+            },
+          },
+        },
+      }
+    );
+    const clientError = new Error('client failed');
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValue(clientError);
+    const api = requestsFactory({ request, stateRequestKey });
+
+    await store.dispatch(api.loadDataAction());
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(api.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Failed
+    );
+    expect(api.errorSelector(store.getState())).toBe(clientError);
+  });
+
+  it('retries a preloaded cancellation once but not a client cancellation', async () => {
+    const stateRequestKey = 'preloaded-canceled-retry';
+    const { store } = createRequestsTestStore(
+      {
+        loadDataRetryStatuses: [],
+        loadDataHydratedRetryStatuses: [RequestsStatuses.Canceled],
+      },
+      {
+        [stateRequestsKey]: {
+          global_loading: { count: 0 },
+          responses: {
+            [stateRequestKey]: {
+              status: RequestsStatuses.Canceled,
+            },
+          },
+        },
+      }
+    );
+    const clientRequest = createDeferred<string>();
+    const request = jest.fn(() => clientRequest.promise);
+    const api = requestsFactory({ request, stateRequestKey });
+
+    const retryPromise = store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+
+    await store.dispatch(api.cancelRequestAction());
+    await retryPromise;
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(api.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Canceled
+    );
+  });
+
+  it('inherits normal retry statuses for hydrated state by default', async () => {
+    const stateRequestKey = 'default-preloaded-failed-retry';
+    const { store } = createRequestsTestStore(undefined, {
+      [stateRequestsKey]: {
+        global_loading: { count: 0 },
+        responses: {
+          [stateRequestKey]: {
+            status: RequestsStatuses.Failed,
+          },
+        },
+      },
+    });
+    const request = jest.fn(() => Promise.resolve('recovered'));
+    const api = requestsFactory({ request, stateRequestKey });
+
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(api.responseSelector(store.getState())).toBe('recovered');
+  });
+
+  it('creates one stable settled Promise for preloaded successful data', async () => {
+    const stateRequestKey = 'preloaded-success-promise';
+    const { store } = createRequestsTestStore(undefined, {
+      [stateRequestsKey]: {
+        global_loading: { count: 0 },
+        responses: {
+          [stateRequestKey]: {
+            status: RequestsStatuses.Success,
+            response: 'server response',
+          },
+        },
+      },
+    });
+    const request = jest.fn(() => Promise.resolve('unexpected'));
+    const api = requestsFactory({ request, stateRequestKey });
+
+    const firstPromise = store.dispatch(api.loadDataAction());
+    const secondPromise = store.dispatch(api.loadDataAction());
+
+    expect(secondPromise).toBe(firstPromise);
+    await expect(firstPromise).resolves.toBeUndefined();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('creates one stable settled Promise for a non-retryable preloaded error', async () => {
+    const stateRequestKey = 'preloaded-failed-promise';
+    const { store } = createRequestsTestStore(
+      {
+        loadDataRetryStatuses: [],
+        loadDataHydratedRetryStatuses: [],
+      },
+      {
+        [stateRequestsKey]: {
+          global_loading: { count: 0 },
+          responses: {
+            [stateRequestKey]: {
+              status: RequestsStatuses.Failed,
+            },
+          },
+        },
+      }
+    );
+    const request = jest.fn(() => Promise.resolve('unexpected'));
+    const api = requestsFactory({ request, stateRequestKey });
+
+    const firstPromise = store.dispatch(api.loadDataAction());
+    const secondPromise = store.dispatch(api.loadDataAction());
+
+    expect(secondPromise).toBe(firstPromise);
+    await expect(firstPromise).resolves.toBeUndefined();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('does not treat a failure created by this runtime as hydrated', async () => {
+    const { store } = createRequestsTestStore({
+      loadDataRetryStatuses: [],
+      loadDataHydratedRetryStatuses: [RequestsStatuses.Failed],
+    });
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValue(new Error('failed'));
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'local-failed-no-hydrated-retry',
+    });
+
+    await store.dispatch(api.loadDataAction());
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers factory hydrated retry statuses over middleware config', async () => {
+    const stateRequestKey = 'factory-hydrated-retry-override';
+    const { store } = createRequestsTestStore(
+      {
+        loadDataRetryStatuses: [],
+        loadDataHydratedRetryStatuses: [],
+      },
+      {
+        [stateRequestsKey]: {
+          global_loading: { count: 0 },
+          responses: {
+            [stateRequestKey]: {
+              status: RequestsStatuses.Failed,
+            },
+          },
+        },
+      }
+    );
+    const request = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValue(new Error('failed'));
+    const api = requestsFactory({
+      request,
+      stateRequestKey,
+      loadDataHydratedRetryStatuses: [RequestsStatuses.Failed],
+    });
+
+    await store.dispatch(api.loadDataAction());
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows one retry for each matching hydrate action and request key', async () => {
+    const { store } = createRequestsTestStore({
+      loadDataRetryStatuses: [],
+      loadDataHydratedRetryStatuses: [RequestsStatuses.Failed],
+    });
+    const usersRequest = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValue(new Error('users failed'));
+    const postsRequest = jest
+      .fn<Promise<string>, []>()
+      .mockRejectedValue(new Error('posts failed'));
+    const users = requestsFactory({
+      request: usersRequest,
+      stateRequestKey: 'hydrated-users',
+    });
+    const posts = requestsFactory({
+      request: postsRequest,
+      stateRequestKey: 'local-posts',
+    });
+
+    await store.dispatch(users.loadDataAction());
+    await store.dispatch(posts.loadDataAction());
+
+    const hydrateUsersFailure = () =>
+      store.dispatch(
+        hydrateRequestsAction({
+          global_loading: { count: 0 },
+          responses: {
+            'hydrated-users': {
+              status: RequestsStatuses.Failed,
+            },
+          },
+        })
+      );
+
+    hydrateUsersFailure();
+    await store.dispatch(users.loadDataAction());
+    await store.dispatch(users.loadDataAction());
+    await store.dispatch(posts.loadDataAction());
+
+    expect(usersRequest).toHaveBeenCalledTimes(2);
+    expect(postsRequest).toHaveBeenCalledTimes(1);
+
+    hydrateUsersFailure();
+    await store.dispatch(users.loadDataAction());
+    await store.dispatch(users.loadDataAction());
+
+    expect(usersRequest).toHaveBeenCalledTimes(3);
+  });
+
+  it('tracks hydrated retries independently for serialized request keys', async () => {
+    const { store } = createRequestsTestStore({
+      loadDataRetryStatuses: [],
+      loadDataHydratedRetryStatuses: [RequestsStatuses.Failed],
+    });
+    const request = jest
+      .fn<Promise<string>, [{ id: number }]>()
+      .mockRejectedValue(new Error('failed'));
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'hydrated-serialized-users',
+      serializeRequestParameters: ({ id }: { id: number }) => `${id}`,
+    });
+
+    await store.dispatch(api.loadDataAction({ id: 1 }));
+    await store.dispatch(api.loadDataAction({ id: 2 }));
+
+    store.dispatch(
+      hydrateRequestsAction({
+        global_loading: { count: 0 },
+        responses: {
+          'hydrated-serialized-users': {
+            '1': { status: RequestsStatuses.Failed },
+          },
+        },
+      })
+    );
+
+    await store.dispatch(api.loadDataAction({ id: 1 }));
+    await store.dispatch(api.loadDataAction({ id: 1 }));
+    await store.dispatch(api.loadDataAction({ id: 2 }));
+
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(request.mock.calls.map(([params]) => params)).toEqual([
+      { id: 1 },
+      { id: 2 },
+      { id: 1 },
+    ]);
   });
 
   it('settles a canceled request Promise, releases deduplication, and ignores its late result', async () => {
@@ -422,5 +846,24 @@ describe('request Promise lifecycle', () => {
     await aggregatePromise;
     expect(toPromise()).toBe(trackedAggregatePromise);
     expect(aggregateResolved).toBe(true);
+  });
+
+  it('does not retrack a settled cached Promise as active work', async () => {
+    const { store, toPromise } = createRequestsTestStore();
+    const deferredRequest = createDeferred<string>();
+    const api = requestsFactory({
+      request: () => deferredRequest.promise,
+      stateRequestKey: 'settled-aggregate-promise',
+    });
+
+    const requestPromise = store.dispatch(api.loadDataAction());
+    const aggregatePromise = toPromise();
+
+    deferredRequest.resolve('response');
+    await requestPromise;
+    await aggregatePromise;
+
+    expect(store.dispatch(api.loadDataAction())).toBe(requestPromise);
+    expect(toPromise()).toBe(aggregatePromise);
   });
 });

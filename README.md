@@ -58,8 +58,8 @@ It is useful when you want the same request lifecycle everywhere:
 Redux module with its own actions, selectors, lifecycle, and cache identity.
 
 - **Independent consumers.** Components and features can request the same data
-  without coordinating mount order. Concurrent loads share one in-flight
-  Promise, and successful responses are reused from Redux.
+  without coordinating mount order. Concurrent normal loads share one
+  in-flight Promise, and successful responses are reused from Redux.
 - **Redux-native orchestration.** Request modules compose with reducers, sagas,
   epics, middleware, analytics, and shared Reselect selectors through regular
   Redux actions and state.
@@ -68,10 +68,18 @@ Redux module with its own actions, selectors, lifecycle, and cache identity.
   and request status remain available through Redux selectors, without
   introducing a separate query client or a second data cache.
 - **Streaming SSR and selective hydration.** A normal dispatch returns the
-  stable in-flight Promise required by React's `use()` API. Independent
-  `Suspense` boundaries can therefore stream as their requests resolve, while
-  the transferred Redux state lets client hydration reuse those results
-  instead of repeating the server requests.
+  stable latest Promise required by React's `use()` API, retaining its identity
+  both while pending and after settlement until request policy starts new work.
+  `requestVersionSelector` lets a component observe that replacement even for
+  a `Loading -> Loading` forced request. Independent `Suspense` boundaries can
+  therefore stream as their requests resolve, while the transferred Redux
+  state lets client hydration reuse those results instead of repeating the
+  server requests.
+- **Policy-driven recovery after SSR.** Regular terminal-state retries and
+  hydrated terminal-state retries are configured separately. A server render
+  can keep failed or canceled work terminal, while a new browser middleware
+  retries that hydrated state exactly once without detecting server or browser
+  globals and without creating a client retry loop.
 - **UI and transport independence.** The request function can use `fetch`, an
   SDK, a database client, or any Promise-returning implementation. The same
   module can serve React components, server code, and other consumers.
@@ -98,20 +106,29 @@ Calling it repeatedly does not produce repeated network requests:
 - while a request is loading, every `loadDataAction` dispatch returns the same
   in-flight `Promise`;
 - after a successful request, another `loadDataAction` dispatch uses the cached
-  Redux response and skips the request while it remains fresh;
+  Redux response, skips the request while it remains fresh, and returns the
+  same settled Promise;
+- after a failed or canceled request, retry policy decides whether the same
+  settled Promise is retained or replaced by one new execution;
 - `forcedLoadDataAction` remains available when an explicit reload is needed.
 
 ```js
 const firstLoad = dispatch(loadDataAction({ id: 1 }));
 const duplicateLoad = dispatch(loadDataAction({ id: 1 }));
 
-firstLoad === duplicateLoad; // true while the request is running
+firstLoad === duplicateLoad; // true while pending and after settlement
 ```
 
 With `serializeRequestParameters`, each serialized parameter set gets its own
-request status, response, error, and in-flight Promise. Components can dispatch
+request status, response, error, and latest Promise. Components can dispatch
 the same load action freely without implementing their own cache or duplicate
 request guards.
+
+For SSR, `loadDataRetryStatuses` controls further work in the current store,
+while `loadDataHydratedRetryStatuses` can grant one recovery attempt to
+terminal state received by a new browser middleware. This keeps server retries
+bounded without preventing the client from recovering from a failed or aborted
+server request.
 
 #### Independent components and parallel team development
 
@@ -502,8 +519,9 @@ const Users = () => {
 };
 ```
 
-`loadDataAction` runs the request only while it has not succeeded yet.
-`forcedLoadDataAction` always runs the request again.
+`loadDataAction` starts work only when the current loading, freshness, terminal
+retry, and hydration retry policies require it. `forcedLoadDataAction` always
+starts a new execution.
 
 `responseSelector` returns the original response, or `undefined` before the
 request succeeds. Apply UI defaults such as `?? []` at the rendering boundary.
@@ -512,44 +530,56 @@ transformed value.
 
 ## React Suspense with `use(promise)`
 
-In a client-rendered React 19 application, `loadDataAction` can provide the
-stable in-flight Promise read by React's `use()` API. Suspense handles the
+In a client-rendered React 19 application, `loadDataAction` provides the stable
+latest Promise read by React's `use()` API. The middleware retains the same
+Promise both while it is pending and after it settles. Suspense handles the
 pending state, while response and error data continue to come from normal Redux
 selectors.
 
-The v2 default is suitable for this integration. The hook dispatches a factory
-command during render, so that command must not notify later middleware or
-Redux subscribers. Internal request-state actions still update the reducer.
+The hook dispatches a factory command during render, so that command must not
+notify later middleware or Redux subscribers. Internal request-state actions
+still update the reducer. Disable automatic terminal-state retries so a failed
+render reads the retained settled Promise instead of starting fresh work:
 
 ```ts
 const { middleware: requestsFactoryMiddleware } =
-  createRequestsFactoryMiddleware();
+  createRequestsFactoryMiddleware({
+    loadDataRetryStatuses: [],
+  });
 ```
 
-Create a hook that reads the current request status and passes the load Promise
-to `use()` only while the request is uninitialized or loading:
+The render hook can pass the normal load Promise to `use()` unconditionally:
 
 ```tsx
 import { use } from 'react';
-import { RequestsStatuses } from 'redux-requests-factory';
 
 import { useAppDispatch, useAppSelector } from './hooks';
-import { loadUsersAction, usersStatusSelector } from './users-request';
+import {
+  loadUsersAction,
+  usersRequestVersionSelector,
+} from './users-request';
 
 function useLoadUsers() {
   const dispatch = useAppDispatch();
-  const status = useAppSelector(usersStatusSelector);
+  useAppSelector(usersRequestVersionSelector);
 
-  if (status === RequestsStatuses.None || status === RequestsStatuses.Loading) {
-    use(dispatch(loadUsersAction()));
-  }
+  use(dispatch(loadUsersAction()));
 }
 ```
 
-Unlike most React Hooks, `use()` may be called conditionally. The status check
-is still important here: it avoids passing a new already-resolved dispatch
-Promise to `use()` after success, and lets a failed request render its error
-from Redux instead of immediately starting another request.
+After success, failure, or cancellation, the next normal cached load returns
+the exact same settled Promise. For preloaded state in a new middleware runtime,
+the first cached load creates one fulfilled Promise and every subsequent load
+returns it. A stale response, configured retry, or forced/direct request
+replaces that entry with a new Promise.
+
+`requestVersionSelector` returns `0` before the first execution and increments
+whenever a real request execution starts. Returning an already cached pending
+or settled Promise does not increment it. Subscribing to the selector makes the
+component render again and read a replacement pending Promise, including when
+a forced request replaces another request that is already `Loading`. Its value
+does not conditionally gate `use()`. Parameterized factories maintain an
+independent version for every serialized request key.
 
 Read the result and error with selectors as usual:
 
@@ -604,11 +634,20 @@ function ForceReloadButton() {
 }
 ```
 
-The forced action starts a new request and changes the status to `Loading`.
-That render calls `loadUsersAction`, which reuses the exact in-flight Promise
-started by the forced action. Do not call `forcedLoadDataAction` or
+The forced action starts a new execution and increments its request version.
+That update renders the subscribed component even if its status was already
+`Loading`. The render calls `loadUsersAction`, which reuses the exact in-flight
+Promise started by the forced action. Do not call `forcedLoadDataAction` or
 `doRequestAction` from this render hook: those actions request fresh work and
 can create a new Promise on every render.
+
+The version subscription deliberately chooses Suspense refresh behavior. If a
+component does not subscribe to `requestVersionSelector`, a forced request can
+run in the background while the existing response remains visible. The
+component then renders the new response when its data selector changes. An
+unrelated render during that pending request can still reach `use()` and
+suspend, so subscribe to the version when the refresh must reliably show the
+nearest Suspense fallback.
 
 See the complete
 [React `use(promise)` SPA example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/use-promise).
@@ -662,6 +701,7 @@ The request state is stored by serialized key:
       'user-posts': {
         '1': {
           status: 'success',
+          requestVersion: 1,
           response: []
         }
       }
@@ -669,6 +709,10 @@ The request state is stored by serialized key:
   }
 }
 ```
+
+`requestVersion` is internal execution metadata and remains optional for
+manually created or older hydrated state. `requestVersionSelector` normalizes a
+missing value to `0`.
 
 ## Updating Cached Data
 
@@ -777,13 +821,42 @@ Creates the Redux middleware and helpers for awaiting or canceling requests
 started through that middleware instance.
 
 ```ts
+import {
+  createRequestsFactoryMiddleware,
+  RequestsStatuses,
+} from 'redux-requests-factory';
+
 const { middleware, toPromise, cancelAllRequests } =
-  createRequestsFactoryMiddleware();
+  createRequestsFactoryMiddleware({
+    loadDataRetryStatuses: [],
+    loadDataHydratedRetryStatuses: [
+      RequestsStatuses.Failed,
+      RequestsStatuses.Canceled,
+    ],
+  });
 ```
 
-| Option                  | Default | Description                                                                                                                                               |
-| ----------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `forwardFactoryActions` | `false` | Forwards factory command actions as plain Redux actions to later middleware and reducers when enabled. Internal request lifecycle actions are unaffected. |
+| Option                         | Default                                 | Description                                                                                                                                               |
+| ------------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loadDataRetryStatuses`        | `[Failed, Canceled]`                    | Terminal statuses on which `loadDataAction` starts another request. A request factory can override this setting.                                         |
+| `loadDataHydratedRetryStatuses` | `loadDataRetryStatuses`                 | Terminal statuses imported through preloaded state or hydration that `loadDataAction` may retry once per request key and hydration cycle.                |
+| `forwardFactoryActions`        | `false`                                 | Forwards factory command actions as plain Redux actions to later middleware and reducers when enabled. Internal request lifecycle actions are unaffected. |
+
+The request factory setting takes precedence over the middleware setting. Use
+an empty array to keep failed and canceled states cached until an explicit
+`forcedLoadDataAction` or `resetRequestAction`:
+
+```ts
+const users = requestsFactory({
+  request: loadUsers,
+  stateRequestKey: 'users',
+  loadDataRetryStatuses: [],
+  loadDataHydratedRetryStatuses: [
+    RequestsStatuses.Failed,
+    RequestsStatuses.Canceled,
+  ],
+});
+```
 
 Add `middleware` to the Redux middleware chain. Calling `toPromise()` waits for
 the requests tracked by this middleware instance. Dispatching one factory
@@ -792,8 +865,11 @@ when only one request must be awaited.
 
 Calling `cancelAllRequests()` cancels every active execution tracked by this
 middleware instance, aborts each request's `AbortSignal`, settles their dispatch
-Promises, and releases their deduplication entries. It returns a `Promise<void>`
-so server cleanup can be awaited. Requests dispatched afterward run normally.
+Promises, and marks their cached Promise entries as settled. It returns a
+`Promise<void>` so server cleanup can be awaited. Requests dispatched afterward
+follow the configured retry policy.
+Re-dispatching a retained settled Promise does not add it back to the active
+set observed by `toPromise()`.
 
 By default, command actions such as `loadDataAction` stay out of later
 middleware, reducers, loggers, and Redux DevTools. Override the setting for one
@@ -804,6 +880,11 @@ supported command with its `forwardFactoryAction` option.
 Creates request-specific actions and selectors.
 
 ```js
+import {
+  requestsFactory,
+  RequestsStatuses,
+} from 'redux-requests-factory';
+
 const request = requestsFactory({
   request: ({ id }, { signal }) =>
     fetch(`https://mysite.com/api/users/${id}`, { signal }).then((res) =>
@@ -823,6 +904,11 @@ const request = requestsFactory({
   stringifyParamsForDebounce: ({ id }) => `${id}`,
   includeInGlobalLoading: true,
   staleTime: 30_000,
+  loadDataRetryStatuses: [],
+  loadDataHydratedRetryStatuses: [
+    RequestsStatuses.Failed,
+    RequestsStatuses.Canceled,
+  ],
   globalLoadingTimeout: 1000,
   dispatchFulfilledActionForLoadedRequest: false,
   fulfilledActions: [],
@@ -847,6 +933,8 @@ const request = requestsFactory({
 | `rejectedActions`                         | No       | `[]`                                                        | Actions or action factories dispatched after failure.                                                                                                   |
 | `includeInGlobalLoading`                  | No       | `true`                                                      | Includes this request in `isSomethingLoadingSelector`.                                                                                                  |
 | `staleTime`                               | No       | `Infinity`                                                  | Time in ms for which a successful response stays fresh. A normal load after this interval refetches while retaining the cached response during loading. |
+| `loadDataRetryStatuses`                   | No       | `[Failed, Canceled]`                                        | Terminal statuses on which `loadDataAction` retries. Overrides the middleware setting; use `[]` to disable automatic terminal-state retries.            |
+| `loadDataHydratedRetryStatuses`           | No       | `loadDataRetryStatuses`                                     | Hydrated terminal statuses that may retry once per request key and hydration cycle. Overrides the middleware setting.                                    |
 | `globalLoadingTimeout`                    | No       | -                                                           | Removes this request from global loading after the given time in ms.                                                                                    |
 | `dispatchFulfilledActionForLoadedRequest` | No       | `false`                                                     | When `requestFulfilledAction` is enabled, re-dispatches it and `fulfilledActions` for a cached successful `loadDataAction`.                             |
 
@@ -869,8 +957,8 @@ const loadUsersRequest = (
 `RequestContext.signal` is optional because the library also runs in
 environments without a global `AbortController`. In those environments,
 `cancelRequestAction` and `cancelAllRequests()` still update Redux, settle the
-dispatch Promises, release deduplication, and ignore late results, but they
-cannot physically stop the underlying transport.
+dispatch Promises, settle their cache entries, and ignore late results, but
+they cannot physically stop the underlying transport.
 
 Install and initialize an `AbortController` polyfill before creating the store
 when transport-level cancellation is required in such a runtime. The library's
@@ -906,7 +994,7 @@ requestsFactory({
 
 | Action creator                             | Behavior                                                                                                                      |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `loadDataAction(params?, options?)`        | Runs the request only if it is not already `loading` or `success`; reuses an in-flight Promise for the same key.              |
+| `loadDataAction(params?, options?)`        | Reuses the latest pending or settled Promise and starts work only when freshness, `loadDataRetryStatuses`, or `loadDataHydratedRetryStatuses` requires it. |
 | `forcedLoadDataAction(params?, options?)`  | Bypasses the successful-response cache. Use it for reload flows.                                                              |
 | `doRequestAction(params?, options?)`       | Bypasses the successful-response cache. Use it for create, update, and delete flows.                                          |
 | `cancelRequestAction(params?, options?)`   | Marks the latest active request as canceled, aborts work using its signal, and ignores any eventual result.                   |
@@ -953,19 +1041,22 @@ const { loadDataAction, requestFulfilledAction, responseSelector } =
   requestsFactory(config);
 ```
 
-`loadDataAction` reuses the Promise of the latest in-flight request for the same
-request key. This also applies when that request was started by a forced or
-direct request action. Forced and direct actions bypass the successful-response
-cache, request fresh work, and become the Promise reused by later normal loads.
-The in-flight Promise is removed after it settles. When `useDebounce` is
-enabled, all three request-starting actions remain subject to the configured
+`loadDataAction` reuses the latest Promise for the same request key while it is
+pending and after it settles. This also applies when that request was started
+by a forced or direct request action. Forced and direct actions bypass the
+successful-response cache, request fresh work, and replace the Promise reused
+by later normal loads. A normal stale or configured retry also replaces it.
+When a new middleware receives already cached state without a runtime Promise,
+its first normal load creates one stable fulfilled Promise. When `useDebounce`
+is enabled, all three request-starting actions remain subject to the configured
 debounce behavior.
 
-The in-flight Promise, cancellation bookkeeping, and debounce state belong to
-the middleware instance returned by `createRequestsFactoryMiddleware()`. They
-are not stored globally in the request factory. Reusing singleton request
-actions across several stores is therefore safe as long as every store gets
-its own middleware instance, which is also the required setup for SSR.
+The stable latest Promise cache, cancellation bookkeeping, and debounce state
+belong to the middleware instance returned by
+`createRequestsFactoryMiddleware()`. They are not stored globally in the
+request factory. Reusing singleton request actions across several stores is
+therefore safe as long as every store gets its own middleware instance, which
+is also the required setup for SSR.
 
 Internally, each `requestsFactory(config)` call creates one stable request
 factory runtime key. The key is only an identity token; it contains no mutable
@@ -978,7 +1069,7 @@ middleware B: requestFactoryRuntimeKey -> runtime state B
 ```
 
 Consequently, the same singleton request actions can be dispatched through
-several stores without sharing in-flight Promises or cancellation state.
+several stores without sharing Promise caches or cancellation state.
 
 Dispatch promises represent completion, not response values: they resolve to
 `void`. A rejected request is normally caught by the factory, written to Redux,
@@ -1000,9 +1091,9 @@ const { loadDataAction, cancelRequestAction } = requestsFactory({
 
 If the request implementation ignores the signal, its underlying work may
 continue, but cancellation still settles the dispatch Promise immediately and
-releases the in-flight deduplication entry. A new `loadDataAction` can start at
-once, and any eventual response or error from the canceled execution is
-ignored.
+marks its cached entry as settled. A new `loadDataAction` replaces that entry
+and starts work when `Canceled` is enabled by the applicable retry policy. Any
+eventual response or error from the canceled execution is ignored.
 
 `resetRequestAction` changes only Redux request state. It does not cancel an
 active request, so that request can still write its result afterward. Cancel
@@ -1095,13 +1186,14 @@ stream.
 
 ### Selectors
 
-| Selector                | Without `serializeRequestParameters` | With `serializeRequestParameters`     |
-| ----------------------- | ------------------------------------ | ------------------------------------- |
-| `responseSelector`      | `state => response`                  | `state => params => response`         |
-| `errorSelector`         | `state => error`                     | `state => params => error`            |
-| `requestStatusSelector` | `state => RequestsStatuses`          | `state => params => RequestsStatuses` |
-| `isLoadingSelector`     | `state => boolean`                   | `state => params => boolean`          |
-| `isLoadedSelector`      | `state => boolean`                   | `state => params => boolean`          |
+| Selector                 | Without `serializeRequestParameters` | With `serializeRequestParameters`     |
+| ------------------------ | ------------------------------------ | ------------------------------------- |
+| `responseSelector`       | `state => response`                  | `state => params => response`         |
+| `errorSelector`          | `state => error`                     | `state => params => error`            |
+| `requestStatusSelector`  | `state => RequestsStatuses`          | `state => params => RequestsStatuses` |
+| `requestVersionSelector` | `state => number`                    | `state => params => number`           |
+| `isLoadingSelector`      | `state => boolean`                   | `state => params => boolean`          |
+| `isLoadedSelector`       | `state => boolean`                   | `state => params => boolean`          |
 
 Available statuses:
 
@@ -1120,6 +1212,14 @@ RequestsStatuses.Canceled;
 
 `errorSelector` similarly returns `undefined` until an error exists unless
 `transformError` provides another value.
+
+`requestVersionSelector` returns the stored execution version, or `0` before a
+request has started. Each actual request start increments it; a cached
+`loadDataAction` dispatch does not. This provides a precise subscription for
+consumers that must observe replacement of the Promise returned by
+`loadDataAction`, including forced `Loading -> Loading` executions. With
+`serializeRequestParameters`, call the returned params selector to read the
+version for one serialized request key.
 
 ```js
 const { responseSelector } = requestsFactory({
@@ -1154,6 +1254,24 @@ The reducer applies these rules:
 - different `serializedKey` values for a parameterized request are merged;
 - the same `stateRequestKey` and `serializedKey` identity is replaced by the
   hydrated request state.
+
+Middleware tracks hydration separately for each request identity. When a
+terminal status is received through initial preloaded state or
+`hydrateRequestsAction`, `loadDataHydratedRetryStatuses` can allow exactly one
+normal retry for that request key in the new hydration cycle. After that
+attempt, further terminal states are governed by `loadDataRetryStatuses`. This
+supports retrying an SSR failure or an SSR-canceled request once in the browser
+without repeatedly retrying a client-side failure or cancellation:
+
+```ts
+createRequestsFactoryMiddleware({
+  loadDataRetryStatuses: [],
+  loadDataHydratedRetryStatuses: [
+    RequestsStatuses.Failed,
+    RequestsStatuses.Canceled,
+  ],
+});
+```
 
 The action creator is tied to its factory instance. When multiple custom
 factories are mounted in one store, only the matching reducer handles the
@@ -1213,9 +1331,20 @@ of requests is discovered dynamically during rendering or after another
 request resolves.
 
 ```js
+import {
+  createRequestsFactoryMiddleware,
+  RequestsStatuses,
+} from 'redux-requests-factory';
+
 const makeStore = (initialState) => {
   const { middleware, toPromise, cancelAllRequests } =
-    createRequestsFactoryMiddleware();
+    createRequestsFactoryMiddleware({
+      loadDataRetryStatuses: [],
+      loadDataHydratedRetryStatuses: [
+        RequestsStatuses.Failed,
+        RequestsStatuses.Canceled,
+      ],
+    });
 
   const store = createStore(reducer, initialState, applyMiddleware(middleware));
 
@@ -1227,12 +1356,26 @@ const makeStore = (initialState) => {
 ```
 
 Call `createRequestsFactoryMiddleware()` inside `makeStore`. Every SSR request
-then gets its own store, middleware, tracked-request set, in-flight Promise
+then gets its own store, middleware, tracked-request set, stable latest Promise
 cache, cancellation state, and debounce state. Request action modules can stay
 as application-level singletons without leaking runtime state between server
 requests. Their stable request factory keys identify the request definition in
 each middleware's private runtime map; the keys themselves do not hold cache
 data.
+
+For SSR applications, the configuration above is a useful retry boundary:
+
+- a failed or canceled request is not started again inside the same server
+  render;
+- a new browser middleware may retry that terminal state once after receiving
+  it through preloaded state or `hydrateRequestsAction`;
+- if the client attempt also fails or is canceled, normal loads keep that state
+  terminal and an explicit `forcedLoadDataAction` is required.
+
+The library does not detect server and browser globals. It distinguishes the
+server attempt from the client retry through store-scoped request history and
+per-request hydration generations. This also works for repeated hydration and
+for individual `serializeRequestParameters` keys.
 
 Connect the HTTP or framework lifecycle to the store when it is available. For
 example, an Express handler can create one controller for its SSR render:
@@ -1258,16 +1401,15 @@ await renderPage({ store });
 Global cancellation is scoped to this store's middleware instance. It cancels
 requests from every request factory and serialized key in that render,
 including concurrent forced executions, without affecting another SSR store.
-It also settles their dispatch promises and releases the in-flight
-deduplication entries, so the server lifecycle can await cleanup before
-discarding the store.
+It also settles their dispatch promises and cached entries, so the server
+lifecycle can await cleanup before discarding the store.
 
 ### Canceling requests throughout the SSR lifecycle
 
 Forward the `RequestContext.signal` to every transport used during SSR. Calling
 `store.cancelAsyncRequests()` then aborts those transports, settles the
-middleware promises, releases in-flight deduplication entries, and prevents
-late responses from changing the Redux state.
+middleware promises and their cache entries, and prevents late responses from
+changing the Redux state.
 
 Cancellation should cover each way an SSR render can stop:
 
@@ -1299,9 +1441,9 @@ try {
 ```
 
 In a component-driven two-pass render, requests may also be discovered during
-the second pass—for example, when a failed request is retried. Produce the
-final HTML, cancel those executions, and only then read the state that will be
-sent to the browser:
+the second pass—for example, when data from the first pass reveals another
+component subtree. Produce the final HTML, cancel those executions, and only
+then read the state that will be sent to the browser:
 
 ```ts
 renderToString(app); // discovery pass
@@ -1314,9 +1456,11 @@ const preloadedState = store.getState();
 
 The ordering matters. Hydrating an orphaned `loading` status would prevent a
 normal `loadDataAction` from starting because the browser has no corresponding
-server execution. Cancellation stores `canceled` for active requests, so a
-client-side load effect can start them again. Requests that already completed
-successfully keep their `success` status and cached response.
+server execution. Cancellation stores `canceled` for active requests. With
+`Canceled` in `loadDataHydratedRetryStatuses`, a client-side load effect can
+start each of them once after hydration. The same policy can retry hydrated
+`failed` state. Requests that already completed successfully keep their
+`success` status and cached response.
 
 In Next.js Pages Router, dispatch request actions in `getServerSideProps` and
 then wait for them before returning props.

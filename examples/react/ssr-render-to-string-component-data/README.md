@@ -36,11 +36,14 @@ and multiple components can dispatch the same action without duplicating its
 request.
 
 Successful requests are cached, so the second pass does not start them again.
-A failed request can be retried by the second pass; it is canceled after the
-HTML is produced and serialized with the `canceled` status. The browser's
-`useEffect` then dispatches the normal loading action, and `canceled` permits a
-fresh client-side request. Serializing `loading` here would be incorrect because
-the browser store has no corresponding server-side execution to await.
+Failed requests are also kept terminal for the rest of that request-scoped
+server store. Requests discovered only during the second pass are canceled
+after the HTML is produced. The browser's `useEffect` dispatches the normal
+loading action and the middleware permits one client retry for either hydrated
+`failed` or hydrated `canceled` state. A second client failure or cancellation
+stays terminal until an explicit forced reload. Serializing `loading` here
+would be incorrect because the browser store has no corresponding server-side
+execution to await.
 
 Every discovered request forwards its factory-provided `AbortSignal` to
 `fetch`. Express connects a closed HTTP response to

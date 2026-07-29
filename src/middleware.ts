@@ -7,8 +7,12 @@ import {
   MiddlewareConfig,
   RequestsFactoryDispatch,
   ActionPropsFromMiddleware,
+  GlobalActionTypes,
+  HydrateRequestsAction,
+  RequestState,
 } from './types';
-import { isFactoryAction } from './factory/helpers';
+import { RESPONSES_STATE_KEY } from './constants';
+import { getRequestKey, isFactoryAction } from './factory/helpers';
 
 type RunnableFactoryAction = AsyncRequestFactoryAction & {
   forwardFactoryAction?: boolean;
@@ -17,12 +21,22 @@ type RunnableFactoryAction = AsyncRequestFactoryAction & {
 };
 
 export const getCreateRequestsFactoryMiddleware =
-  <Key>(config: PreparedConfig<Key>): CreateRequestsFactoryMiddleware =>
+  <Key extends string>(
+    config: PreparedConfig<Key>
+  ): CreateRequestsFactoryMiddleware =>
   (middlewareConfig: MiddlewareConfig = {}) => {
     config.resetRegisterRequestKey();
 
     const actions: Set<Promise<void>> = new Set();
+    // Cached settled Promises may be dispatched again during React render.
+    // Keep them out of active request aggregation after their first settlement.
+    const settledActions = new WeakSet<Promise<void>>();
     const requestCancellations = new Set<() => void>();
+    // Each request identity has its own hydration generation. A generation is
+    // incremented only when that identity is imported by hydrateRequestsAction,
+    // so hydrating one serialized key cannot unlock a retry for another key.
+    // Initial preloaded state implicitly belongs to generation 0.
+    const requestHydrationVersions = new Map<string, number>();
     let aggregatePromise: Promise<void> | undefined;
     const runtimeStateByFactory = new WeakMap<object, unknown>();
     const getRuntimeState = <RuntimeState>(
@@ -41,6 +55,39 @@ export const getCreateRequestsFactoryMiddleware =
       return () => {
         requestCancellations.delete(cancel);
       };
+    };
+    const getRequestHydrationVersion = (requestKey: string) =>
+      requestHydrationVersions.get(requestKey) ?? 0;
+    const incrementRequestHydrationVersion = (requestKey: string) => {
+      requestHydrationVersions.set(
+        requestKey,
+        getRequestHydrationVersion(requestKey) + 1
+      );
+    };
+    const isRequestState = (
+      value: RequestState | Record<string, RequestState>
+    ): value is RequestState =>
+      'status' in value && typeof value.status === 'string';
+    const recordHydratedRequests = (action: HydrateRequestsAction<Key>) => {
+      const responses = action.payload[RESPONSES_STATE_KEY];
+
+      Object.keys(responses).forEach((key) => {
+        const requestStateOrSerializedStates = responses[key];
+
+        // A request without serializeRequestParameters stores RequestState
+        // directly. A serialized request stores one RequestState per
+        // serialized parameter key, and each entry is a separate identity.
+        if (isRequestState(requestStateOrSerializedStates)) {
+          incrementRequestHydrationVersion(getRequestKey({ key }));
+          return;
+        }
+
+        Object.keys(requestStateOrSerializedStates).forEach((serializedKey) => {
+          incrementRequestHydrationVersion(
+            getRequestKey({ key, serializedKey })
+          );
+        });
+      });
     };
 
     const middleware: Middleware<RequestsFactoryDispatch> =
@@ -72,6 +119,7 @@ export const getCreateRequestsFactoryMiddleware =
                 getState,
                 middlewareConfig,
                 getRuntimeState,
+                getRequestHydrationVersion,
                 registerRequestCancellation,
               })
             );
@@ -79,14 +127,16 @@ export const getCreateRequestsFactoryMiddleware =
             asyncAction = Promise.reject(error);
           }
 
-          if (!actions.has(asyncAction)) {
+          if (!settledActions.has(asyncAction) && !actions.has(asyncAction)) {
             actions.add(asyncAction);
             aggregatePromise = undefined;
             asyncAction.then(
               () => {
+                settledActions.add(asyncAction);
                 actions.delete(asyncAction);
               },
               () => {
+                settledActions.add(asyncAction);
                 actions.delete(asyncAction);
               }
             );
@@ -95,7 +145,24 @@ export const getCreateRequestsFactoryMiddleware =
           return asyncAction;
         }
 
-        return next(action);
+        const result = next(action);
+
+        if (
+          typeof action === 'object' &&
+          action !== null &&
+          'type' in action &&
+          action.type === GlobalActionTypes.HydrateRequests
+        ) {
+          const hydrateAction = action as HydrateRequestsAction<Key>;
+
+          if (hydrateAction.meta.stateRequestsKey === config.stateRequestsKey) {
+            // Record generations after reducers have merged the payload. The
+            // next loadDataAction can then recognize the new hydrated state.
+            recordHydratedRequests(hydrateAction);
+          }
+        }
+
+        return result;
       };
 
     const toPromise = () => {

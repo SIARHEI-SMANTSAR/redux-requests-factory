@@ -33,6 +33,7 @@ describe('serializeRequestParameters', () => {
       responseSelector,
       errorSelector,
       requestStatusSelector,
+      requestVersionSelector,
       isLoadingSelector,
       isLoadedSelector,
     } = requestsFactory({
@@ -46,6 +47,7 @@ describe('serializeRequestParameters', () => {
     expect(requestStatusSelector(state)({ id: '25' })).toBe(
       RequestsStatuses.Success
     );
+    expect(requestVersionSelector(state)({ id: '25' })).toBe(0);
     expect(isLoadingSelector(state)({ id: '25' })).toBe(false);
     expect(isLoadedSelector(state)({ id: '25' })).toBe(true);
   });

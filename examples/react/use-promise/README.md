@@ -12,13 +12,12 @@ A client-only React 19 and Vite example integrating
 - `redux-requests-factory` provides the requests reducer, middleware, actions,
   and selectors.
 - `useLoadUsers` starts the initial request while rendering `UsersResult`.
-- While a request is loading, repeated `loadUsersAction` dispatches return the
-  same cached `Promise<void>` for that request key.
-- `useLoadUsers` passes that Promise to `use` only for the `None` and `Loading`
-  statuses. Calling `use` conditionally is supported by React.
-- Force reload uses a normal `dispatch(forceLoadUsersAction())`. The status
-  change renders `useLoadUsers` again, and `loadUsersAction` returns the latest
-  in-flight Promise.
+- While a request is pending and after it settles, repeated `loadUsersAction`
+  dispatches return the same cached `Promise<void>` for that request key.
+- `useLoadUsers` passes the stable Promise to `use` unconditionally.
+- Force reload uses a normal `dispatch(forceLoadUsersAction())`. The request
+  version change renders `useLoadUsers` again, and `loadUsersAction` returns the
+  latest in-flight Promise.
 - Factory command forwarding is disabled by the v2 default, so a cached
   `loadUsersAction` read during render does not notify Redux subscribers.
 - Request data and errors are read normally with `useAppSelector` and rendered
@@ -34,13 +33,22 @@ The Suspense integration lives in a custom hook:
 ```tsx
 function useLoadUsers() {
   const dispatch = useAppDispatch();
-  const status = useAppSelector(usersStatusSelector);
+  useAppSelector(usersRequestVersionSelector);
 
-  if (status === RequestsStatuses.None || status === RequestsStatuses.Loading) {
-    use(dispatch(loadUsersAction()));
-  }
+  use(dispatch(loadUsersAction()));
 }
 ```
+
+The version selector starts at `0` and increments whenever a real request
+starts. Cached dispatches do not increment it. Its value does not gate `use`;
+the subscription triggers the render that reads the new pending Promise, even
+when a forced request replaces one that is already loading.
+
+Keeping this subscription means an explicit refresh reliably returns the
+nearest Suspense boundary to its fallback. Removing it changes the common case
+to a background refresh: the previous users remain visible until
+`usersSelector` receives the new response. An unrelated render during the
+pending request can still reach `use()` and suspend.
 
 Data and errors are still read from Redux:
 
@@ -60,9 +68,11 @@ function UsersResult() {
 ```
 
 The same pattern must not be used with an action that creates a fresh Promise on
-every dispatch. It works here because `loadDataAction` returns the latest
-in-flight Promise for the request key. Forced actions start a new request, but
-the following loading render retrieves their Promise through `loadDataAction`.
+every dispatch. It works here because `loadDataAction` retains the latest
+pending or settled Promise for the request key. Forced actions start a new
+request, but the following render retrieves their Promise through
+`loadDataAction`. Automatic terminal-state retries are disabled in the store so
+a failed render reads its settled Promise and displays the Redux error.
 
 ## Run locally
 

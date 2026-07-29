@@ -29,22 +29,30 @@ owns a custom hook that dispatches its `redux-requests-factory` action and
 passes the returned Promise to React's `use` API:
 
 ```tsx
-const status = useSelector(usersStatusSelector);
-
-if (status === RequestsStatuses.None || status === RequestsStatuses.Loading) {
-  use(dispatch(loadUsersAction({ baseUrl })));
-}
+useSelector(usersRequestVersionSelector);
+use(dispatch(loadUsersAction({ baseUrl })));
 ```
 
 React retries a component from scratch after it suspends, so `use` must receive
-the same Promise instance while the request is running. The request factory
-middleware owns this cache: repeated normal load actions for the same request
-key return the same in-flight Promise. No application-level Promise runtime is
-needed. After success, the Redux request status prevents the component from
-suspending again.
+the same Promise instance on every render. The request factory middleware owns
+this cache: repeated normal load actions for the same request key return the
+same Promise while it is pending and after it settles. No application-level
+Promise runtime or status guard is needed. A stale response, configured retry,
+or forced load replaces the cache entry with a new Promise.
+
+The request version selector remains a subscription rather than a guard. It
+starts at `0`, increments whenever a real request starts, and does not change
+for a cached dispatch. The subscription triggers the render that passes the
+replacement pending Promise to `use`, including a forced load started while
+the previous request is already `Loading`.
+
+This example keeps the version subscription to demonstrate a Suspense refresh.
+Without it, the forced request can instead refresh in the background while the
+previous response remains visible, unless another render reaches the pending
+Promise through `use`.
 
 `makeStore()` creates a new `createRequestsFactoryMiddleware()` instance for
-every SSR request. Its in-flight Promise cache, cancellation bookkeeping,
+every SSR request. Its stable latest Promise cache, cancellation bookkeeping,
 debounce state, and aggregate request tracker are isolated from every other
 server render, while the request action modules remain safe singletons.
 
@@ -83,9 +91,10 @@ SuccessRate request the same stats action and share the in-flight Promise
 cached by their store's middleware.
 
 The force reload buttons dispatch each request factory's
-`forcedLoadDataAction`. The resulting `Loading` status makes the data component
-read the same in-flight Promise through `use` again, so its nearest `Suspense`
-boundary temporarily returns to the fallback until the fresh response arrives.
+`forcedLoadDataAction`. The resulting request version change makes the data
+component read the same in-flight Promise through `use` again, so its nearest
+`Suspense` boundary temporarily returns to the fallback until the fresh response
+arrives.
 
 Vite builds `src/entry-client.tsx` through an explicit Rollup input. There is no
 `index.html`: React owns the complete streamed document, and the server reads

@@ -53,6 +53,17 @@ const getNewRequestsState = (
         },
       };
 
+const getRequestState = (
+  state: RequestsState,
+  { key, serializedKey }: RequestActionMeta
+): RequestState | undefined =>
+  serializedKey === undefined
+    ? (state[RESPONSES_STATE_KEY][key] as RequestState | undefined)
+    : (
+        state[RESPONSES_STATE_KEY][key] as
+          { [serializedKey: string]: RequestState } | undefined
+      )?.[serializedKey];
+
 const isRequestState = (
   value: RequestState | { [serializedKey: string]: RequestState } | undefined
 ): value is RequestState =>
@@ -89,10 +100,14 @@ export const createRequestsReducer =
     const factoryAction = action as Actions;
 
     switch (factoryAction.type) {
-      case CommonActionTypes.RequestStart:
+      case CommonActionTypes.RequestStart: {
+        const requestState = getRequestState(state, factoryAction.meta);
+
         return getNewRequestsState(state, factoryAction.meta, {
           status: RequestsStatuses.Loading,
+          requestVersion: (requestState?.requestVersion ?? 0) + 1,
         });
+      }
       case CommonActionTypes.RequestSuccess:
         return getNewRequestsState(state, factoryAction.meta, {
           status: RequestsStatuses.Success,

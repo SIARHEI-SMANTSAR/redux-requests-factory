@@ -19,10 +19,16 @@ export enum RequestsStatuses {
   Canceled = 'canceled',
 }
 
+/** Terminal request statuses on which a normal cached load may retry. */
+export type LoadDataRetryStatus =
+  RequestsStatuses.Failed | RequestsStatuses.Canceled;
+
 /** Redux state stored for one request or serialized parameter key. */
 export type RequestState = {
   /** Current request lifecycle status. */
   status: RequestsStatuses;
+  /** Increments whenever a new request execution starts. */
+  requestVersion?: number;
   /** Error produced by the latest failed request, when available. */
   error?: any;
   /** Response produced by the latest successful request, when available. */

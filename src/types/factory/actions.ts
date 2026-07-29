@@ -122,7 +122,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
-  /** Loads only when needed and reuses the in-flight Promise for this request key. */
+  /** Loads only when needed and reuses the stable latest Promise for this request key. */
   loadDataAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -275,7 +275,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
-  /** Loads only when needed and reuses the in-flight Promise for this request key. */
+  /** Loads only when needed and reuses the stable latest Promise for this request key. */
   loadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,
@@ -430,7 +430,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
-  /** Loads only when needed and reuses the in-flight Promise for this request key. */
+  /** Loads only when needed and reuses the stable latest Promise for this request key. */
   loadDataAction: RequestFactoryActionCommon & {
     (
       params: Params,

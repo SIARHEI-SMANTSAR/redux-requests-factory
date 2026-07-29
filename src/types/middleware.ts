@@ -46,6 +46,8 @@ export interface ActionPropsFromMiddleware<State> {
     key: object,
     createState: () => RuntimeState
   ): RuntimeState;
+  /** Returns the hydration version for one request-state identity. */
+  getRequestHydrationVersion(requestKey: string): number;
   /** Registers one active execution for middleware-wide cancellation. */
   registerRequestCancellation(cancel: () => void): () => void;
 }

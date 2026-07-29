@@ -10,6 +10,8 @@ type RequestsFactoryItemCommonSelectorsWithoutSerialize<
   errorSelector: (state: State) => Err;
   /** Returns the current request lifecycle status. */
   requestStatusSelector: (state: State) => RequestsStatuses;
+  /** Returns a value that changes whenever a new request execution starts. */
+  requestVersionSelector: (state: State) => number;
   /** Returns whether the request is currently loading. */
   isLoadingSelector: (state: State) => boolean;
   /** Returns whether the request completed successfully. */
@@ -26,6 +28,8 @@ type RequestsFactoryItemCommonSelectorsWithSerialize<
   errorSelector: (state: State) => (params: Params) => Err;
   /** Returns a params selector for the current request lifecycle status. */
   requestStatusSelector: (state: State) => (params: Params) => RequestsStatuses;
+  /** Returns a params selector for the current request execution version. */
+  requestVersionSelector: (state: State) => (params: Params) => number;
   /** Returns a params selector indicating whether the request is loading. */
   isLoadingSelector: (state: State) => (params: Params) => boolean;
   /** Returns a params selector indicating whether the request succeeded. */
