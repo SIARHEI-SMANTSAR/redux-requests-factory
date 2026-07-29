@@ -465,9 +465,7 @@ describe('requestsFactory public actions Redux state', () => {
       },
     });
 
-    const requestPromise = store.dispatch(
-      api.forcedLoadDataAction({ id: 2 })
-    );
+    const requestPromise = store.dispatch(api.forcedLoadDataAction({ id: 2 }));
     await store.dispatch(api.cancelRequestAction({ id: 2 }));
     await requestPromise;
 
