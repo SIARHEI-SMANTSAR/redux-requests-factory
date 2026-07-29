@@ -5,11 +5,7 @@ import {
   type AnyAction,
   type Store,
 } from "redux";
-import {
-  createWrapper,
-  HYDRATE,
-  type Context,
-} from "next-redux-wrapper";
+import { createWrapper, HYDRATE, type Context } from "next-redux-wrapper";
 import {
   type Actions as FactoryActions,
   createRequestsFactoryMiddleware,
@@ -26,6 +22,7 @@ type AppAction = AnyAction | FactoryActions;
 
 export type StoreWithAsyncRequests = Store<RootState, AppAction> & {
   asyncRequests: () => Promise<void>;
+  cancelAsyncRequests: () => Promise<void>;
 };
 
 const reducer = (state: RootState | undefined, action: AnyAction) => {
@@ -40,11 +37,15 @@ const reducer = (state: RootState | undefined, action: AnyAction) => {
     };
   }
 
-  return combinedReducer(state, action as Parameters<typeof combinedReducer>[1]);
+  return combinedReducer(
+    state,
+    action as Parameters<typeof combinedReducer>[1]
+  );
 };
 
 const makeStore = (_context: Context): StoreWithAsyncRequests => {
-  const { middleware, toPromise } = createRequestsFactoryMiddleware();
+  const { cancelAllRequests, middleware, toPromise } =
+    createRequestsFactoryMiddleware();
   const store = createStore(
     reducer,
     undefined,
@@ -52,6 +53,7 @@ const makeStore = (_context: Context): StoreWithAsyncRequests => {
   ) as StoreWithAsyncRequests;
 
   store.asyncRequests = toPromise;
+  store.cancelAsyncRequests = cancelAllRequests;
 
   return store;
 };

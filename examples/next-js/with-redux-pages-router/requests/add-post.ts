@@ -1,4 +1,7 @@
-import { requestsFactory } from "redux-requests-factory";
+import {
+  requestsFactory,
+  type RequestContext,
+} from "redux-requests-factory";
 import { setUserPostsAction, userPostsSelector } from "./posts-by-user";
 
 interface Post {
@@ -12,12 +15,12 @@ interface AddPostParams {
   body?: string;
 }
 
-const addPostRequest = ({
-  userId,
-  title,
-  body,
-}: AddPostParams): Promise<Post> =>
+const addPostRequest = (
+  { userId, title, body }: AddPostParams,
+  { signal }: RequestContext
+): Promise<Post> =>
   fetch("https://jsonplaceholder.typicode.com/posts", {
+    signal,
     method: "POST",
     body: JSON.stringify({
       title,

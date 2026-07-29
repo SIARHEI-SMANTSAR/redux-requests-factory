@@ -17,14 +17,18 @@ const rootReducer = combineReducers({
 export type RootState = ReturnType<typeof rootReducer>;
 
 export const makeStore = (preloadedState?: RootState) => {
-  const { middleware, toPromise } = createRequestsFactoryMiddleware();
+  const { cancelAllRequests, middleware, toPromise } =
+    createRequestsFactoryMiddleware();
   const store = createStore(
     rootReducer,
     preloadedState,
     applyMiddleware(middleware)
   );
 
-  return Object.assign(store, { asyncRequests: toPromise });
+  return Object.assign(store, {
+    asyncRequests: toPromise,
+    cancelAsyncRequests: cancelAllRequests,
+  });
 };
 
 export type AppStore = ReturnType<typeof makeStore>;

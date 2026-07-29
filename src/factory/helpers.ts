@@ -9,6 +9,7 @@ import {
   RequestFactoryConfigWithParamsWithSerialize,
   RequestFactoryConfigWithTransformResponse,
   DoRequestMapByKey,
+  ActiveRequestState,
 } from '../types';
 import { RESPONSES_STATE_KEY } from '../constants';
 
@@ -74,7 +75,7 @@ export const getByPath =
   <Value = any, Object = any>(...keys: (string | undefined)[]) =>
   (obj: Object): Value | undefined =>
     keys
-      .filter(Boolean)
+      .filter((key): key is string => key !== undefined)
       .reduce<Value | undefined>(
         (value: any, key) => (value ? value[key as string] : undefined),
         obj as any
@@ -105,13 +106,63 @@ export const isFactoryAction = (type: string) =>
 export const memoizeDebounce = function <
   Func extends (this: any, ...args: any) => any,
 >(func: Func, wait = 0, options: any = {}): Func {
-  var mem = memoize(function () {
-    return debounce(func, wait, options);
+  const mem = memoize(function (..._memoizeArgs: any[]) {
+    let invokedSynchronously = false;
+    let trailingDeferred:
+      | {
+          promise: Promise<unknown>;
+          reject: (error: unknown) => void;
+          resolve: (value: unknown) => void;
+        }
+      | undefined;
+
+    const debounced = debounce(
+      function (this: any, ...args: any[]) {
+        invokedSynchronously = true;
+        const deferred = trailingDeferred;
+        trailingDeferred = undefined;
+
+        try {
+          const result = func.apply(this, args);
+          if (deferred) {
+            Promise.resolve(result).then(deferred.resolve, deferred.reject);
+          }
+          return result;
+        } catch (error) {
+          deferred?.reject(error);
+          throw error;
+        }
+      },
+      wait,
+      options
+    );
+
+    return function (this: any, ...args: any[]) {
+      invokedSynchronously = false;
+      const result = debounced.apply(this, args);
+
+      if (invokedSynchronously || options.trailing === false) {
+        return result;
+      }
+
+      if (!trailingDeferred) {
+        let resolve!: (value: unknown) => void;
+        let reject!: (error: unknown) => void;
+        const promise = new Promise<unknown>(
+          (promiseResolve, promiseReject) => {
+            resolve = promiseResolve;
+            reject = promiseReject;
+          }
+        );
+        trailingDeferred = { promise, reject, resolve };
+      }
+
+      return trailingDeferred.promise;
+    };
   }, options.resolver);
 
-  return function () {
-    // @ts-ignore
-    return mem.apply(this, arguments).apply(this, arguments);
+  return function (this: any, ...args: any[]) {
+    return mem.apply(this, args).apply(this, args);
   } as Func;
 };
 
@@ -126,18 +177,34 @@ export const patchConfig = <Resp, Err, Params, State, TransformedResp, Key>(
 export const isNeedLoadData = <State, Key extends string>(
   { stateRequestsKey }: PreparedConfig<Key>,
   { key, serializedKey }: RequestActionMeta,
-  state: State
+  state: State,
+  staleTime: number
 ) => {
-  const status = getByPath<RequestsStatuses, State>(
+  const requestState = getByPath<
+    { status?: RequestsStatuses; fulfilledAt?: number },
+    State
+  >(
     stateRequestsKey,
     RESPONSES_STATE_KEY,
     key,
-    serializedKey,
-    'status'
+    serializedKey
   )(state);
 
-  return !(
-    status === RequestsStatuses.Loading || status === RequestsStatuses.Success
+  if (requestState?.status === RequestsStatuses.Loading) {
+    return false;
+  }
+
+  if (requestState?.status !== RequestsStatuses.Success) {
+    return true;
+  }
+
+  if (staleTime === Infinity) {
+    return false;
+  }
+
+  return (
+    requestState.fulfilledAt === undefined ||
+    Date.now() - requestState.fulfilledAt >= staleTime
   );
 };
 
@@ -178,16 +245,26 @@ export const identity = <T>(a: T): T => a;
 export const setNewRequestToMap = (
   doRequestMapByKey: DoRequestMapByKey,
   requestKey: string,
-  requestNumber: number
-) => {
+  requestNumber: number,
+  abortController: AbortController | undefined,
+  resolveCancellation: () => void,
+  silent: boolean
+): ActiveRequestState => {
+  const requestState: ActiveRequestState = {
+    abortController,
+    canceled: false,
+    globalLoadingDecrementedAfterTimeout: false,
+    resolveCancellation,
+    silent,
+  };
+
   if (doRequestMapByKey.has(requestKey)) {
-    doRequestMapByKey.get(requestKey)?.set(requestNumber, { canceled: false });
+    doRequestMapByKey.get(requestKey)?.set(requestNumber, requestState);
   } else {
-    doRequestMapByKey.set(
-      requestKey,
-      new Map([[requestNumber, { canceled: false }]])
-    );
+    doRequestMapByKey.set(requestKey, new Map([[requestNumber, requestState]]));
   }
+
+  return requestState;
 };
 
 export const isRequestCanceled = (
@@ -201,13 +278,18 @@ export const deleteRequestFromMap = (
   requestKey: string,
   requestNumber: number
 ) => {
-  doRequestMapByKey.get(requestKey)?.delete(requestNumber);
+  const requestsByNumber = doRequestMapByKey.get(requestKey);
+  requestsByNumber?.delete(requestNumber);
+
+  if (requestsByNumber?.size === 0) {
+    doRequestMapByKey.delete(requestKey);
+  }
 };
 
 export const cancelRequestInMap = (
   doRequestMapByKey: DoRequestMapByKey,
   requestKey: string
-) => {
+): ActiveRequestState | undefined => {
   if (doRequestMapByKey.has(requestKey)) {
     const doRequestMap = doRequestMapByKey.get(requestKey);
     if (doRequestMap) {
@@ -216,12 +298,12 @@ export const cancelRequestInMap = (
         const [requestNumber] = entries[entries.length - 1];
         const statusObj = doRequestMap.get(requestNumber);
         if (statusObj && statusObj.canceled === false) {
-          statusObj.canceled = true;
+          statusObj.cancel?.();
 
-          return true;
+          return statusObj;
         }
       }
     }
   }
-  return false;
+  return undefined;
 };

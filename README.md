@@ -3,9 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/redux-requests-factory.svg?style=flat-square)](https://www.npmjs.com/package/redux-requests-factory)
 [![npm downloads](https://img.shields.io/npm/dm/redux-requests-factory.svg?style=flat-square)](https://www.npmjs.com/package/redux-requests-factory)
 
-> Build independent Redux components that can load and share server data
-> without duplicate requests, hand-written request state, or coordination
-> between components.
+> Build independent Redux request modules that share server data without
+> duplicate requests or hand-written lifecycle state—and give every SSR render
+> one place to await or cancel all of its work.
 
 `redux-requests-factory` is for teams building Redux applications where the
 same data is used across multiple components and features. It is especially
@@ -16,7 +16,9 @@ the request lifecycle, caching, load deduplication, and action-stream noise.
 The same request modules work in client-rendered SPAs and SSR applications. A
 server render can dispatch and await requests, then hydrate or merge the cached
 request state into the browser store so client components reuse the same
-selectors and loaded data.
+selectors and loaded data. Every SSR store owns its request registry: actions
+from any factory or serialized parameter key automatically join that store's
+batch and can be awaited or canceled together.
 
 It is useful when you want the same request lifecycle everywhere:
 
@@ -26,11 +28,13 @@ It is useful when you want the same request lifecycle everywhere:
 - request-level and global loading selectors
 - request caching, optionally separated by serialized parameters
 - client-side SPA and SSR request flows
+- request-scoped SSR batch awaiting and cancellation
 - optional debounce
 - optional follow-up actions after success or failure
 
 ## Contents
 
+- [Core strengths](#core-strengths)
 - [What the factory optimizes](#what-the-factory-optimizes)
 - [Installation](#installation)
 - [Breaking changes: migrating from v1 to v2](#breaking-changes-migrating-from-v1-to-v2)
@@ -48,6 +52,42 @@ It is useful when you want the same request lifecycle everywhere:
 - [TypeScript](#typescript)
 - [License](#license)
 
+## Core strengths
+
+`redux-requests-factory` turns each remote operation into a reusable, typed
+Redux module with its own actions, selectors, lifecycle, and cache identity.
+
+- **Independent consumers.** Components and features can request the same data
+  without coordinating mount order. Concurrent loads share one in-flight
+  Promise, and successful responses are reused from Redux.
+- **Redux-native orchestration.** Request modules compose with reducers, sagas,
+  epics, middleware, analytics, and shared Reselect selectors through regular
+  Redux actions and state.
+- **One request model across Redux, Suspense, and SSR.** The same load action
+  works in effects, event handlers, and server preloading. Responses, errors,
+  and request status remain available through Redux selectors, without
+  introducing a separate query client or a second data cache.
+- **Streaming SSR and selective hydration.** A normal dispatch returns the
+  stable in-flight Promise required by React's `use()` API. Independent
+  `Suspense` boundaries can therefore stream as their requests resolve, while
+  the transferred Redux state lets client hydration reuse those results
+  instead of repeating the server requests.
+- **UI and transport independence.** The request function can use `fetch`, an
+  SDK, a database client, or any Promise-returning implementation. The same
+  module can serve React components, server code, and other consumers.
+- **One lifecycle boundary per SSR render.** Each middleware instance owns an
+  isolated registry of active executions across every request factory and
+  serialized parameter key. A server render can await one action, await its
+  complete dynamic batch, or cancel all transport work through the store—without
+  collecting request handles or maintaining a route-level request list.
+- **Explicit lifecycle control.** Normal loads, forced reloads, direct request
+  execution, cancellation with `AbortSignal`, manual state updates, reset,
+  freshness, debounce, global loading, and follow-up actions use one consistent
+  API.
+- **TypeScript contracts.** Params, responses, transformed values, errors,
+  actions, selectors, custom Redux state keys, and dispatch Promises remain
+  typed across client and server flows.
+
 ## What the factory optimizes
 
 ### Request caching and load deduplication
@@ -58,7 +98,7 @@ Calling it repeatedly does not produce repeated network requests:
 - while a request is loading, every `loadDataAction` dispatch returns the same
   in-flight `Promise`;
 - after a successful request, another `loadDataAction` dispatch uses the cached
-  Redux response and skips the request;
+  Redux response and skips the request while it remains fresh;
 - `forcedLoadDataAction` remains available when an explicit reload is needed.
 
 ```js
@@ -92,7 +132,7 @@ cached.
 ```tsx
 function UserName({ id }) {
   const dispatch = useDispatch();
-  const user = useSelector(state => userSelector(state)({ id }));
+  const user = useSelector((state) => userSelector(state)({ id }));
 
   useEffect(() => {
     dispatch(loadUserAction({ id }));
@@ -103,7 +143,7 @@ function UserName({ id }) {
 
 function UserAvatar({ id }) {
   const dispatch = useDispatch();
-  const user = useSelector(state => userSelector(state)({ id }));
+  const user = useSelector((state) => userSelector(state)({ id }));
 
   useEffect(() => {
     dispatch(loadUserAction({ id }));
@@ -173,14 +213,13 @@ import { createSelector } from 'reselect';
 
 import { usersSelector } from './users-request';
 
-export const activeUsersSelector = createSelector(
-  [usersSelector],
-  users => (users ?? []).filter(user => user.isActive)
+export const activeUsersSelector = createSelector([usersSelector], (users) =>
+  (users ?? []).filter((user) => user.isActive)
 );
 
 export const activeUserCountSelector = createSelector(
   [activeUsersSelector],
-  users => users.length
+  (users) => users.length
 );
 ```
 
@@ -190,7 +229,7 @@ Different components can consume these selectors independently:
 function ActiveUserList() {
   const users = useSelector(activeUsersSelector);
 
-  return users.map(user => <UserRow key={user.id} user={user} />);
+  return users.map((user) => <UserRow key={user.id} user={user} />);
 }
 
 function ActiveUserCount() {
@@ -257,13 +296,13 @@ Version 2 changes the default command-forwarding behavior. In v1, factory
 commands were forwarded as plain Redux actions to subsequent middleware and
 reducers. In v2, they are consumed by the requests middleware by default.
 
-| Behavior | v1 default | v2 default |
-| --- | --- | --- |
-| Execute the request command | Yes | Yes |
-| Update request state through the built-in reducer | Yes | Yes |
-| Return a request `Promise<void>` from dispatch | Yes | Yes |
-| Forward the factory command to later middleware and reducers | Yes | No |
-| Dispatch enabled `requestFulfilledAction` and `requestRejectedAction` events | Yes | Yes |
+| Behavior                                                                     | v1 default | v2 default |
+| ---------------------------------------------------------------------------- | ---------- | ---------- |
+| Execute the request command                                                  | Yes        | Yes        |
+| Update request state through the built-in reducer                            | Yes        | Yes        |
+| Return a request `Promise<void>` from dispatch                               | Yes        | Yes        |
+| Forward the factory command to later middleware and reducers                 | Yes        | No         |
+| Dispatch enabled `requestFulfilledAction` and `requestRejectedAction` events | Yes        | Yes        |
 
 If your application only dispatches factory commands and reads request data
 through factory selectors, no compatibility setting is needed:
@@ -332,10 +371,7 @@ export const reducer = combineReducers({
 const { middleware: requestsFactoryMiddleware } =
   createRequestsFactoryMiddleware();
 
-const store = createStore(
-  reducer,
-  applyMiddleware(requestsFactoryMiddleware)
-);
+const store = createStore(reducer, applyMiddleware(requestsFactoryMiddleware));
 
 export default store;
 ```
@@ -363,7 +399,7 @@ export const makeStore = () => {
     reducer: {
       [stateRequestsKey]: requestsReducer,
     },
-    middleware: getDefaultMiddleware =>
+    middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().prepend(requestsFactoryMiddleware),
   });
 };
@@ -408,8 +444,8 @@ needs.
 ```js
 import { requestsFactory } from 'redux-requests-factory';
 
-const loadUsersRequest = () =>
-  fetch('https://mysite.com/users').then(res => res.json());
+const loadUsersRequest = (_params, { signal }) =>
+  fetch('https://mysite.com/users', { signal }).then((res) => res.json());
 
 export const {
   loadDataAction: loadUsersAction,
@@ -424,6 +460,11 @@ export const {
   stateRequestKey: 'users',
 });
 ```
+
+Always forward the request context's `signal` to `fetch`, an SDK, or other
+abort-aware work. This lets both `cancelRequestAction` and middleware-wide SSR
+cancellation stop the underlying operation instead of only ignoring its late
+result.
 
 Use the generated API in a component.
 
@@ -452,7 +493,7 @@ const Users = () => {
       <button onClick={() => dispatch(reloadUsersAction())}>Reload</button>
       {isLoading ? <span>Loading...</span> : null}
       <ul>
-        {users.map(user => (
+        {users.map((user) => (
           <li key={user.id}>{user.name}</li>
         ))}
       </ul>
@@ -499,10 +540,7 @@ function useLoadUsers() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(usersStatusSelector);
 
-  if (
-    status === RequestsStatuses.None ||
-    status === RequestsStatuses.Loading
-  ) {
+  if (status === RequestsStatuses.None || status === RequestsStatuses.Loading) {
     use(dispatch(loadUsersAction()));
   }
 }
@@ -531,7 +569,7 @@ function UsersResult() {
     return <div role="alert">Could not load users.</div>;
   }
 
-  return users.map(user => <div key={user.id}>{user.name}</div>);
+  return users.map((user) => <div key={user.id}>{user.name}</div>);
 }
 
 function Users() {
@@ -583,8 +621,10 @@ states for different parameters.
 ```js
 import { requestsFactory } from 'redux-requests-factory';
 
-const loadUserPostsRequest = ({ userId }) =>
-  fetch(`https://mysite.com/posts?userId=${userId}`).then(res => res.json());
+const loadUserPostsRequest = ({ userId }, { signal }) =>
+  fetch(`https://mysite.com/posts?userId=${userId}`, { signal }).then((res) =>
+    res.json()
+  );
 
 export const {
   loadDataAction: loadUserPostsAction,
@@ -595,7 +635,7 @@ export const {
   request: loadUserPostsRequest,
   stateRequestKey: 'user-posts',
   serializeRequestParameters: ({ userId }) => `${userId}`,
-  transformResponse: response => response || [],
+  transformResponse: (response) => response || [],
 });
 ```
 
@@ -640,14 +680,15 @@ import { requestsFactory } from 'redux-requests-factory';
 
 import { setUserPostsAction, userPostsSelector } from './posts-by-user';
 
-const addPostRequest = ({ userId, title, body }) =>
+const addPostRequest = ({ userId, title, body }, { signal }) =>
   fetch('https://mysite.com/posts', {
+    signal,
     method: 'POST',
     body: JSON.stringify({ userId, title, body }),
     headers: {
       'Content-type': 'application/json; charset=UTF-8',
     },
-  }).then(res => res.json());
+  }).then((res) => res.json());
 
 export const {
   doRequestAction: addPostAction,
@@ -732,21 +773,27 @@ requestsFactory({
 
 ### `createRequestsFactoryMiddleware(config?)`
 
-Creates the Redux middleware and a helper for awaiting requests started through
-that middleware instance.
+Creates the Redux middleware and helpers for awaiting or canceling requests
+started through that middleware instance.
 
 ```ts
-const { middleware, toPromise } = createRequestsFactoryMiddleware();
+const { middleware, toPromise, cancelAllRequests } =
+  createRequestsFactoryMiddleware();
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
+| Option                  | Default | Description                                                                                                                                               |
+| ----------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `forwardFactoryActions` | `false` | Forwards factory command actions as plain Redux actions to later middleware and reducers when enabled. Internal request lifecycle actions are unaffected. |
 
 Add `middleware` to the Redux middleware chain. Calling `toPromise()` waits for
 the requests tracked by this middleware instance. Dispatching one factory
 command returns that command's own `Promise<void>`, which is usually preferable
 when only one request must be awaited.
+
+Calling `cancelAllRequests()` cancels every active execution tracked by this
+middleware instance, aborts each request's `AbortSignal`, settles their dispatch
+Promises, and releases their deduplication entries. It returns a `Promise<void>`
+so server cleanup can be awaited. Requests dispatched afterward run normally.
 
 By default, command actions such as `loadDataAction` stay out of later
 middleware, reducers, loggers, and Redux DevTools. Override the setting for one
@@ -758,12 +805,14 @@ Creates request-specific actions and selectors.
 
 ```js
 const request = requestsFactory({
-  request: ({ id }) =>
-    fetch(`https://mysite.com/api/users/${id}`).then(res => res.json()),
+  request: ({ id }, { signal }) =>
+    fetch(`https://mysite.com/api/users/${id}`, { signal }).then((res) =>
+      res.json()
+    ),
   stateRequestKey: 'user',
   serializeRequestParameters: ({ id }) => `${id}`,
-  transformResponse: response => response || null,
-  transformError: error => error && error.message,
+  transformResponse: (response) => response || null,
+  transformError: (error) => error && error.message,
   useDebounce: true,
   debounceWait: 500,
   debounceOptions: {
@@ -773,6 +822,7 @@ const request = requestsFactory({
   },
   stringifyParamsForDebounce: ({ id }) => `${id}`,
   includeInGlobalLoading: true,
+  staleTime: 30_000,
   globalLoadingTimeout: 1000,
   dispatchFulfilledActionForLoadedRequest: false,
   fulfilledActions: [],
@@ -782,22 +832,51 @@ const request = requestsFactory({
 
 ### Config
 
-| Option | Required | Default | Description |
-| --- | --- | --- | --- |
-| `request` | Yes | - | Function that receives params and returns a `Promise`. |
-| `stateRequestKey` | Yes | - | Unique key for this request in Redux state. |
-| `serializeRequestParameters` | No | - | Converts params to a string cache key. When set, selectors return `(params) => value`. |
-| `transformResponse` | No | - | Transforms `responseSelector` output. Commonly used to provide a default value. |
-| `transformError` | No | - | Transforms `errorSelector` output and failed-request errors passed to `requestRejectedAction` and `rejectedActions`. |
-| `useDebounce` | No | `false` | Enables debounce for `doRequestAction`, `forcedLoadDataAction`, and `loadDataAction`. |
-| `debounceWait` | No | `500` | Debounce wait in milliseconds. |
-| `debounceOptions` | No | `{ leading: true, trailing: false, maxWait: debounceWait }` | Options passed to `lodash.debounce`. |
-| `stringifyParamsForDebounce` | No | `JSON.stringify` | Converts params to a debounce key. |
-| `fulfilledActions` | No | `[]` | Actions or action factories dispatched after success. |
-| `rejectedActions` | No | `[]` | Actions or action factories dispatched after failure. |
-| `includeInGlobalLoading` | No | `true` | Includes this request in `isSomethingLoadingSelector`. |
-| `globalLoadingTimeout` | No | - | Removes this request from global loading after the given time in ms. |
-| `dispatchFulfilledActionForLoadedRequest` | No | `false` | When `requestFulfilledAction` is enabled, re-dispatches it and `fulfilledActions` for a cached successful `loadDataAction`. |
+| Option                                    | Required | Default                                                     | Description                                                                                                                                             |
+| ----------------------------------------- | -------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request`                                 | Yes      | -                                                           | Function that receives params plus `{ signal }` and returns a `Promise`. Pass the signal to abortable work such as `fetch`.                             |
+| `stateRequestKey`                         | Yes      | -                                                           | Unique key for this request in Redux state.                                                                                                             |
+| `serializeRequestParameters`              | No       | -                                                           | Converts params to a string cache key. When set, selectors return `(params) => value`.                                                                  |
+| `transformResponse`                       | No       | -                                                           | Transforms `responseSelector` output. Commonly used to provide a default value.                                                                         |
+| `transformError`                          | No       | -                                                           | Transforms `errorSelector` output and failed-request errors passed to `requestRejectedAction` and `rejectedActions`.                                    |
+| `useDebounce`                             | No       | `false`                                                     | Enables debounce for `doRequestAction`, `forcedLoadDataAction`, and `loadDataAction`.                                                                   |
+| `debounceWait`                            | No       | `500`                                                       | Debounce wait in milliseconds.                                                                                                                          |
+| `debounceOptions`                         | No       | `{ leading: true, trailing: false, maxWait: debounceWait }` | Options passed to `lodash.debounce`.                                                                                                                    |
+| `stringifyParamsForDebounce`              | No       | `JSON.stringify`                                            | Converts params to a debounce key.                                                                                                                      |
+| `fulfilledActions`                        | No       | `[]`                                                        | Actions or action factories dispatched after success.                                                                                                   |
+| `rejectedActions`                         | No       | `[]`                                                        | Actions or action factories dispatched after failure.                                                                                                   |
+| `includeInGlobalLoading`                  | No       | `true`                                                      | Includes this request in `isSomethingLoadingSelector`.                                                                                                  |
+| `staleTime`                               | No       | `Infinity`                                                  | Time in ms for which a successful response stays fresh. A normal load after this interval refetches while retaining the cached response during loading. |
+| `globalLoadingTimeout`                    | No       | -                                                           | Removes this request from global loading after the given time in ms.                                                                                    |
+| `dispatchFulfilledActionForLoadedRequest` | No       | `false`                                                     | When `requestFulfilledAction` is enabled, re-dispatches it and `fulfilledActions` for a cached successful `loadDataAction`.                             |
+
+#### `AbortController` compatibility
+
+The request context uses the exported `RequestContext` type:
+
+```ts
+import {
+  requestsFactory,
+  type RequestContext,
+} from 'redux-requests-factory';
+
+const loadUsersRequest = (
+  _params: undefined,
+  { signal }: RequestContext
+) => fetch('/api/users', { signal });
+```
+
+`RequestContext.signal` is optional because the library also runs in
+environments without a global `AbortController`. In those environments,
+`cancelRequestAction` and `cancelAllRequests()` still update Redux, settle the
+dispatch Promises, release deduplication, and ignore late results, but they
+cannot physically stop the underlying transport.
+
+Install and initialize an `AbortController` polyfill before creating the store
+when transport-level cancellation is required in such a runtime. The library's
+ES5 build target transpiles syntax; it does not polyfill browser or server
+globals. Request implementations should always forward `signal` to `fetch` or
+other abort-aware work—the standard APIs safely accept `undefined`.
 
 `fulfilledActions` receive `{ request, response, state }`.
 `rejectedActions` receive `{ request, error, state }`.
@@ -825,17 +904,17 @@ requestsFactory({
 
 ### Actions
 
-| Action creator | Behavior |
-| --- | --- |
-| `loadDataAction(params?, options?)` | Runs the request only if it is not already `loading` or `success`; reuses an in-flight Promise for the same key. |
-| `forcedLoadDataAction(params?, options?)` | Bypasses the successful-response cache. Use it for reload flows. |
-| `doRequestAction(params?, options?)` | Bypasses the successful-response cache. Use it for create, update, and delete flows. |
-| `cancelRequestAction(params?, options?)` | Marks the latest active request for this key as canceled and ignores its eventual result. |
-| `setErrorAction({ error, params? })` | Writes an error state and dispatches `requestRejectedAction` when that lifecycle action is enabled. |
-| `setResponseAction({ response, params? })` | Writes a success state and dispatches `requestFulfilledAction` when that lifecycle action is enabled. |
-| `resetRequestAction(params?)` | Resets status to `RequestsStatuses.None` and clears response and error. |
-| `requestFulfilledAction` | Plain action creator for subscriptions. Reading it enables fulfilled lifecycle dispatches. Payload is `{ params, response }`. |
-| `requestRejectedAction` | Plain action creator for subscriptions. Reading it enables rejected lifecycle dispatches. Payload is `{ params, error }`. |
+| Action creator                             | Behavior                                                                                                                      |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `loadDataAction(params?, options?)`        | Runs the request only if it is not already `loading` or `success`; reuses an in-flight Promise for the same key.              |
+| `forcedLoadDataAction(params?, options?)`  | Bypasses the successful-response cache. Use it for reload flows.                                                              |
+| `doRequestAction(params?, options?)`       | Bypasses the successful-response cache. Use it for create, update, and delete flows.                                          |
+| `cancelRequestAction(params?, options?)`   | Marks the latest active request as canceled, aborts work using its signal, and ignores any eventual result.                   |
+| `setErrorAction({ error, params? })`       | Writes an error state and dispatches `requestRejectedAction` when that lifecycle action is enabled.                           |
+| `setResponseAction({ response, params? })` | Writes a success state and dispatches `requestFulfilledAction` when that lifecycle action is enabled.                         |
+| `resetRequestAction(params?)`              | Resets status to `RequestsStatuses.None` and clears response and error.                                                       |
+| `requestFulfilledAction`                   | Plain action creator for subscriptions. Reading it enables fulfilled lifecycle dispatches. Payload is `{ params, response }`. |
+| `requestRejectedAction`                    | Plain action creator for subscriptions. Reading it enables rejected lifecycle dispatches. Payload is `{ params, error }`.     |
 
 #### Lazy lifecycle actions
 
@@ -906,12 +985,24 @@ Dispatch promises represent completion, not response values: they resolve to
 and exposed by `errorSelector`; it is not rethrown through the dispatch Promise.
 Render or otherwise handle request errors from Redux state.
 
-`cancelRequestAction` does not abort the underlying network operation or force
-its Promise to settle. It changes the request status to `Canceled` and prevents
-the eventual response or error from updating Redux. Until the underlying work
-settles, `loadDataAction` for the same key still reuses that in-flight Promise.
-After it settles, another normal load can start because the status is not
-`Success` or `Loading`.
+`cancelRequestAction` always changes the request status to `Canceled` and
+prevents a late response or error from updating Redux. It also aborts the
+`AbortSignal` passed to the request. Forward that signal to `fetch` or another
+abort-aware client to stop the underlying work:
+
+```js
+const { loadDataAction, cancelRequestAction } = requestsFactory({
+  stateRequestKey: 'user',
+  request: ({ id }, { signal }) =>
+    fetch(`/api/users/${id}`, { signal }).then((response) => response.json()),
+});
+```
+
+If the request implementation ignores the signal, its underlying work may
+continue, but cancellation still settles the dispatch Promise immediately and
+releases the in-flight deduplication entry. A new `loadDataAction` can start at
+once, and any eventual response or error from the canceled execution is
+ignored.
 
 `resetRequestAction` changes only Redux request state. It does not cancel an
 active request, so that request can still write its result afterward. Cancel
@@ -921,14 +1012,14 @@ the state if `None` is the desired final status.
 `loadDataAction`, `forcedLoadDataAction`, `doRequestAction`, and
 `cancelRequestAction` accept an `options` object:
 
-| Option | Behavior |
-| --- | --- |
-| `silent` | Excludes a started request from global loading state updates. |
-| `forwardFactoryAction` | Overrides `forwardFactoryActions` for this dispatch only. |
+| Option                 | Behavior                                                      |
+| ---------------------- | ------------------------------------------------------------- |
+| `silent`               | Excludes a started request from global loading state updates. |
+| `forwardFactoryAction` | Overrides `forwardFactoryActions` for this dispatch only.     |
 
-When canceling a request started with `{ silent: true }`, also pass
-`{ silent: true }` to `cancelRequestAction` so the global loading counter is
-handled consistently.
+`cancelRequestAction` remembers whether the active execution was silent, so it
+updates the global loading counter correctly without repeating the original
+`silent` option.
 
 ```js
 dispatch(loadDataAction({ id: 1 }));
@@ -965,7 +1056,7 @@ export const { requestFulfilledAction } = requestsFactory({
   stateRequestKey: 'user',
 });
 
-const userLoadedEpic = action$ =>
+const userLoadedEpic = (action$) =>
   action$.pipe(
     ofType(requestFulfilledAction.type),
     tap(({ payload: { params, response } }) => {
@@ -1004,13 +1095,13 @@ stream.
 
 ### Selectors
 
-| Selector | Without `serializeRequestParameters` | With `serializeRequestParameters` |
-| --- | --- | --- |
-| `responseSelector` | `state => response` | `state => params => response` |
-| `errorSelector` | `state => error` | `state => params => error` |
-| `requestStatusSelector` | `state => RequestsStatuses` | `state => params => RequestsStatuses` |
-| `isLoadingSelector` | `state => boolean` | `state => params => boolean` |
-| `isLoadedSelector` | `state => boolean` | `state => params => boolean` |
+| Selector                | Without `serializeRequestParameters` | With `serializeRequestParameters`     |
+| ----------------------- | ------------------------------------ | ------------------------------------- |
+| `responseSelector`      | `state => response`                  | `state => params => response`         |
+| `errorSelector`         | `state => error`                     | `state => params => error`            |
+| `requestStatusSelector` | `state => RequestsStatuses`          | `state => params => RequestsStatuses` |
+| `isLoadingSelector`     | `state => boolean`                   | `state => params => boolean`          |
+| `isLoadedSelector`      | `state => boolean`                   | `state => params => boolean`          |
 
 Available statuses:
 
@@ -1034,7 +1125,7 @@ RequestsStatuses.Canceled;
 const { responseSelector } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
-  transformResponse: response => response || [],
+  transformResponse: (response) => response || [],
 });
 
 responseSelector(state); // []
@@ -1110,21 +1201,26 @@ when the next step depends on one specific request:
 await store.dispatch(loadUsersAction());
 ```
 
-`createRequestsFactoryMiddleware()` also returns `toPromise`, which resolves
-when all currently tracked requests finish. It is useful when several requests
-are deliberately started together.
+`createRequestsFactoryMiddleware()` also returns lifecycle helpers for the
+requests owned by that middleware instance. `toPromise()` resolves when all
+currently tracked requests finish. `cancelAllRequests()` cancels all of them,
+which is useful when an SSR render or its HTTP connection is aborted.
+
+The middleware performs the registration automatically when a factory action
+is dispatched. Components, request modules, and route loaders do not need to
+return their handles to a central coordinator. This remains true when the set
+of requests is discovered dynamically during rendering or after another
+request resolves.
 
 ```js
-const makeStore = initialState => {
-  const { middleware, toPromise } = createRequestsFactoryMiddleware();
+const makeStore = (initialState) => {
+  const { middleware, toPromise, cancelAllRequests } =
+    createRequestsFactoryMiddleware();
 
-  const store = createStore(
-    reducer,
-    initialState,
-    applyMiddleware(middleware)
-  );
+  const store = createStore(reducer, initialState, applyMiddleware(middleware));
 
   store.asyncRequests = toPromise;
+  store.cancelAsyncRequests = cancelAllRequests;
 
   return store;
 };
@@ -1138,17 +1234,109 @@ requests. Their stable request factory keys identify the request definition in
 each middleware's private runtime map; the keys themselves do not hold cache
 data.
 
+Connect the HTTP or framework lifecycle to the store when it is available. For
+example, an Express handler can create one controller for its SSR render:
+
+```js
+const renderAbortController = new AbortController();
+
+response.once('close', () => {
+  if (!response.writableEnded) {
+    renderAbortController.abort();
+  }
+});
+
+renderAbortController.signal.addEventListener(
+  'abort',
+  () => void store.cancelAsyncRequests(),
+  { once: true }
+);
+
+await renderPage({ store });
+```
+
+Global cancellation is scoped to this store's middleware instance. It cancels
+requests from every request factory and serialized key in that render,
+including concurrent forced executions, without affecting another SSR store.
+It also settles their dispatch promises and releases the in-flight
+deduplication entries, so the server lifecycle can await cleanup before
+discarding the store.
+
+### Canceling requests throughout the SSR lifecycle
+
+Forward the `RequestContext.signal` to every transport used during SSR. Calling
+`store.cancelAsyncRequests()` then aborts those transports, settles the
+middleware promises, releases in-flight deduplication entries, and prevents
+late responses from changing the Redux state.
+
+Cancellation should cover each way an SSR render can stop:
+
+- **HTTP connection closed:** connect the response or request `close` event to
+  the render's `AbortController`, and connect that signal to
+  `store.cancelAsyncRequests()`.
+- **Preloading or rendering throws:** await `store.cancelAsyncRequests()` in a
+  `finally` block. Removing an abort listener is not enough; it only prevents
+  future notifications and does not stop work that is already running.
+- **Streaming render aborted:** call both React's stream `abort()` and
+  `store.cancelAsyncRequests()`. Also cancel from terminal error callbacks such
+  as `onShellError`. A stream outlives the function that creates it, so its
+  cleanup belongs to stream and HTTP lifecycle callbacks rather than an outer
+  `finally` that runs as soon as the stream handle is returned.
+
+For a non-streaming handler, the cleanup can follow this shape:
+
+```ts
+const cancelRequests = () => void store.cancelAsyncRequests();
+response.once('close', cancelRequests);
+
+try {
+  await preloadRequests(store);
+  return renderPage(store);
+} finally {
+  await store.cancelAsyncRequests();
+  response.off('close', cancelRequests);
+}
+```
+
+In a component-driven two-pass render, requests may also be discovered during
+the second pass—for example, when a failed request is retried. Produce the
+final HTML, cancel those executions, and only then read the state that will be
+sent to the browser:
+
+```ts
+renderToString(app); // discovery pass
+await store.asyncRequests();
+
+const appHtml = renderToString(app); // final pass
+await store.cancelAsyncRequests();
+const preloadedState = store.getState();
+```
+
+The ordering matters. Hydrating an orphaned `loading` status would prevent a
+normal `loadDataAction` from starting because the browser has no corresponding
+server execution. Cancellation stores `canceled` for active requests, so a
+client-side load effect can start them again. Requests that already completed
+successfully keep their `success` status and cached response.
+
 In Next.js Pages Router, dispatch request actions in `getServerSideProps` and
 then wait for them before returning props.
 
 ```ts
 export const getServerSideProps = wrapper.getServerSideProps(
-  (store) => async () => {
-    await store.dispatch(loadUsersAction());
+  (store) => async ({ res }) => {
+    const cancelRequests = () => void store.cancelAsyncRequests();
+    res.once('close', cancelRequests);
 
-    return {
-      props: {},
-    };
+    try {
+      await store.dispatch(loadUsersAction());
+
+      return {
+        props: {},
+      };
+    } finally {
+      await store.cancelAsyncRequests();
+      res.off('close', cancelRequests);
+    }
   }
 );
 ```
@@ -1158,20 +1346,28 @@ await.
 
 ```ts
 export const getServerSideProps = wrapper.getServerSideProps(
-  (store) => async () => {
-    await store.dispatch(loadUsersAction());
+  (store) => async ({ res }) => {
+    const cancelRequests = () => void store.cancelAsyncRequests();
+    res.once('close', cancelRequests);
 
-    const users = usersSelector(store.getState());
+    try {
+      await store.dispatch(loadUsersAction());
 
-    users.forEach(({ id }) => {
-      store.dispatch(loadUserPostsAction({ userId: id }));
-    });
+      const users = usersSelector(store.getState());
 
-    await store.asyncRequests();
+      users.forEach(({ id }) => {
+        store.dispatch(loadUserPostsAction({ userId: id }));
+      });
 
-    return {
-      props: {},
-    };
+      await store.asyncRequests();
+
+      return {
+        props: {},
+      };
+    } finally {
+      await store.cancelAsyncRequests();
+      res.off('close', cancelRequests);
+    }
   }
 );
 ```
@@ -1191,9 +1387,9 @@ Redux state transfer, `hydrateRoot`, and React Router navigation.
 The classic React SSR examples show two ways to decide which requests must
 finish before HTML is returned:
 
-| Approach | Server flow | Best fit |
-| --- | --- | --- |
-| [Route-level preloading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string) | Dispatch known route actions, await them, render once | Routes with an explicit data-loading contract |
+| Approach                                                                                                                                              | Server flow                                                    | Best fit                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [Route-level preloading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string)                  | Dispatch known route actions, await them, render once          | Routes with an explicit data-loading contract                            |
 | [Component-driven loading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-string-component-data) | Discovery render, `await store.asyncRequests()`, result render | Pages where nested components own and dynamically declare their requests |
 
 In the preloading approach, the server entry knows all data required by the
@@ -1226,6 +1422,28 @@ progressive SSR: request modules remain singleton application code, while every
 server request creates its own store, middleware runtime, Promise cache, and
 React stream.
 
+#### Streaming SSR and selective hydration
+
+“Streaming hydration” is often used as an umbrella term, but React's two
+relevant capabilities are **streaming SSR** and **selective hydration**. React
+owns both rendering behaviors; `redux-requests-factory` supplies the compatible
+request lifecycle:
+
+1. A component dispatches its normal load action and passes the returned stable
+   Promise to `use()`.
+2. Its nearest `Suspense` boundary can show a fallback without blocking faster
+   parts of the document.
+3. When the request succeeds, React streams that boundary's completed HTML and
+   Redux already contains the same response and lifecycle status.
+4. Before client hydration starts, the server request state is installed in the
+   browser store.
+5. React can selectively hydrate the streamed UI, while normal load actions
+   reuse the successful Redux state instead of issuing hydration-time requests.
+
+The practical benefit is progressive HTML without introducing a query cache
+beside Redux: slow data boundaries do not delay faster content, and the server
+result remains the client result after hydration.
+
 For comparison, the simpler
 [preload-first streaming example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/react/ssr-render-to-pipeable-stream)
 loads all route data before starting the React stream. It still renders the
@@ -1236,23 +1454,50 @@ data-driven `Suspense` boundaries independently.
 
 Create a new store for every server render. After its requests finish, pass the
 requests slice—not the store object—across the Server/Client Component boundary.
-Responses and errors included in that state must be serializable.
+Responses and errors included in that state must be serializable. In React
+19.2, connect the Server Component render lifetime to the store with
+[`cacheSignal()`](https://react.dev/reference/react/cacheSignal):
+
+```ts
+import { cacheSignal } from 'react';
+
+export async function withServerStore<Result>(
+  run: (store: AppStore) => Promise<Result>
+): Promise<Result> {
+  const store = makeStore();
+  const renderSignal = cacheSignal();
+  const cancelRequests = () => void store.cancelAsyncRequests();
+
+  renderSignal?.addEventListener('abort', cancelRequests, { once: true });
+
+  try {
+    return await run(store);
+  } finally {
+    await store.cancelAsyncRequests();
+    renderSignal?.removeEventListener('abort', cancelRequests);
+  }
+}
+```
+
+React aborts this signal when the Server Component render completes, is
+aborted, or fails. The `finally` also covers an exception in the loading code
+itself.
 
 ```tsx
 import { requestsStateSelector } from 'redux-requests-factory';
 
 export default async function ServerUsers() {
-  const store = makeStore();
+  return withServerStore(async (store) => {
+    await store.dispatch(loadUsersAction());
 
-  await store.dispatch(loadUsersAction());
-
-  const requestsState = requestsStateSelector(store.getState());
-
-  return (
-    <RequestsHydrator requestsState={requestsState}>
-      <Users />
-    </RequestsHydrator>
-  );
+    return (
+      <RequestsHydrator
+        requestsState={requestsStateSelector(store.getState())}
+      >
+        <Users />
+      </RequestsHydrator>
+    );
+  });
 }
 ```
 
@@ -1346,7 +1591,8 @@ function RequestsPromise({ children, requestsStatePromise }) {
 
 `loadUsersRequestsState()` creates a request-scoped store, awaits
 `store.dispatch(loadUsersAction())`, and resolves to the serializable requests
-slice. The dispatch promise tracks only that action; unlike
+slice. Wrap that work with `withServerStore` so an abandoned render cancels the
+request. The dispatch promise tracks only that action; unlike
 `store.asyncRequests()`, it does not wait for unrelated requests. Pass the state
 promise across the Server/Client boundary, never the Redux store itself.
 
@@ -1358,23 +1604,21 @@ middleware instance.
 
 ```tsx
 export default async function Page() {
-  const store = makeStore();
+  return withServerStore(async (store) => {
+    store.dispatch(loadUsersAction());
+    store.dispatch(loadPostsAction());
+    store.dispatch(loadSettingsAction());
 
-  store.dispatch(loadUsersAction());
-  store.dispatch(loadPostsAction());
-  store.dispatch(loadSettingsAction());
+    await store.asyncRequests();
 
-  await store.asyncRequests();
-
-  return (
-    <RequestsHydrator
-      requestsState={requestsStateSelector(store.getState())}
-    >
-      <Users />
-      <Posts />
-      <Settings />
-    </RequestsHydrator>
-  );
+    return (
+      <RequestsHydrator requestsState={requestsStateSelector(store.getState())}>
+        <Users />
+        <Posts />
+        <Settings />
+      </RequestsHydrator>
+    );
+  });
 }
 ```
 
@@ -1401,9 +1645,9 @@ export default function Page() {
 }
 ```
 
-Each component hydrates only the request state created in its temporary store.
-The library reducer merges those independently arriving request keys into the
-one browser store owned by the shared Provider.
+Each component uses `withServerStore` and hydrates only the request state
+created in its temporary store. The library reducer merges those independently
+arriving request keys into the one browser store owned by the shared Provider.
 
 See the [complete Next.js App Router example](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app),
 including [batched server loading](https://github.com/SIARHEI-SMANTSAR/redux-requests-factory/tree/master/examples/next-js/redux-app/app/server-redux-batch)
@@ -1437,7 +1681,10 @@ boundary. `requestsFactory` carries them into its actions and selectors without
 requiring explicit factory generics:
 
 ```ts
-import { requestsFactory } from 'redux-requests-factory';
+import {
+  requestsFactory,
+  type RequestContext,
+} from 'redux-requests-factory';
 
 type User = {
   id: number;
@@ -1452,8 +1699,11 @@ type RequestError = {
   message: string;
 };
 
-const loadUserRequest = async ({ id }: LoadUserParams): Promise<User> => {
-  const response = await fetch(`/api/users/${id}`);
+const loadUserRequest = async (
+  { id }: LoadUserParams,
+  { signal }: RequestContext
+): Promise<User> => {
+  const response = await fetch(`/api/users/${id}`, { signal });
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);

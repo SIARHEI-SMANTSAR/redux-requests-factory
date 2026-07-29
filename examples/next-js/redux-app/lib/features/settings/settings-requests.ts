@@ -1,15 +1,18 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory, type RequestContext } from 'redux-requests-factory';
 
 import { getSettings, type Settings } from '@/lib/settings-data';
 
 export type { Settings };
 
-const loadSettingsRequest = async (): Promise<Settings> => {
+const loadSettingsRequest = async (
+  _params: undefined,
+  { signal }: RequestContext
+): Promise<Settings> => {
   if (typeof window === 'undefined') {
-    return getSettings();
+    return getSettings(signal);
   }
 
-  const response = await fetch('/api/settings');
+  const response = await fetch('/api/settings', { signal });
 
   if (!response.ok) {
     throw new Error('Failed to load settings');

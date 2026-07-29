@@ -1,12 +1,18 @@
-import { requestsFactory } from "redux-requests-factory";
+import {
+  requestsFactory,
+  type RequestContext,
+} from "redux-requests-factory";
 
 export interface User {
   id: number;
   name: string;
 }
 
-const loadUsersRequest = (): Promise<User[]> =>
-  fetch("https://jsonplaceholder.typicode.com/users").then((res) =>
+const loadUsersRequest = (
+  _params: undefined,
+  { signal }: RequestContext
+): Promise<User[]> =>
+  fetch("https://jsonplaceholder.typicode.com/users", { signal }).then((res) =>
     res.json()
   );
 

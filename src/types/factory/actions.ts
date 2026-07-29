@@ -69,8 +69,7 @@ export interface RequestFactoryActionCommonWithoutSerializeReturnType extends Un
 /** Per-dispatch behavior supported by request and cancellation commands. */
 export interface ActionOptions {
   /**
-   * Excludes a started request from global loading state updates. Pass the
-   * same value when canceling that request.
+   * Excludes a started request from global loading state updates.
    *
    * @default false
    */
@@ -139,7 +138,7 @@ export type RequestsFactoryItemActionsWithOptionalParamsWithoutSerialize<
       };
     };
   };
-  /** Marks the latest active request as canceled without aborting its underlying work. */
+  /** Cancels the latest execution and aborts work that consumes its signal. */
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -292,7 +291,7 @@ export type RequestsFactoryItemActionsWithParamsWithoutSerialize<
       };
     };
   };
-  /** Marks the latest active request as canceled without aborting its underlying work. */
+  /** Cancels the latest execution and aborts work that consumes its signal. */
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params?: Params,
@@ -448,7 +447,7 @@ export type RequestsFactoryItemActionsWithParamsWithSerialize<
       };
     };
   };
-  /** Marks the latest active request as canceled without aborting its underlying work. */
+  /** Cancels the latest execution and aborts work that consumes its signal. */
   cancelRequestAction: RequestFactoryActionCommon & {
     (
       params: Params,

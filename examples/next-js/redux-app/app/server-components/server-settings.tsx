@@ -4,18 +4,17 @@ import { requestsStateSelector } from 'redux-requests-factory';
 import RequestsHydrator from '@/app/requests-hydrator';
 import Settings from '@/app/settings';
 import { loadSettingsAction } from '@/lib/features/settings/settings-requests';
-import { makeStore } from '@/lib/store';
+import { withServerStore } from '@/lib/with-server-store';
 
 export default async function ServerSettings() {
-  await connection();
+  return withServerStore(async (store) => {
+    await connection();
+    await store.dispatch(loadSettingsAction());
 
-  const store = makeStore();
-
-  await store.dispatch(loadSettingsAction());
-
-  return (
-    <RequestsHydrator requestsState={requestsStateSelector(store.getState())}>
-      <Settings />
-    </RequestsHydrator>
-  );
+    return (
+      <RequestsHydrator requestsState={requestsStateSelector(store.getState())}>
+        <Settings />
+      </RequestsHydrator>
+    );
+  });
 }

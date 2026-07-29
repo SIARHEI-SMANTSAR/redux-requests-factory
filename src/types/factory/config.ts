@@ -1,5 +1,15 @@
 import { Action } from 'redux';
 
+/** Runtime capabilities passed to every request implementation. */
+export type RequestContext = {
+  /**
+   * Aborted when this execution is canceled. It is undefined only in runtimes
+   * without a global AbortController; install a polyfill to enable transport
+   * cancellation there.
+   */
+  signal?: AbortSignal;
+};
+
 /**
  * Additional Redux actions dispatched after a request succeeds or fails.
  * Entries may be static actions or factories that use request result data.
@@ -33,6 +43,13 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   /** Includes this request in global loading state. @default true */
   includeInGlobalLoading?: boolean;
   /**
+   * Time in milliseconds for which a successful response is considered fresh.
+   * A normal load refetches after this interval while retaining cached data
+   * during the refresh. Use `Infinity` to keep the v2 permanent-cache behavior.
+   * @default Infinity
+   */
+  staleTime?: number;
+  /**
    * Re-dispatches fulfilled lifecycle side effects for an already cached load
    * when `requestFulfilledAction` has been enabled.
    *
@@ -60,7 +77,10 @@ export type RequestFactoryConfigWithOptionalParamsWithoutSerialize<
   State,
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   /** Executes the asynchronous request. */
-  request: (params?: Params) => Promise<Resp>;
+  request: (
+    params: Params | undefined,
+    context: RequestContext
+  ) => Promise<Resp>;
   /** Creates the debounce key for a set of optional params. @default JSON.stringify */
   stringifyParamsForDebounce?: (params?: Params) => string;
   /** Additional actions dispatched after a successful request. */
@@ -85,7 +105,7 @@ export type RequestFactoryConfigWithParamsWithoutSerialize<
   State,
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   /** Executes the asynchronous request. */
-  request: (params: Params) => Promise<Resp>;
+  request: (params: Params, context: RequestContext) => Promise<Resp>;
   /** Creates the debounce key for a set of params. @default JSON.stringify */
   stringifyParamsForDebounce?: (params: Params) => string;
   /** Additional actions dispatched after a successful request. */
@@ -110,7 +130,7 @@ export type RequestFactoryConfigWithParamsWithSerialize<
   State,
 > = RequestFactoryConfigCommon<Resp, Err, Params, State> & {
   /** Executes the asynchronous request. */
-  request: (params: Params) => Promise<Resp>;
+  request: (params: Params, context: RequestContext) => Promise<Resp>;
   /** Creates the debounce key for a set of params. @default JSON.stringify */
   stringifyParamsForDebounce?: (params: Params) => string;
   /** Converts request params to the Redux cache key used by actions and selectors. */

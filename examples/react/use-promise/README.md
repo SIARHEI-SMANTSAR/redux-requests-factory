@@ -25,6 +25,9 @@ A client-only React 19 and Vite example integrating
   as JSX. Request failures are stored in Redux instead of being thrown through
   the dispatch Promise, so an Error Boundary is not required for this flow.
 - `Suspense` renders a skeleton while the request is pending.
+- The request passes the factory-provided `AbortSignal` through both its
+  artificial delay and `fetch`, so cancellation releases the Suspense Promise
+  without leaving transport work running.
 
 The Suspense integration lives in a custom hook:
 
@@ -33,10 +36,7 @@ function useLoadUsers() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(usersStatusSelector);
 
-  if (
-    status === RequestsStatuses.None ||
-    status === RequestsStatuses.Loading
-  ) {
+  if (status === RequestsStatuses.None || status === RequestsStatuses.Loading) {
     use(dispatch(loadUsersAction()));
   }
 }

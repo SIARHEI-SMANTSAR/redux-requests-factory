@@ -23,11 +23,12 @@ export const commonRequestStartAction = (
 
 export const commonRequestSuccessAction = (
   meta: RequestActionMeta,
-  response: any
+  response: any,
+  fulfilledAt: number = Date.now()
 ): CommonRequestSuccessAction => ({
   type: CommonActionTypes.RequestSuccess,
   meta,
-  payload: { response },
+  payload: { response, fulfilledAt },
 });
 
 export const commonRequestErrorAction = (

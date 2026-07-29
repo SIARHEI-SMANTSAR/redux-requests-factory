@@ -8,16 +8,15 @@ import {
 import RequestsPromise from '@/app/requests-promise';
 import Users from '@/app/users';
 import { loadUsersAction } from '@/lib/features/users/users-requests';
-import { makeStore } from '@/lib/store';
+import { withServerStore } from '@/lib/with-server-store';
 
 async function loadUsersRequestsState(): Promise<RequestsState> {
-  await connection();
+  return withServerStore(async (store) => {
+    await connection();
+    await store.dispatch(loadUsersAction());
 
-  const store = makeStore();
-
-  await store.dispatch(loadUsersAction());
-
-  return requestsStateSelector(store.getState());
+    return requestsStateSelector(store.getState());
+  });
 }
 
 export default function ServerReduxUsePage() {

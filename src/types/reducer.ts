@@ -27,6 +27,8 @@ export type RequestState = {
   error?: any;
   /** Response produced by the latest successful request, when available. */
   response?: any;
+  /** Epoch timestamp at which the latest successful response was stored. */
+  fulfilledAt?: number;
 };
 
 /** Complete state slice managed by `requestsReducer`. */

@@ -1,3 +1,5 @@
+import { abortableDelay } from '@/lib/abortable-delay';
+
 export type Post = {
   id: number;
   title: string;
@@ -9,8 +11,8 @@ const posts: Post[] = [
   { id: 3, title: 'Streaming independent server components' },
 ];
 
-export const getPosts = async (): Promise<Post[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 700));
+export const getPosts = async (signal?: AbortSignal): Promise<Post[]> => {
+  await abortableDelay(700, signal);
 
   return posts;
 };

@@ -22,6 +22,7 @@ export const getCreateRequestsFactoryMiddleware =
     config.resetRegisterRequestKey();
 
     const actions: Set<Promise<void>> = new Set();
+    const requestCancellations = new Set<() => void>();
     let aggregatePromise: Promise<void> | undefined;
     const runtimeStateByFactory = new WeakMap<object, unknown>();
     const getRuntimeState = <RuntimeState>(
@@ -33,6 +34,13 @@ export const getCreateRequestsFactoryMiddleware =
       }
 
       return runtimeStateByFactory.get(key) as RuntimeState;
+    };
+    const registerRequestCancellation = (cancel: () => void) => {
+      requestCancellations.add(cancel);
+
+      return () => {
+        requestCancellations.delete(cancel);
+      };
     };
 
     const middleware: Middleware<RequestsFactoryDispatch> =
@@ -64,6 +72,7 @@ export const getCreateRequestsFactoryMiddleware =
                 getState,
                 middlewareConfig,
                 getRuntimeState,
+                registerRequestCancellation,
               })
             );
           } catch (error) {
@@ -99,5 +108,13 @@ export const getCreateRequestsFactoryMiddleware =
       return aggregatePromise;
     };
 
-    return { middleware, toPromise };
+    const cancelAllRequests = async () => {
+      const trackedActions = Array.from(actions);
+
+      Array.from(requestCancellations).forEach((cancel) => cancel());
+
+      await Promise.all(trackedActions);
+    };
+
+    return { cancelAllRequests, middleware, toPromise };
   };

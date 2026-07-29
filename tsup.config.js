@@ -18,6 +18,6 @@ module.exports = [
     format: ['esm'],
     dts: false,
     clean: false,
-    outExtension: () => ({ js: '.esm.js' }),
+    outExtension: () => ({ js: '.mjs' }),
   },
 ];

@@ -1,4 +1,4 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory, type RequestContext } from 'redux-requests-factory';
 
 type RequestParams = {
   baseUrl?: string;
@@ -17,9 +17,10 @@ export type Activity = {
 
 const requestJson = async <Response>(
   path: string,
-  { baseUrl = '' }: RequestParams = {}
+  { baseUrl = '' }: RequestParams = {},
+  signal?: AbortSignal
 ): Promise<Response> => {
-  const response = await fetch(`${baseUrl}${path}`);
+  const response = await fetch(`${baseUrl}${path}`, { signal });
 
   if (!response.ok) {
     throw new Error(`${path} failed with status ${response.status}`);
@@ -32,7 +33,8 @@ export const {
   loadDataAction: loadStatsAction,
   responseSelector: statsSelector,
 } = requestsFactory({
-  request: (params?: RequestParams) => requestJson<Stats>('/api/stats', params),
+  request: (params: RequestParams | undefined, { signal }: RequestContext) =>
+    requestJson<Stats>('/api/stats', params, signal),
   stateRequestKey: 'stats',
 });
 
@@ -40,8 +42,8 @@ export const {
   loadDataAction: loadActivityAction,
   responseSelector: activitySelector,
 } = requestsFactory({
-  request: (params?: RequestParams) =>
-    requestJson<Activity[]>('/api/activity', params),
+  request: (params: RequestParams | undefined, { signal }: RequestContext) =>
+    requestJson<Activity[]>('/api/activity', params, signal),
   stateRequestKey: 'activity',
   transformResponse: (response: Activity[] | undefined) => response ?? [],
 });

@@ -23,6 +23,14 @@ the route's data, and calls `renderToString` to produce the page HTML. It embeds
 the resulting Redux state in that HTML so the browser can recreate the store
 and attach React with `hydrateRoot` without requesting the same data again.
 
+Every request forwards its factory-provided `AbortSignal` to `fetch`. Express
+creates an abort controller for the render; if the HTTP response closes while
+data is loading, the server calls `store.cancelAsyncRequests()`, aborts all
+transport work owned by that SSR store, and skips the abandoned render. The
+server entry also awaits the same cleanup in `finally`, so a preload or render
+exception cannot leave requests running after its request-scoped store is
+discarded.
+
 The server renders the route tree inside React Router's `StaticRouter`; the
 browser hydrates it inside `BrowserRouter`. Navigation uses `NavLink`, so it
 stays client-side. `renderToString` runs only when a page is opened directly or

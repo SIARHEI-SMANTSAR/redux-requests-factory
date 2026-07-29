@@ -16,8 +16,11 @@ const rootReducer = combineReducers({
 export type RootState = ReturnType<typeof rootReducer>;
 
 export const makeStore = (preloadedState?: RootState) => {
-  const { middleware: requestsFactoryMiddleware, toPromise } =
-    createRequestsFactoryMiddleware();
+  const {
+    cancelAllRequests,
+    middleware: requestsFactoryMiddleware,
+    toPromise,
+  } = createRequestsFactoryMiddleware();
 
   return Object.assign(
     configureStore({
@@ -28,7 +31,10 @@ export const makeStore = (preloadedState?: RootState) => {
           .prepend(requestsFactoryMiddleware)
           .concat(loggerMiddleware),
     }),
-    { asyncRequests: toPromise }
+    {
+      asyncRequests: toPromise,
+      cancelAsyncRequests: cancelAllRequests,
+    }
   );
 };
 

@@ -1,4 +1,4 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory, type RequestContext } from 'redux-requests-factory';
 
 export type User = {
   id: number;
@@ -10,10 +10,11 @@ type LoadUsersParams = {
   baseUrl?: string;
 };
 
-const loadUsersRequest = async ({
-  baseUrl = '',
-}: LoadUsersParams = {}): Promise<User[]> => {
-  const response = await fetch(`${baseUrl}/api/users`);
+const loadUsersRequest = async (
+  { baseUrl = '' }: LoadUsersParams = {},
+  { signal }: RequestContext
+): Promise<User[]> => {
+  const response = await fetch(`${baseUrl}/api/users`, { signal });
 
   if (!response.ok) {
     throw new Error(`Users request failed with status ${response.status}`);

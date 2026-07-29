@@ -98,6 +98,9 @@ export const createRequestsReducer =
           status: RequestsStatuses.Success,
           response: factoryAction.payload.response,
           error: undefined,
+          ...(factoryAction.payload.fulfilledAt === undefined
+            ? {}
+            : { fulfilledAt: factoryAction.payload.fulfilledAt }),
         });
       case CommonActionTypes.RequestError:
         return getNewRequestsState(state, factoryAction.meta, {
@@ -113,8 +116,8 @@ export const createRequestsReducer =
           status: RequestsStatuses.None,
           response: undefined,
           error: undefined,
+          fulfilledAt: undefined,
         });
-
       case GlobalActionTypes.LoadingIncrement:
         return {
           ...state,

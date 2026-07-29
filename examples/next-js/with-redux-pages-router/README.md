@@ -8,6 +8,13 @@ group of posts requests and uses `store.asyncRequests()` to wait for that whole
 group before returning props. `next-redux-wrapper` hydrates the server-filled
 Redux state into the browser.
 
+Every request function forwards the factory-provided `AbortSignal` to `fetch`.
+`getServerSideProps` connects a closed HTTP response to
+`store.cancelAsyncRequests()`, which aborts all users and posts requests owned
+by that SSR store. It also awaits cancellation in `finally`, so an exception
+during either dependent loading step cannot leave transport work running after
+the request-scoped store is discarded.
+
 The page demonstrates a dependent SSR request flow:
 
 1. await `store.dispatch(loadUsersAction())`

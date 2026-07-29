@@ -3,6 +3,10 @@
 This example shows `redux-requests-factory` used together with
 `redux-observable` in a React 19, Redux 5, TypeScript, and Vite project.
 
+Every request function forwards the factory-provided `AbortSignal` to `fetch`.
+The epic's `cancelAddPostAction` therefore aborts the underlying POST request,
+not only its Redux state update.
+
 ## Run
 
 Build the library from the repository root, then install and run the example:

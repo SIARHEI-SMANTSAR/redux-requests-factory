@@ -29,9 +29,14 @@ this full-document SSR example does not need an `index.html` file. The server
 finds the generated client entry through the `isEntry` field in Vite's
 manifest.
 
-The server aborts a render that remains open for ten seconds. Streaming errors
-after the shell has started destroy the HTTP response; errors before the shell
-is ready are handled by the Express error path.
+Every request forwards its factory-provided `AbortSignal` to `fetch`. The
+server connects both a closed HTTP response and the ten-second render timeout
+to React's `abort()` and `store.cancelAsyncRequests()`. This stops the stream,
+aborts all transport work owned by that SSR store, and prevents late results
+from updating it. Preload cleanup runs in `finally`; synchronous render errors
+and `onShellError` cancel the store; `onAllReady` releases any unused work left
+after rendering. Streaming errors after the shell has started destroy the HTTP
+response, while errors before the shell is ready use the Express error path.
 
 ## Routes
 

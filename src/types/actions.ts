@@ -34,7 +34,7 @@ export type CommonRequestStartAction = UnknownAction & {
 export type CommonRequestSuccessAction = UnknownAction & {
   type: CommonActionTypes.RequestSuccess;
   meta: RequestActionMeta;
-  payload: { response: any };
+  payload: { response: any; fulfilledAt?: number };
 };
 
 /** Internal action dispatched when a request fails. */

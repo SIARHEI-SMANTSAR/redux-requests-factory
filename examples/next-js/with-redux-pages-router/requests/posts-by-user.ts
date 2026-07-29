@@ -1,4 +1,7 @@
-import { requestsFactory } from "redux-requests-factory";
+import {
+  requestsFactory,
+  type RequestContext,
+} from "redux-requests-factory";
 
 export interface Post {
   id: number;
@@ -9,12 +12,13 @@ export interface UserPostsParams {
   userId: number;
 }
 
-const loadUserPostsRequest = ({
-  userId,
-}: UserPostsParams): Promise<Post[]> =>
-  fetch(`https://jsonplaceholder.typicode.com/posts?userId=${userId}`).then(
-    (res) => res.json()
-  );
+const loadUserPostsRequest = (
+  { userId }: UserPostsParams,
+  { signal }: RequestContext
+): Promise<Post[]> =>
+  fetch(`https://jsonplaceholder.typicode.com/posts?userId=${userId}`, {
+    signal,
+  }).then((res) => res.json());
 
 export const {
   loadDataAction: loadUserPostsAction,

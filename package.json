@@ -1,10 +1,19 @@
 {
   "name": "redux-requests-factory",
   "version": "2.1.1",
-  "description": "Redux requests factory",
+  "description": "Typed Redux request lifecycle, deduplicated cache, and SSR coordination without React coupling",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
   "files": [
     "dist"
   ],
@@ -37,6 +46,10 @@
     "requests-factory",
     "api-factory",
     "redux-middleware",
+    "cache",
+    "deduplication",
+    "ssr",
+    "typescript",
     "flux"
   ],
   "author": {

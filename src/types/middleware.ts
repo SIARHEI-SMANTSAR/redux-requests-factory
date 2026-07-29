@@ -21,13 +21,15 @@ export interface RequestsFactoryDispatch {
 export interface CreateRequestsFactoryMiddleware {
   /**
    * @param config Controls how factory commands interact with the Redux chain.
-   * @returns The Redux middleware and an aggregate request Promise helper.
+   * @returns The Redux middleware and aggregate request lifecycle helpers.
    */
   (config?: MiddlewareConfig): {
     /** Middleware that executes request-factory command actions. */
     middleware: Middleware<RequestsFactoryDispatch>;
     /** Resolves after all requests currently tracked by this middleware finish. */
     toPromise: () => Promise<void>;
+    /** Cancels every request currently tracked by this middleware. */
+    cancelAllRequests: () => Promise<void>;
   };
 }
 
@@ -44,4 +46,6 @@ export interface ActionPropsFromMiddleware<State> {
     key: object,
     createState: () => RuntimeState
   ): RuntimeState;
+  /** Registers one active execution for middleware-wide cancellation. */
+  registerRequestCancellation(cancel: () => void): () => void;
 }

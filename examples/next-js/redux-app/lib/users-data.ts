@@ -1,3 +1,5 @@
+import { abortableDelay } from '@/lib/abortable-delay';
+
 export type User = {
   id: number;
   name: string;
@@ -10,8 +12,8 @@ const users: User[] = [
   { id: 3, name: 'Margaret Hamilton', role: 'Software engineer' },
 ];
 
-export const getUsers = async (): Promise<User[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+export const getUsers = async (signal?: AbortSignal): Promise<User[]> => {
+  await abortableDelay(500, signal);
 
   return users;
 };

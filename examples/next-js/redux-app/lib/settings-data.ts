@@ -1,3 +1,5 @@
+import { abortableDelay } from '@/lib/abortable-delay';
+
 export type Settings = {
   language: string;
   notifications: boolean;
@@ -10,8 +12,8 @@ const settings: Settings = {
   theme: 'System',
 };
 
-export const getSettings = async (): Promise<Settings> => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+export const getSettings = async (signal?: AbortSignal): Promise<Settings> => {
+  await abortableDelay(300, signal);
 
   return settings;
 };

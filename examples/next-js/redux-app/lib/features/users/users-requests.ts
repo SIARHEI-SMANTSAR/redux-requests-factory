@@ -1,15 +1,18 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory, type RequestContext } from 'redux-requests-factory';
 
 import { getUsers, type User } from '@/lib/users-data';
 
 export type { User };
 
-const loadUsersRequest = async (): Promise<User[]> => {
+const loadUsersRequest = async (
+  _params: undefined,
+  { signal }: RequestContext
+): Promise<User[]> => {
   if (typeof window === 'undefined') {
-    return getUsers();
+    return getUsers(signal);
   }
 
-  const response = await fetch('/api/users');
+  const response = await fetch('/api/users', { signal });
 
   if (!response.ok) {
     throw new Error('Failed to load users');

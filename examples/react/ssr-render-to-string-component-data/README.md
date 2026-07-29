@@ -24,7 +24,9 @@ The SSR server then follows this sequence:
 3. Await `store.asyncRequests()` so every request discovered in pass one can
    settle.
 4. Call `renderToString` again. Selectors now read the resolved data from Redux.
-5. Return the second HTML string and serialize the Redux state for
+5. Cancel requests started during the second pass and wait for their lifecycle
+   promises to settle.
+6. Return the second HTML string and serialize the Redux state for
    `hydrateRoot`.
 
 Only components mounted for the requested route participate. On client-side
@@ -32,6 +34,18 @@ React Router navigation, newly mounted components load their data from
 `useEffect`. Normal factory actions reuse hydrated or previously loaded data,
 and multiple components can dispatch the same action without duplicating its
 request.
+
+Successful requests are cached, so the second pass does not start them again.
+A failed request can be retried by the second pass; it is canceled after the
+HTML is produced and serialized with the `canceled` status. The browser's
+`useEffect` then dispatches the normal loading action, and `canceled` permits a
+fresh client-side request. Serializing `loading` here would be incorrect because
+the browser store has no corresponding server-side execution to await.
+
+Every discovered request forwards its factory-provided `AbortSignal` to
+`fetch`. Express connects a closed HTTP response to
+`store.cancelAsyncRequests()`, so abandoning either render pass aborts all
+transport work owned by that request-scoped store.
 
 The example has two routes:
 

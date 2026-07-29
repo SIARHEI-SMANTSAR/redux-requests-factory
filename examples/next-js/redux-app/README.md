@@ -5,13 +5,13 @@ integrated with the Next.js App Router.
 
 ## Routes
 
-| Route | Demonstrates |
-| --- | --- |
-| `/` | Client-side loading, cache-aware loading, and forced reloads. |
-| `/server-redux` | One async Server Component inside a `Suspense` boundary. |
-| `/server-redux-use` | A Client Component reading server work with `use(promise)`. |
-| `/server-redux-batch` | One server store starting and awaiting three requests. |
-| `/server-redux-streams` | Three independent async Server Components and streams. |
+| Route                   | Demonstrates                                                  |
+| ----------------------- | ------------------------------------------------------------- |
+| `/`                     | Client-side loading, cache-aware loading, and forced reloads. |
+| `/server-redux`         | One async Server Component inside a `Suspense` boundary.      |
+| `/server-redux-use`     | A Client Component reading server work with `use(promise)`.   |
+| `/server-redux-batch`   | One server store starting and awaiting three requests.        |
+| `/server-redux-streams` | Three independent async Server Components and streams.        |
 
 - `lib/store.ts` creates a new store instead of exporting a shared singleton.
 - `app/store-provider.tsx` owns the browser store, while the shared root layout
@@ -22,6 +22,11 @@ integrated with the Next.js App Router.
   for server actions.
 - Dispatching a request action returns a promise for that action, while
   `store.asyncRequests()` waits until all currently tracked requests finish.
+- Every request forwards the factory-provided `AbortSignal` to `fetch` or to
+  the abortable server-side data function. `lib/with-server-store.ts` connects
+  React's Server Component `cacheSignal()` to
+  `store.cancelAsyncRequests()` and also awaits cleanup in `finally`. Requests
+  are therefore canceled when rendering completes, is aborted, or fails.
 - `app/page.tsx` remains a Server Component and renders an interactive counter.
 - `lib/features/users/users-requests.ts` defines a request factory for users.
 - `app/api/users/route.ts` provides a local Route Handler used by the example.
@@ -63,7 +68,7 @@ example:
 1. `app/server-redux/page.tsx` renders the page shell and places the users block
    inside a `Suspense` boundary.
 2. The async `app/server-components/server-users.tsx` component creates a new
-   store for its current server render.
+   request-scoped store through `withServerStore`.
 3. The component waits for its specific request with
    `await store.dispatch(loadUsersAction())`.
 4. `requestsStateSelector(store.getState())` returns the serializable requests
@@ -121,10 +126,7 @@ with `use()` and suspends until the serializable requests state is available:
 
 import { use } from 'react';
 
-export default function RequestsPromise({
-  children,
-  requestsStatePromise,
-}) {
+export default function RequestsPromise({ children, requestsStatePromise }) {
   const requestsState = use(requestsStatePromise);
 
   return (

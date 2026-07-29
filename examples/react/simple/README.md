@@ -3,6 +3,10 @@
 A basic `redux-requests-factory` example built with React 19, Redux 5,
 React Redux 9, TypeScript, and Vite.
 
+Every request function forwards the factory-provided `AbortSignal` to `fetch`,
+so `cancelRequestAction` stops the underlying network request as well as its
+Redux lifecycle.
+
 ## Run
 
 Build the library from the repository root, then install and run the example:

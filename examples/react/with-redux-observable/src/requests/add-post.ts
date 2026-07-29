@@ -1,4 +1,4 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory, type RequestContext } from 'redux-requests-factory';
 
 interface Post {
   id: number;
@@ -11,8 +11,12 @@ interface Params {
   body?: string;
 }
 
-const addPostRequest = ({ userId, title, body }: Params): Promise<Post> =>
+const addPostRequest = (
+  { userId, title, body }: Params,
+  { signal }: RequestContext
+): Promise<Post> =>
   fetch('https://jsonplaceholder.typicode.com/posts', {
+    signal,
     method: 'POST',
     body: JSON.stringify({
       title,
@@ -22,7 +26,7 @@ const addPostRequest = ({ userId, title, body }: Params): Promise<Post> =>
     headers: {
       'Content-type': 'application/json; charset=UTF-8',
     },
-  }).then(response => response.json());
+  }).then((response) => response.json());
 
 export const {
   doRequestAction: addPostAction,

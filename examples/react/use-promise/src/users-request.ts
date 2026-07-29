@@ -1,4 +1,6 @@
-import { requestsFactory } from 'redux-requests-factory';
+import { requestsFactory, type RequestContext } from 'redux-requests-factory';
+
+import type { RootState } from './store';
 
 export type User = {
   id: number;
@@ -7,15 +9,33 @@ export type User = {
   location: string;
 };
 
-const wait = (duration: number) =>
-  new Promise<void>((resolve) => {
-    window.setTimeout(resolve, duration);
+const wait = (duration: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, duration);
+    const abort = () => {
+      window.clearTimeout(timeout);
+      reject(signal?.reason ?? new Error('Request aborted'));
+    };
+
+    if (signal?.aborted) {
+      abort();
+    } else {
+      signal?.addEventListener('abort', abort, { once: true });
+    }
   });
 
-const loadUsersRequest = async (): Promise<User[]> => {
-  await wait(900);
+const loadUsersRequest = async (
+  _params: undefined,
+  { signal }: RequestContext
+): Promise<User[]> => {
+  await wait(900, signal);
 
-  const response = await fetch(`${import.meta.env.BASE_URL}users.json`);
+  const response = await fetch(`${import.meta.env.BASE_URL}users.json`, {
+    signal,
+  });
 
   if (!response.ok) {
     throw new Error(`Users request failed with status ${response.status}`);
@@ -30,7 +50,7 @@ export const {
   loadDataAction: loadUsersAction,
   requestStatusSelector: usersStatusSelector,
   responseSelector: usersSelector,
-} = requestsFactory({
+} = requestsFactory<User[], unknown, undefined, RootState>({
   request: loadUsersRequest,
   stateRequestKey: 'users',
 });

@@ -1,4 +1,8 @@
-import { RequestsStatuses, requestsFactory } from '../src';
+import {
+  isSomethingLoadingSelector,
+  RequestsStatuses,
+  requestsFactory,
+} from '../src';
 import { createDeferred, createRequestsTestStore } from './helpers';
 
 describe('request Promise lifecycle', () => {
@@ -163,7 +167,7 @@ describe('request Promise lifecycle', () => {
     expect(responseSelector(store.getState())).toBe('recovered');
   });
 
-  it('keeps a canceled request Promise pending and ignores its late result', async () => {
+  it('settles a canceled request Promise, releases deduplication, and ignores its late result', async () => {
     const { store } = createRequestsTestStore();
     const firstRequest = createDeferred<string>();
     const secondRequest = createDeferred<string>();
@@ -184,25 +188,18 @@ describe('request Promise lifecycle', () => {
     expect(requestStatusSelector(store.getState())).toBe(
       RequestsStatuses.Canceled
     );
-    expect(store.dispatch(loadDataAction())).toBe(requestPromise);
-
-    let settled = false;
-    requestPromise.then(() => {
-      settled = true;
-    });
-    await Promise.resolve();
-    expect(settled).toBe(false);
-
-    firstRequest.resolve('ignored');
-    await requestPromise;
-
-    expect(requestStatusSelector(store.getState())).toBe(
-      RequestsStatuses.Canceled
-    );
-    expect(responseSelector(store.getState())).toBeUndefined();
+    await expect(requestPromise).resolves.toBeUndefined();
 
     const retryPromise = store.dispatch(loadDataAction());
+
+    expect(retryPromise).not.toBe(requestPromise);
     expect(request).toHaveBeenCalledTimes(2);
+
+    firstRequest.resolve('ignored');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(responseSelector(store.getState())).toBeUndefined();
+
     secondRequest.resolve('retry response');
     await retryPromise;
     expect(responseSelector(store.getState())).toBe('retry response');
@@ -266,6 +263,130 @@ describe('request Promise lifecycle', () => {
     secondRequest.resolve('ignored latest response');
     await secondPromise;
     expect(responseSelector(store.getState())).toBe('first active response');
+  });
+
+  it('cancelAllRequests cancels every active execution and allows new work', async () => {
+    const { cancelAllRequests, store, toPromise } = createRequestsTestStore();
+    const firstUserRequest = createDeferred<string>();
+    const secondUserRequest = createDeferred<string>();
+    const retryUserRequest = createDeferred<string>();
+    const postsRequest = createDeferred<string>();
+    const userRequests = [
+      firstUserRequest,
+      secondUserRequest,
+      retryUserRequest,
+    ];
+    const userSignals: AbortSignal[] = [];
+    let userRequestIndex = 0;
+    const users = requestsFactory({
+      request: (
+        _params: { id: number },
+        { signal }: { signal?: AbortSignal }
+      ) => {
+        if (signal) {
+          userSignals.push(signal);
+        }
+
+        return userRequests[userRequestIndex++].promise;
+      },
+      stateRequestKey: 'cancel-all-users',
+      serializeRequestParameters: ({ id }: { id: number }) => `${id}`,
+    });
+    let postsSignal: AbortSignal | undefined;
+    const posts = requestsFactory({
+      request: (_params: undefined, { signal }: { signal?: AbortSignal }) => {
+        postsSignal = signal;
+        return postsRequest.promise;
+      },
+      stateRequestKey: 'cancel-all-posts',
+    });
+
+    const firstUserPromise = store.dispatch(
+      users.forcedLoadDataAction({ id: 1 })
+    );
+    const secondUserPromise = store.dispatch(
+      users.forcedLoadDataAction({ id: 1 })
+    );
+    const postsPromise = store.dispatch(posts.loadDataAction());
+    const aggregatePromise = toPromise();
+
+    expect(isSomethingLoadingSelector(store.getState())).toBe(true);
+
+    await cancelAllRequests();
+    await Promise.all([firstUserPromise, secondUserPromise, postsPromise]);
+    await aggregatePromise;
+
+    expect(userSignals).toHaveLength(2);
+    expect(userSignals.every((signal) => signal.aborted)).toBe(true);
+    expect(postsSignal?.aborted).toBe(true);
+    expect(isSomethingLoadingSelector(store.getState())).toBe(false);
+    expect(users.requestStatusSelector(store.getState())({ id: 1 })).toBe(
+      RequestsStatuses.Canceled
+    );
+    expect(posts.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Canceled
+    );
+
+    const retryPromise = store.dispatch(users.loadDataAction({ id: 1 }));
+
+    expect(userSignals).toHaveLength(3);
+    expect(userSignals[2].aborted).toBe(false);
+
+    firstUserRequest.resolve('ignored first user');
+    secondUserRequest.resolve('ignored second user');
+    postsRequest.resolve('ignored posts');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(users.responseSelector(store.getState())({ id: 1 })).toBeUndefined();
+    expect(posts.responseSelector(store.getState())).toBeUndefined();
+
+    retryUserRequest.resolve('fresh user');
+    await retryPromise;
+
+    expect(users.responseSelector(store.getState())({ id: 1 })).toBe(
+      'fresh user'
+    );
+  });
+
+  it('isolates cancelAllRequests between middleware instances', async () => {
+    const firstRequest = createDeferred<string>();
+    const secondRequest = createDeferred<string>();
+    const signals: AbortSignal[] = [];
+    let requestIndex = 0;
+    const api = requestsFactory({
+      request: (_params: undefined, { signal }: { signal?: AbortSignal }) => {
+        if (signal) {
+          signals.push(signal);
+        }
+
+        return [firstRequest, secondRequest][requestIndex++].promise;
+      },
+      stateRequestKey: 'cancel-all-isolation',
+    });
+    const firstRuntime = createRequestsTestStore();
+    const secondRuntime = createRequestsTestStore();
+
+    const firstPromise = firstRuntime.store.dispatch(api.loadDataAction());
+    const secondPromise = secondRuntime.store.dispatch(api.loadDataAction());
+
+    await firstRuntime.cancelAllRequests();
+    await firstPromise;
+
+    expect(signals[0].aborted).toBe(true);
+    expect(signals[1].aborted).toBe(false);
+    expect(api.requestStatusSelector(firstRuntime.store.getState())).toBe(
+      RequestsStatuses.Canceled
+    );
+
+    secondRequest.resolve('second response');
+    await secondPromise;
+
+    expect(api.responseSelector(secondRuntime.store.getState())).toBe(
+      'second response'
+    );
+
+    firstRequest.resolve('ignored first response');
   });
 
   it('toPromise waits for every request tracked by the middleware', async () => {

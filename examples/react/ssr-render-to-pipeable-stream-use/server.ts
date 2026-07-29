@@ -25,9 +25,7 @@ let vite: ViteDevServer | undefined;
 let assets: RenderAssets;
 
 if (isProduction) {
-  app.use(
-    express.static(path.resolve(root, 'dist/client'), { index: false })
-  );
+  app.use(express.static(path.resolve(root, 'dist/client'), { index: false }));
 
   const manifest = JSON.parse(
     await fs.readFile(
@@ -86,6 +84,20 @@ app.get('/api/activity', async (_request, response) => {
 });
 
 app.use(async (request, response, next) => {
+  const renderAbortController = new AbortController();
+  let abortReactRender: (() => void) | undefined;
+  let abortTimer: ReturnType<typeof setTimeout> | undefined;
+  const abortRender = () => {
+    clearTimeout(abortTimer);
+
+    if (!response.writableEnded) {
+      renderAbortController.abort(new Error('HTTP connection closed'));
+      abortReactRender?.();
+    }
+  };
+
+  response.once('close', abortRender);
+
   try {
     let serverEntry: ServerEntry;
     if (isProduction) {
@@ -103,32 +115,31 @@ app.use(async (request, response, next) => {
     const { abort, pipe } = await serverEntry.render(
       request.path,
       internalOrigin,
-      assets
+      assets,
+      renderAbortController.signal
     );
+    abortReactRender = abort;
 
     response.status(200).type('html');
-    const abortTimer = setTimeout(abort, 10_000);
+    abortTimer = setTimeout(abortRender, 10_000);
 
     response.on('finish', () => {
       clearTimeout(abortTimer);
     });
-    response.on('close', () => {
-      clearTimeout(abortTimer);
-      if (!response.writableEnded) {
-        abort();
-      }
-    });
-
     // React owns the complete document and ends the HTTP response after </html>.
     pipe(response);
   } catch (error) {
+    response.off('close', abortRender);
+
+    if (renderAbortController.signal.aborted) {
+      return;
+    }
+
     vite?.ssrFixStacktrace(error as Error);
     next(error);
   }
 });
 
 app.listen(port, () => {
-  console.log(
-    `Streaming Suspense SSR running at http://localhost:${port}`
-  );
+  console.log(`Streaming Suspense SSR running at http://localhost:${port}`);
 });

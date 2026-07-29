@@ -39,7 +39,8 @@ export const createRequestsTestStore = () => {
 
     return next(action);
   };
-  const { middleware, toPromise } = createRequestsFactoryMiddleware();
+  const { cancelAllRequests, middleware, toPromise } =
+    createRequestsFactoryMiddleware();
   const reducer = combineReducers({
     [stateRequestsKey]: requestsReducer,
   });
@@ -48,8 +49,8 @@ export const createRequestsTestStore = () => {
     applyMiddleware(middleware, recorderMiddleware)
   );
   const typedStore = store as Omit<typeof store, 'dispatch'> & {
-    dispatch: RequestsFactoryDispatch;
+    dispatch: RequestsFactoryDispatch & typeof store.dispatch;
   };
 
-  return { recordedActions, store: typedStore, toPromise };
+  return { cancelAllRequests, recordedActions, store: typedStore, toPromise };
 };

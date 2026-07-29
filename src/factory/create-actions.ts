@@ -57,6 +57,7 @@ const createActions = <
     fulfilledActions = [],
     rejectedActions = [],
     includeInGlobalLoading = true,
+    staleTime = Infinity,
     transformError = identity,
     dispatchFulfilledActionForLoadedRequest = false,
     globalLoadingTimeout,
@@ -204,20 +205,23 @@ const createActions = <
     getState: () => State;
     silent: boolean;
     runtime: RequestRuntimeState;
+    registerRequestCancellation: (cancel: () => void) => () => void;
+    execution: {
+      canceled: boolean;
+      started: boolean;
+    };
   };
 
   type DoRequest = (args: DoRequestArgs) => Promise<void>;
 
   type RequestRuntimeState = {
     doRequestMapByKey: DoRequestMapByKey;
-    globalLoadingDecrementedAfterTimeout: boolean;
-    globalLoadingTimeoutId?: ReturnType<typeof setTimeout>;
     lastRequestNumber: number;
     loadPromiseMapByKey: Map<string, Promise<void>>;
     memoizedDoRequest: DoRequest;
   };
 
-  const doRequest: DoRequest = async ({
+  const doRequest: DoRequest = ({
     params,
     dispatch,
     meta,
@@ -225,10 +229,65 @@ const createActions = <
     getState,
     silent,
     runtime,
+    registerRequestCancellation,
+    execution,
   }) => {
-    const requestNumber = ++runtime.lastRequestNumber;
+    if (execution.canceled) {
+      return Promise.resolve();
+    }
 
-    setNewRequestToMap(runtime.doRequestMapByKey, requestKey, requestNumber);
+    execution.started = true;
+    const requestNumber = ++runtime.lastRequestNumber;
+    const abortController =
+      typeof AbortController === 'undefined'
+        ? undefined
+        : new AbortController();
+
+    let resolveCancellation!: () => void;
+    const cancellationPromise = new Promise<void>((resolve) => {
+      resolveCancellation = resolve;
+    });
+
+    const activeRequest = setNewRequestToMap(
+      runtime.doRequestMapByKey,
+      requestKey,
+      requestNumber,
+      abortController,
+      resolveCancellation,
+      silent
+    );
+
+    let unregisterRequestCancellation: () => void = () => undefined;
+    const cancelExecution = () => {
+      if (activeRequest.canceled) {
+        return;
+      }
+
+      activeRequest.canceled = true;
+      unregisterRequestCancellation();
+      activeRequest.abortController?.abort();
+      activeRequest.resolveCancellation();
+      runtime.loadPromiseMapByKey.delete(requestKey);
+
+      dispatch(commonRequestCancelAction(meta));
+      clearTimeout(activeRequest.globalLoadingTimeoutId);
+
+      if (
+        includeInGlobalLoading &&
+        !activeRequest.silent &&
+        !activeRequest.globalLoadingDecrementedAfterTimeout
+      ) {
+        dispatch(globalLoadingDecrementAction());
+      }
+
+      if (useDebounce) {
+        runtime.memoizedDoRequest = getMemoizedDoRequest();
+      }
+    };
+
+    activeRequest.cancel = cancelExecution;
+    unregisterRequestCancellation =
+      registerRequestCancellation(cancelExecution);
 
     dispatch(commonRequestStartAction(meta));
 
@@ -237,7 +296,7 @@ const createActions = <
     }
 
     if (globalLoadingTimeout) {
-      runtime.globalLoadingTimeoutId = setTimeout(() => {
+      activeRequest.globalLoadingTimeoutId = setTimeout(() => {
         if (
           !isRequestCanceled(
             runtime.doRequestMapByKey,
@@ -246,7 +305,7 @@ const createActions = <
           )
         ) {
           if (includeInGlobalLoading && !silent) {
-            runtime.globalLoadingDecrementedAfterTimeout = true;
+            activeRequest.globalLoadingDecrementedAfterTimeout = true;
 
             dispatch(globalLoadingDecrementAction());
           }
@@ -254,67 +313,84 @@ const createActions = <
       }, globalLoadingTimeout);
     }
 
-    try {
-      const response = await request(params);
-
-      clearTimeout(runtime.globalLoadingTimeoutId);
-
-      if (
-        !isRequestCanceled(runtime.doRequestMapByKey, requestKey, requestNumber)
-      ) {
-        dispatch(commonRequestSuccessAction(meta, response));
-        if (isRequestFulfilledActionNeeded) {
-          dispatch(requestFulfilledAction({ params, response }, meta));
-        }
-        dispatchFulfilledActions(dispatch, {
-          request: params,
-          response, // TODO use transform response
-          state: getState(),
+    const requestLifecyclePromise = (async () => {
+      try {
+        const response = await request(params, {
+          signal: abortController?.signal,
         });
-      }
-    } catch (error) {
-      if (
-        !isRequestCanceled(runtime.doRequestMapByKey, requestKey, requestNumber)
-      ) {
-        dispatch(commonRequestErrorAction(meta, error));
-        const transformedError = transformError<Err>(error);
-        if (isRequestRejectedActionNeeded) {
-          dispatch(
-            requestRejectedAction(
-              {
-                params,
-                error: transformedError,
-              },
-              meta
-            )
-          );
+
+        clearTimeout(activeRequest.globalLoadingTimeoutId);
+
+        if (
+          !isRequestCanceled(
+            runtime.doRequestMapByKey,
+            requestKey,
+            requestNumber
+          )
+        ) {
+          dispatch(commonRequestSuccessAction(meta, response));
+          if (isRequestFulfilledActionNeeded) {
+            dispatch(requestFulfilledAction({ params, response }, meta));
+          }
+          dispatchFulfilledActions(dispatch, {
+            request: params,
+            response, // TODO use transform response
+            state: getState(),
+          });
         }
-        dispatchRejectedActions(dispatch, {
-          request: params,
-          error: transformedError,
-          state: getState(),
-        });
-      }
-    } finally {
-      if (
-        includeInGlobalLoading &&
-        !silent &&
-        !isRequestCanceled(
+      } catch (error) {
+        if (
+          !isRequestCanceled(
+            runtime.doRequestMapByKey,
+            requestKey,
+            requestNumber
+          )
+        ) {
+          dispatch(commonRequestErrorAction(meta, error));
+          const transformedError = transformError<Err>(error);
+          if (isRequestRejectedActionNeeded) {
+            dispatch(
+              requestRejectedAction(
+                {
+                  params,
+                  error: transformedError,
+                },
+                meta
+              )
+            );
+          }
+          dispatchRejectedActions(dispatch, {
+            request: params,
+            error: transformedError,
+            state: getState(),
+          });
+        }
+      } finally {
+        unregisterRequestCancellation();
+        clearTimeout(activeRequest.globalLoadingTimeoutId);
+
+        if (
+          includeInGlobalLoading &&
+          !silent &&
+          !isRequestCanceled(
+            runtime.doRequestMapByKey,
+            requestKey,
+            requestNumber
+          ) &&
+          !activeRequest.globalLoadingDecrementedAfterTimeout
+        ) {
+          dispatch(globalLoadingDecrementAction());
+        }
+
+        deleteRequestFromMap(
           runtime.doRequestMapByKey,
           requestKey,
           requestNumber
-        ) &&
-        !runtime.globalLoadingDecrementedAfterTimeout
-      ) {
-        dispatch(globalLoadingDecrementAction());
+        );
       }
+    })();
 
-      deleteRequestFromMap(
-        runtime.doRequestMapByKey,
-        requestKey,
-        requestNumber
-      );
-    }
+    return Promise.race([requestLifecyclePromise, cancellationPromise]);
   };
 
   const getMemoizedDoRequest = () =>
@@ -335,7 +411,6 @@ const createActions = <
   const requestFactoryRuntimeKey = {};
   const createRuntimeState = (): RequestRuntimeState => ({
     doRequestMapByKey: new Map(),
-    globalLoadingDecrementedAfterTimeout: false,
     lastRequestNumber: 0,
     loadPromiseMapByKey: new Map(),
     memoizedDoRequest: getMemoizedDoRequest(),
@@ -358,6 +433,7 @@ const createActions = <
       dispatch,
       getState,
       getRuntimeState,
+      registerRequestCancellation,
     }: ActionPropsFromMiddleware<State>) => {
       const runtime = getRuntimeState(
         requestFactoryRuntimeKey,
@@ -372,18 +448,12 @@ const createActions = <
         }
       }
 
-      if (isForced || isNeedLoadData(config, meta, getState())) {
-        let resolveRequestPromise!: () => void;
-        let rejectRequestPromise!: (error: unknown) => void;
-        const requestPromise = new Promise<void>((resolve, reject) => {
-          resolveRequestPromise = resolve;
-          rejectRequestPromise = reject;
-        });
-
-        runtime.loadPromiseMapByKey.set(requestKey, requestPromise);
+      if (isForced || isNeedLoadData(config, meta, getState(), staleTime)) {
+        const execution = { canceled: false, started: false };
+        let executionPromise: Promise<void>;
 
         try {
-          Promise.resolve(
+          executionPromise = Promise.resolve(
             (useDebounce ? runtime.memoizedDoRequest : doRequest)({
               params,
               dispatch,
@@ -392,13 +462,47 @@ const createActions = <
               getState,
               silent,
               runtime,
+              registerRequestCancellation,
+              execution,
             })
-          ).then(resolveRequestPromise, rejectRequestPromise);
+          );
         } catch (error) {
-          rejectRequestPromise(error);
+          executionPromise = Promise.reject(error);
         }
 
+        let resolveCancellation!: () => void;
+        const cancellationPromise = new Promise<void>((resolve) => {
+          resolveCancellation = resolve;
+        });
+        const cancelPendingExecution = () => {
+          if (execution.canceled) {
+            return;
+          }
+
+          execution.canceled = true;
+          resolveCancellation();
+
+          if (!execution.started) {
+            dispatch(commonRequestCancelAction(meta));
+
+            if (useDebounce) {
+              runtime.memoizedDoRequest = getMemoizedDoRequest();
+            }
+          }
+        };
+        const unregisterRequestCancellation = registerRequestCancellation(
+          cancelPendingExecution
+        );
+        const requestPromise = Promise.race([
+          executionPromise,
+          cancellationPromise,
+        ]);
+
+        runtime.loadPromiseMapByKey.set(requestKey, requestPromise);
+
         const clearPromise = () => {
+          unregisterRequestCancellation();
+
           if (runtime.loadPromiseMapByKey.get(requestKey) === requestPromise) {
             runtime.loadPromiseMapByKey.delete(requestKey);
           }
@@ -444,33 +548,14 @@ const createActions = <
       ),
       cancelRequestAction: createAsyncAction(
         `${FactoryActionTypes.CancelRequest}/${stateRequestKey}`,
-        ({ meta, requestKey, silent }) => {
-          return ({
-            dispatch,
-            getRuntimeState,
-          }: ActionPropsFromMiddleware<State>) => {
+        ({ requestKey }) => {
+          return ({ getRuntimeState }: ActionPropsFromMiddleware<State>) => {
             const runtime = getRuntimeState(
               requestFactoryRuntimeKey,
               createRuntimeState
             );
 
-            if (cancelRequestInMap(runtime.doRequestMapByKey, requestKey)) {
-              dispatch(commonRequestCancelAction(meta));
-
-              clearTimeout(runtime.globalLoadingTimeoutId);
-
-              if (
-                includeInGlobalLoading &&
-                !silent &&
-                !runtime.globalLoadingDecrementedAfterTimeout
-              ) {
-                dispatch(globalLoadingDecrementAction());
-              }
-
-              if (useDebounce) {
-                runtime.memoizedDoRequest = getMemoizedDoRequest();
-              }
-            }
+            cancelRequestInMap(runtime.doRequestMapByKey, requestKey);
           };
         },
         identity

@@ -142,21 +142,30 @@ const Home: NextPage = () => {
 };
 
 export const getServerSideProps = wrapper.getServerSideProps(
-  (store) => async () => {
-    await store.dispatch(loadUsersAction());
+  (store) =>
+    async ({ res }) => {
+      const cancelRequests = () => void store.cancelAsyncRequests();
+      res.once("close", cancelRequests);
 
-    const users = usersSelector(store.getState());
+      try {
+        await store.dispatch(loadUsersAction());
 
-    users.forEach(({ id }) => {
-      store.dispatch(loadUserPostsAction({ userId: id }));
-    });
+        const users = usersSelector(store.getState());
 
-    await store.asyncRequests();
+        users.forEach(({ id }) => {
+          store.dispatch(loadUserPostsAction({ userId: id }));
+        });
 
-    return {
-      props: {},
-    };
-  }
+        await store.asyncRequests();
+
+        return {
+          props: {},
+        };
+      } finally {
+        await store.cancelAsyncRequests();
+        res.off("close", cancelRequests);
+      }
+    }
 );
 
 export default Home;

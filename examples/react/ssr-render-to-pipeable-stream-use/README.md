@@ -11,6 +11,14 @@ streams component-owned data boundaries, serializes the completed Redux state,
 and hydrates the document in the browser. React Router provides client-side
 navigation, so another server render happens only after a full page reload.
 
+This combines React's streaming SSR and selective hydration—sometimes grouped
+under the informal term “streaming hydration.” React owns the rendering and
+hydration schedule; the request factory contributes stable dispatch Promises
+for `use()`, request state shared through Redux, and state transfer that
+prevents hydration-time duplicate requests. Slow boundaries can finish after
+faster content has already been sent without requiring a second client query
+cache.
+
 Use this example as the recommended starting point when building a new Node.js
 React SSR integration. The `renderToString` and preload-first streaming
 examples remain useful as simpler alternatives and for comparing data-loading
@@ -39,6 +47,14 @@ suspending again.
 every SSR request. Its in-flight Promise cache, cancellation bookkeeping,
 debounce state, and aggregate request tracker are isolated from every other
 server render, while the request action modules remain safe singletons.
+
+Every request forwards its factory-provided `AbortSignal` to `fetch`. Express
+connects a closed HTTP response and the render timeout to React's `abort()` and
+`store.cancelAsyncRequests()`, so every pending Suspense request in that SSR
+store is aborted and its dispatch Promise settles immediately. Synchronous
+render errors and `onShellError` perform the same cleanup, while `onAllReady`
+cancels any unused fire-and-forget work that did not participate in a Suspense
+boundary.
 
 Every singleton request definition contributes only a stable
 `requestFactoryRuntimeKey`. Each middleware has its own private `WeakMap`, so

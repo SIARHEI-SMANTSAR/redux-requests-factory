@@ -15,9 +15,7 @@ const app = express();
 let vite: ViteDevServer | undefined;
 
 if (isProduction) {
-  app.use(
-    express.static(path.resolve(root, 'dist/client'), { index: false })
-  );
+  app.use(express.static(path.resolve(root, 'dist/client'), { index: false }));
 } else {
   const { createServer } = await import('vite');
   vite = await createServer({
@@ -54,6 +52,15 @@ app.get('/api/activity', async (_request, response) => {
 });
 
 app.use(async (request, response, next) => {
+  const renderAbortController = new AbortController();
+  const abortRender = () => {
+    if (!response.writableEnded) {
+      renderAbortController.abort(new Error('HTTP connection closed'));
+    }
+  };
+
+  response.once('close', abortRender);
+
   try {
     const templatePath = isProduction
       ? path.resolve(root, 'dist/client/index.html')
@@ -76,7 +83,8 @@ app.use(async (request, response, next) => {
     const internalOrigin = `http://127.0.0.1:${port}`;
     const { appHtml, preloadedState } = await serverEntry.render(
       request.path,
-      internalOrigin
+      internalOrigin,
+      renderAbortController.signal
     );
     const serializedState = JSON.stringify(preloadedState).replace(
       /[<\u2028\u2029]/g,
@@ -95,8 +103,14 @@ app.use(async (request, response, next) => {
 
     response.status(200).type('html').send(html);
   } catch (error) {
+    if (renderAbortController.signal.aborted) {
+      return;
+    }
+
     vite?.ssrFixStacktrace(error as Error);
     next(error);
+  } finally {
+    response.off('close', abortRender);
   }
 });
 
