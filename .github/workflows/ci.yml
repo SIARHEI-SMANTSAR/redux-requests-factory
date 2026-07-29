@@ -24,3 +24,25 @@ jobs:
       - run: node -e "require('redux-requests-factory')"
       - run: node --input-type=module -e "await import('redux-requests-factory')"
       - run: npm pack --dry-run
+
+  e2e-react-streaming-ssr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            examples/react/ssr-render-to-pipeable-stream-use/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci
+        working-directory: examples/react/ssr-render-to-pipeable-stream-use
+      - run: npx playwright install --with-deps chromium
+        working-directory: examples/react/ssr-render-to-pipeable-stream-use
+      - run: npm run build
+        working-directory: examples/react/ssr-render-to-pipeable-stream-use
+      - run: npm run test:e2e
+        working-directory: examples/react/ssr-render-to-pipeable-stream-use
