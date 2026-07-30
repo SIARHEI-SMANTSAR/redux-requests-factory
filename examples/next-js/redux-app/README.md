@@ -195,3 +195,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) and use the counter to verify
 that Redux is connected.
+
+## End-to-end tests
+
+The Playwright suite builds and starts the production Next.js server. It checks
+that every Server Component example hydrates its server-loaded request state
+without repeating browser API requests, that forced client reloads still work,
+and that the three independent Suspense boundaries stream in data completion
+order.
+
+```bash
+npm run test:e2e
+```

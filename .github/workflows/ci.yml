@@ -46,3 +46,23 @@ jobs:
         working-directory: examples/react/ssr-render-to-pipeable-stream-use
       - run: npm run test:e2e
         working-directory: examples/react/ssr-render-to-pipeable-stream-use
+
+  e2e-next-server-components:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            examples/next-js/redux-app/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci
+        working-directory: examples/next-js/redux-app
+      - run: npx playwright install --with-deps chromium
+        working-directory: examples/next-js/redux-app
+      - run: npm run test:e2e
+        working-directory: examples/next-js/redux-app
