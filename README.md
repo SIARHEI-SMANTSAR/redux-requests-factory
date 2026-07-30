@@ -80,6 +80,11 @@ Redux module with its own actions, selectors, lifecycle, and cache identity.
   can keep failed or canceled work terminal, while a new browser middleware
   retries that hydrated state exactly once without detecting server or browser
   globals and without creating a client retry loop.
+- **Bounded automatic retries.** Each request module can retry transient
+  failures within the same dispatch Promise, using a typed error predicate and
+  a fixed or computed backoff. Intermediate failures stay inside the active
+  lifecycle, final side effects run only once, and cancellation interrupts
+  both transport work and a pending retry delay.
 - **UI and transport independence.** The request function can use `fetch`, an
   SDK, a database client, or any Promise-returning implementation. The same
   module can serve React components, server code, and other consumers.
@@ -912,6 +917,10 @@ const request = requestsFactory({
     RequestsStatuses.Failed,
     RequestsStatuses.Canceled,
   ],
+  retry: {
+    maxRetries: 2,
+    delay: ({ attempt }) => 500 * 2 ** (attempt - 1),
+  },
   globalLoadingTimeout: 1000,
   dispatchFulfilledActionForLoadedRequest: false,
   fulfilledActions: [],
@@ -928,6 +937,7 @@ const request = requestsFactory({
 | `serializeRequestParameters`              | No       | -                                                           | Converts params to a string cache key. When set, selectors return `(params) => value`.                                                                  |
 | `transformResponse`                       | No       | -                                                           | Transforms `responseSelector` output. Commonly used to provide a default value.                                                                         |
 | `transformError`                          | No       | -                                                           | Transforms `errorSelector` output and failed-request errors passed to `requestRejectedAction` and `rejectedActions`.                                    |
+| `retry`                                   | No       | -                                                           | Automatically retries failures within one request lifecycle. Configures `maxRetries`, optional `delay`, and optional `shouldRetry`.                     |
 | `useDebounce`                             | No       | `false`                                                     | Enables debounce for `doRequestAction`, `forcedLoadDataAction`, and `loadDataAction`.                                                                   |
 | `debounceWait`                            | No       | `500`                                                       | Debounce wait in milliseconds.                                                                                                                          |
 | `debounceOptions`                         | No       | `{ leading: true, trailing: false, maxWait: debounceWait }` | Options passed to `lodash.debounce`.                                                                                                                    |
@@ -940,6 +950,46 @@ const request = requestsFactory({
 | `loadDataHydratedRetryStatuses`           | No       | `loadDataRetryStatuses`                                     | Hydrated terminal statuses that may retry once per request key and hydration cycle. Overrides the middleware setting.                                    |
 | `globalLoadingTimeout`                    | No       | -                                                           | Removes this request from global loading after the given time in ms.                                                                                    |
 | `dispatchFulfilledActionForLoadedRequest` | No       | `false`                                                     | When `requestFulfilledAction` is enabled, re-dispatches it and `fulfilledActions` for a cached successful `loadDataAction`.                             |
+
+#### Automatic retries
+
+The optional `retry` policy repeats a failed `request` call without creating a
+new Redux request lifecycle. `maxRetries` counts retries after the initial
+attempt, so `maxRetries: 2` permits at most three calls. Intermediate failures
+keep the request in `Loading`; only the final failure updates Redux and
+dispatches `requestRejectedAction` and `rejectedActions`. Global loading and
+the Promise returned by dispatch also cover the complete sequence rather than
+each attempt separately.
+
+```ts
+const users = requestsFactory({
+  stateRequestKey: 'users',
+  request: loadUsers,
+  transformError: (error: unknown) => normalizeApiError(error),
+  retry: {
+    maxRetries: 3,
+    shouldRetry: ({ error }) =>
+      error.status === 429 || error.status >= 500,
+    delay: ({ attempt }) => {
+      const exponentialDelay = Math.min(500 * 2 ** (attempt - 1), 10_000);
+
+      return exponentialDelay * (0.8 + Math.random() * 0.4);
+    },
+  },
+});
+```
+
+`attempt` is the one-based number of the request call that failed, and
+`retriesLeft` is the number of retries still available after that failure. Both
+callbacks receive the request params and the error produced by `transformError`.
+A numeric `delay` applies the same wait to every retry. Negative and non-finite
+retry counts are treated as zero; negative and non-finite delays are treated as
+zero.
+
+Cancellation aborts the active request or clears a pending retry delay, and no
+further attempt is started. `loadDataRetryStatuses` remains a separate policy:
+after automatic retries are exhausted and the request becomes `Failed`, it
+decides whether a later `loadDataAction` dispatch may begin a new lifecycle.
 
 #### `AbortController` compatibility
 

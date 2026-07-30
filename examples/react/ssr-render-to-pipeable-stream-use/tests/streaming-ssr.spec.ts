@@ -54,6 +54,21 @@ test('hydrates without duplicate requests and supports navigation and reloads', 
 }) => {
   const browserApiRequests: string[] = [];
   const runtimeErrors: string[] = [];
+  let transientUsersFailures = 1;
+
+  await page.route('**/api/users', async (route) => {
+    if (transientUsersFailures > 0) {
+      transientUsersFailures -= 1;
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Temporary users service failure' }),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
 
   page.on('request', (request) => {
     if (new URL(request.url()).pathname.startsWith('/api/')) {
@@ -82,7 +97,7 @@ test('hydrates without duplicate requests and supports navigation and reloads', 
   await page.getByRole('button', { name: 'Force reload users' }).click();
   await expect(page.getByText('Streaming users…')).toBeVisible();
   await expect(page.getByText('Ada Lovelace')).toBeVisible();
-  expect(browserApiRequests).toEqual(['/api/users']);
+  expect(browserApiRequests).toEqual(['/api/users', '/api/users']);
 
   await page.getByRole('link', { name: 'Request batch' }).click();
   await page.getByRole('button', { name: 'Force reload stats' }).click();

@@ -23,6 +23,38 @@ export type ExternalActions<Data> = (
   | null
 )[];
 
+/** Values passed to request retry policy callbacks after a failed attempt. */
+export type RetryContext<Err, Params> = {
+  /** Error transformed by the request factory's `transformError` function. */
+  error: Err;
+  /** Parameters used by the failed request. */
+  params: Params;
+  /** One-based number of the request attempt that failed. */
+  attempt: number;
+  /** Number of configured retries still available after this failure. */
+  retriesLeft: number;
+};
+
+/** Automatic retry policy for one request factory. */
+export type RetryConfig<Err, Params> = {
+  /**
+   * Maximum number of retries after the initial request attempt.
+   * Values below zero are treated as zero.
+   */
+  maxRetries: number;
+  /**
+   * Delay before the next attempt in milliseconds. A callback can implement
+   * exponential backoff, jitter, or server-specific rate-limit handling.
+   * @default 0
+   */
+  delay?: number | ((context: RetryContext<Err, Params>) => number);
+  /**
+   * Decides whether a failed attempt should be retried. When omitted, every
+   * failure is retried until `maxRetries` is exhausted.
+   */
+  shouldRetry?: (context: RetryContext<Err, Params>) => boolean;
+};
+
 /** Options shared by every request factory configuration. */
 export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   /** Unique key used to store this request in the requests reducer. */
@@ -42,6 +74,12 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   };
   /** Transforms errors exposed by selectors and failed-request side effects. */
   transformError?: (error: any) => Err;
+  /**
+   * Automatically retries failures within the same request lifecycle.
+   * Intermediate failures do not update Redux or dispatch rejected actions.
+   * @default undefined
+   */
+  retry?: RetryConfig<Err, _Params>;
   /**
    * Includes this request in global loading state. Overrides the middleware
    * setting.

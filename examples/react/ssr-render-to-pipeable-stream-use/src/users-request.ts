@@ -10,6 +10,13 @@ type LoadUsersParams = {
   baseUrl?: string;
 };
 
+class UsersRequestError extends Error {
+  constructor(public readonly status: number) {
+    super(`Users request failed with status ${status}`);
+    this.name = 'UsersRequestError';
+  }
+}
+
 const loadUsersRequest = async (
   { baseUrl = '' }: LoadUsersParams = {},
   { signal }: RequestContext
@@ -17,7 +24,7 @@ const loadUsersRequest = async (
   const response = await fetch(`${baseUrl}/api/users`, { signal });
 
   if (!response.ok) {
-    throw new Error(`Users request failed with status ${response.status}`);
+    throw new UsersRequestError(response.status);
   }
 
   return response.json() as Promise<User[]>;
@@ -31,5 +38,12 @@ export const {
 } = requestsFactory({
   request: loadUsersRequest,
   stateRequestKey: 'users',
+  retry: {
+    maxRetries: 2,
+    shouldRetry: ({ error }) =>
+      error instanceof UsersRequestError &&
+      (error.status === 429 || error.status >= 500),
+    delay: ({ attempt }) => Math.min(250 * 2 ** (attempt - 1), 2_000),
+  },
   transformResponse: (response: User[] | undefined) => response ?? [],
 });

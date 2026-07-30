@@ -64,6 +64,44 @@ render errors and `onShellError` perform the same cleanup, while `onAllReady`
 cancels any unused fire-and-forget work that did not participate in a Suspense
 boundary.
 
+## Automatic request retry
+
+The users request demonstrates bounded automatic retries for transient HTTP
+failures. It retries rate limiting and server errors, uses exponential backoff,
+and leaves client errors such as `400` or `404` as final failures:
+
+```ts
+class UsersRequestError extends Error {
+  constructor(public readonly status: number) {
+    super(`Users request failed with status ${status}`);
+  }
+}
+
+const usersRequest = requestsFactory({
+  request: loadUsersRequest,
+  stateRequestKey: 'users',
+  retry: {
+    maxRetries: 2,
+    shouldRetry: ({ error }) =>
+      error instanceof UsersRequestError &&
+      (error.status === 429 || error.status >= 500),
+    delay: ({ attempt }) => Math.min(250 * 2 ** (attempt - 1), 2_000),
+  },
+});
+```
+
+`maxRetries: 2` means one initial request plus at most two retries. All attempts
+remain inside the same dispatch Promise, so React continues to receive one
+stable thenable through `use(promise)`. Intermediate failures do not update
+Redux or resolve the Suspense boundary; only a success or the final exhausted
+failure completes the lifecycle.
+
+This is independent from the store's `loadDataRetryStatuses: []` setting. That
+setting prevents a later render from starting a new lifecycle for an already
+failed request, while `retry` controls attempts inside the lifecycle that is
+already pending. If the HTTP connection closes during backoff, the store-wide
+cancellation clears the retry timer and prevents another attempt.
+
 Every singleton request definition contributes only a stable
 `requestFactoryRuntimeKey`. Each middleware has its own private `WeakMap`, so
 the same key resolves to a different runtime state in every SSR store. The key

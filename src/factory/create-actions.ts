@@ -68,6 +68,7 @@ const createActions = <
     loadDataRetryStatuses,
     loadDataHydratedRetryStatuses,
     transformError = identity,
+    retry,
     dispatchFulfilledActionForLoadedRequest = false,
     globalLoadingTimeout,
   } = factoryConfig;
@@ -281,6 +282,7 @@ const createActions = <
     );
 
     let unregisterRequestCancellation: () => void = () => undefined;
+    let cancelRetryDelay: () => void = () => undefined;
     const cancelExecution = () => {
       if (activeRequest.canceled) {
         return;
@@ -289,6 +291,7 @@ const createActions = <
       activeRequest.canceled = true;
       unregisterRequestCancellation();
       activeRequest.abortController?.abort();
+      cancelRetryDelay();
       activeRequest.resolveCancellation();
 
       dispatch(commonRequestCancelAction(meta));
@@ -335,60 +338,162 @@ const createActions = <
       }, globalLoadingTimeout);
     }
 
+    const waitForRetry = (delay: number) => {
+      if (delay <= 0) {
+        return Promise.resolve(true);
+      }
+
+      return new Promise<boolean>((resolve) => {
+        let settled = false;
+        const finish = (completed: boolean) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timeoutId);
+          cancelRetryDelay = () => undefined;
+          resolve(completed);
+        };
+        const timeoutId = setTimeout(() => finish(true), delay);
+
+        cancelRetryDelay = () => finish(false);
+      });
+    };
+
     const requestLifecyclePromise = (async () => {
       try {
-        const response = await request(params, {
-          signal: abortController?.signal,
-        });
+        const configuredMaxRetries = retry?.maxRetries ?? 0;
+        const maxRetries = Number.isFinite(configuredMaxRetries)
+          ? Math.max(0, Math.floor(configuredMaxRetries))
+          : 0;
+        let attempt = 0;
 
-        clearTimeout(activeRequest.globalLoadingTimeoutId);
+        while (true) {
+          attempt += 1;
 
-        if (
-          !isRequestCanceled(
-            runtime.doRequestMapByKey,
-            requestKey,
-            requestNumber
-          )
-        ) {
-          dispatch(commonRequestSuccessAction(meta, response));
-          if (isRequestFulfilledActionNeeded) {
-            dispatch(requestFulfilledAction({ params, response }, meta));
-          }
-          dispatchFulfilledActions(dispatch, {
-            request: params,
-            response, // TODO use transform response
-            state: getState(),
-          });
-        }
-      } catch (error) {
-        if (
-          !isRequestCanceled(
-            runtime.doRequestMapByKey,
-            requestKey,
-            requestNumber
-          )
-        ) {
-          dispatch(commonRequestErrorAction(meta, error));
-          const transformedError = transformError<Err>(error);
-          if (isRequestRejectedActionNeeded) {
-            dispatch(
-              requestRejectedAction(
-                {
-                  params,
-                  error: transformedError,
-                },
-                meta
+          try {
+            const response = await request(params, {
+              signal: abortController?.signal,
+            });
+
+            clearTimeout(activeRequest.globalLoadingTimeoutId);
+
+            if (
+              !isRequestCanceled(
+                runtime.doRequestMapByKey,
+                requestKey,
+                requestNumber
               )
-            );
+            ) {
+              dispatch(commonRequestSuccessAction(meta, response));
+              if (isRequestFulfilledActionNeeded) {
+                dispatch(requestFulfilledAction({ params, response }, meta));
+              }
+              dispatchFulfilledActions(dispatch, {
+                request: params,
+                response, // TODO use transform response
+                state: getState(),
+              });
+            }
+
+            break;
+          } catch (error) {
+            if (
+              isRequestCanceled(
+                runtime.doRequestMapByKey,
+                requestKey,
+                requestNumber
+              )
+            ) {
+              break;
+            }
+
+            let transformedError: Err;
+
+            try {
+              transformedError = transformError<Err>(error);
+            } catch (retryPolicyError) {
+              // Preserve the original lifecycle guarantee even when user
+              // supplied error transformation cannot evaluate retry policy.
+              dispatch(commonRequestErrorAction(meta, error));
+              throw retryPolicyError;
+            }
+
+            const retriesUsed = attempt - 1;
+            const retryContext = {
+              error: transformedError,
+              params,
+              attempt,
+              retriesLeft: Math.max(0, maxRetries - retriesUsed),
+            };
+            let shouldRetry: boolean;
+
+            try {
+              shouldRetry =
+                retriesUsed < maxRetries &&
+                (retry?.shouldRetry?.(retryContext) ?? true);
+            } catch (retryPolicyError) {
+              dispatch(commonRequestErrorAction(meta, error));
+              throw retryPolicyError;
+            }
+
+            if (shouldRetry) {
+              let configuredDelay: number;
+
+              try {
+                configuredDelay =
+                  typeof retry?.delay === 'function'
+                    ? retry.delay(retryContext)
+                    : (retry?.delay ?? 0);
+              } catch (retryPolicyError) {
+                dispatch(commonRequestErrorAction(meta, error));
+                throw retryPolicyError;
+              }
+
+              const retryDelay = Number.isFinite(configuredDelay)
+                ? Math.max(0, configuredDelay)
+                : 0;
+              const delayCompleted = await waitForRetry(retryDelay);
+
+              if (
+                delayCompleted &&
+                !isRequestCanceled(
+                  runtime.doRequestMapByKey,
+                  requestKey,
+                  requestNumber
+                )
+              ) {
+                continue;
+              }
+
+              break;
+            }
+
+            dispatch(commonRequestErrorAction(meta, error));
+            if (isRequestRejectedActionNeeded) {
+              dispatch(
+                requestRejectedAction(
+                  {
+                    params,
+                    error: transformedError,
+                  },
+                  meta
+                )
+              );
+            }
+            dispatchRejectedActions(dispatch, {
+              request: params,
+              error: transformedError,
+              state: getState(),
+            });
+
+            break;
           }
-          dispatchRejectedActions(dispatch, {
-            request: params,
-            error: transformedError,
-            state: getState(),
-          });
         }
       } finally {
         unregisterRequestCancellation();
+        cancelRetryDelay = () => undefined;
         clearTimeout(activeRequest.globalLoadingTimeoutId);
 
         if (
