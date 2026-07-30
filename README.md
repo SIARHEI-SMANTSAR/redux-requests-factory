@@ -544,6 +544,7 @@ render reads the retained settled Promise instead of starting fresh work:
 ```ts
 const { middleware: requestsFactoryMiddleware } =
   createRequestsFactoryMiddleware({
+    globalLoadingEnabled: false,
     loadDataRetryStatuses: [],
   });
 ```
@@ -828,6 +829,7 @@ import {
 
 const { middleware, toPromise, cancelAllRequests } =
   createRequestsFactoryMiddleware({
+    globalLoadingEnabled: false,
     loadDataRetryStatuses: [],
     loadDataHydratedRetryStatuses: [
       RequestsStatuses.Failed,
@@ -836,11 +838,12 @@ const { middleware, toPromise, cancelAllRequests } =
   });
 ```
 
-| Option                         | Default                                 | Description                                                                                                                                               |
-| ------------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `loadDataRetryStatuses`        | `[Failed, Canceled]`                    | Terminal statuses on which `loadDataAction` starts another request. A request factory can override this setting.                                         |
+| Option                          | Default                                 | Description                                                                                                                                               |
+| ------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `globalLoadingEnabled`          | `true`                                  | Enables global loading tracking for requests handled by this middleware. A request factory can override this setting.                                   |
+| `loadDataRetryStatuses`         | `[Failed, Canceled]`                    | Terminal statuses on which `loadDataAction` starts another request. A request factory can override this setting.                                         |
 | `loadDataHydratedRetryStatuses` | `loadDataRetryStatuses`                 | Terminal statuses imported through preloaded state or hydration that `loadDataAction` may retry once per request key and hydration cycle.                |
-| `forwardFactoryActions`        | `false`                                 | Forwards factory command actions as plain Redux actions to later middleware and reducers when enabled. Internal request lifecycle actions are unaffected. |
+| `forwardFactoryActions`         | `false`                                 | Forwards factory command actions as plain Redux actions to later middleware and reducers when enabled. Internal request lifecycle actions are unaffected. |
 
 The request factory setting takes precedence over the middleware setting. Use
 an empty array to keep failed and canceled states cached until an explicit
@@ -931,7 +934,7 @@ const request = requestsFactory({
 | `stringifyParamsForDebounce`              | No       | `JSON.stringify`                                            | Converts params to a debounce key.                                                                                                                      |
 | `fulfilledActions`                        | No       | `[]`                                                        | Actions or action factories dispatched after success.                                                                                                   |
 | `rejectedActions`                         | No       | `[]`                                                        | Actions or action factories dispatched after failure.                                                                                                   |
-| `includeInGlobalLoading`                  | No       | `true`                                                      | Includes this request in `isSomethingLoadingSelector`.                                                                                                  |
+| `includeInGlobalLoading`                  | No       | Middleware `globalLoadingEnabled`, otherwise `true`         | Includes this request in `isSomethingLoadingSelector` and overrides the middleware setting.                                                             |
 | `staleTime`                               | No       | `Infinity`                                                  | Time in ms for which a successful response stays fresh. A normal load after this interval refetches while retaining the cached response during loading. |
 | `loadDataRetryStatuses`                   | No       | `[Failed, Canceled]`                                        | Terminal statuses on which `loadDataAction` retries. Overrides the middleware setting; use `[]` to disable automatic terminal-state retries.            |
 | `loadDataHydratedRetryStatuses`           | No       | `loadDataRetryStatuses`                                     | Hydrated terminal statuses that may retry once per request key and hydration cycle. Overrides the middleware setting.                                    |

@@ -63,7 +63,7 @@ const createActions = <
     stringifyParamsForDebounce = JSON.stringify,
     fulfilledActions = [],
     rejectedActions = [],
-    includeInGlobalLoading = true,
+    includeInGlobalLoading,
     staleTime = Infinity,
     loadDataRetryStatuses,
     loadDataHydratedRetryStatuses,
@@ -213,6 +213,7 @@ const createActions = <
     requestKey: string;
     getState: () => State;
     silent: boolean;
+    includeInGlobalLoading: boolean;
     runtime: RequestRuntimeState;
     registerRequestCancellation: (cancel: () => void) => () => void;
     execution: {
@@ -249,6 +250,7 @@ const createActions = <
     requestKey,
     getState,
     silent,
+    includeInGlobalLoading,
     runtime,
     registerRequestCancellation,
     execution,
@@ -473,6 +475,8 @@ const createActions = <
         loadDataRetryStatuses ??
         middlewareConfig.loadDataRetryStatuses ??
         defaultLoadDataRetryStatuses;
+      const resolvedIncludeInGlobalLoading =
+        includeInGlobalLoading ?? middlewareConfig.globalLoadingEnabled ?? true;
       const resolvedLoadDataHydratedRetryStatuses =
         loadDataHydratedRetryStatuses ??
         middlewareConfig.loadDataHydratedRetryStatuses ??
@@ -518,6 +522,7 @@ const createActions = <
               requestKey,
               getState,
               silent,
+              includeInGlobalLoading: resolvedIncludeInGlobalLoading,
               runtime,
               registerRequestCancellation,
               execution,

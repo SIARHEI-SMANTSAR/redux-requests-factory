@@ -19,6 +19,13 @@ export type PreparedConfig<Key> = {
 /** Configuration accepted by `createRequestsFactoryMiddleware`. */
 export type MiddlewareConfig = {
   /**
+   * Enables global loading tracking for requests handled by this middleware.
+   * Individual request factory configurations can override this value.
+   *
+   * @default true
+   */
+  globalLoadingEnabled?: boolean;
+  /**
    * Terminal statuses on which `loadDataAction` starts another request.
    * Individual request factory configurations override this value.
    *

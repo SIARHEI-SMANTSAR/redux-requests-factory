@@ -82,6 +82,43 @@ describe('request loading options', () => {
     expect(isSomethingLoadingSelector(store.getState())).toBe(false);
   });
 
+  it('excludes requests from global loading through middleware config', async () => {
+    const { store } = createRequestsTestStore({
+      globalLoadingEnabled: false,
+    });
+    const deferredRequest = createDeferred<string>();
+    const { loadDataAction } = requestsFactory({
+      request: () => deferredRequest.promise,
+      stateRequestKey: 'global-loading-disabled-globally',
+    });
+
+    const requestPromise = store.dispatch(loadDataAction());
+    expect(isSomethingLoadingSelector(store.getState())).toBe(false);
+
+    deferredRequest.resolve('response');
+    await requestPromise;
+    expect(isSomethingLoadingSelector(store.getState())).toBe(false);
+  });
+
+  it('allows factory config to override global loading middleware config', async () => {
+    const { store } = createRequestsTestStore({
+      globalLoadingEnabled: false,
+    });
+    const deferredRequest = createDeferred<string>();
+    const { loadDataAction } = requestsFactory({
+      request: () => deferredRequest.promise,
+      stateRequestKey: 'global-loading-enabled-locally',
+      includeInGlobalLoading: true,
+    });
+
+    const requestPromise = store.dispatch(loadDataAction());
+    expect(isSomethingLoadingSelector(store.getState())).toBe(true);
+
+    deferredRequest.resolve('response');
+    await requestPromise;
+    expect(isSomethingLoadingSelector(store.getState())).toBe(false);
+  });
+
   it('removes a long request from global loading after its timeout', async () => {
     jest.useFakeTimers();
     const { store } = createRequestsTestStore();

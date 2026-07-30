@@ -42,7 +42,12 @@ export interface RequestFactoryConfigCommon<_Resp, Err, _Params, _State> {
   };
   /** Transforms errors exposed by selectors and failed-request side effects. */
   transformError?: (error: any) => Err;
-  /** Includes this request in global loading state. @default true */
+  /**
+   * Includes this request in global loading state. Overrides the middleware
+   * setting.
+   *
+   * @default middleware globalLoadingEnabled, otherwise true
+   */
   includeInGlobalLoading?: boolean;
   /**
    * Time in milliseconds for which a successful response is considered fresh.
