@@ -26,13 +26,18 @@ jobs:
       - run: npm pack --dry-run
       - name: Check packed types with Redux 4 and 5
         run: |
-          archive="$(npm pack --ignore-scripts --silent --pack-destination "$RUNNER_TEMP")"
+          package_dir="$(mktemp -d "$RUNNER_TEMP/requests-factory-package.XXXXXXXX")"
+          npm pack --pack-destination "$package_dir"
+          archives=("$package_dir"/*.tgz)
+          test "${#archives[@]}" -eq 1
+          archive="${archives[0]}"
+          test -f "$archive"
           for redux_version in 4 5; do
             consumer="$(mktemp -d "$RUNNER_TEMP/requests-factory.XXXXXXXX")"
             (
               cd "$consumer"
               npm init -y >/dev/null
-              npm install --ignore-scripts "$RUNNER_TEMP/$archive" "redux@$redux_version"
+              npm install --ignore-scripts "$archive" "redux@$redux_version"
               cat > consumer.mts <<'EOF'
           import { applyMiddleware, combineReducers, createStore } from 'redux';
           import createFactory, {
