@@ -86,6 +86,6 @@
   "dependencies": {
     "lodash.debounce": "^4.0.8",
     "lodash.memoize": "^4.1.2",
-    "reselect": "^5.3.0"
+    "reselect": "^5.0.1"
   }
 }
