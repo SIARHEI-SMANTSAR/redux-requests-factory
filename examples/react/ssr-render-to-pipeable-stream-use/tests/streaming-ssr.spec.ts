@@ -1,6 +1,6 @@
 import http from 'node:http';
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Route } from '@playwright/test';
 
 const readStreamedResponse = (url: string) =>
   new Promise<{ chunks: string[]; statusCode?: number }>((resolve, reject) => {
@@ -107,4 +107,50 @@ test('hydrates without duplicate requests and supports navigation and reloads', 
     1
   );
   expect(runtimeErrors).toEqual([]);
+});
+
+test('keeps the newer users when two manual reloads finish out of order', async ({
+  page,
+}) => {
+  await page.goto('/single');
+  await expect(page.getByText('Ada Lovelace')).toBeVisible();
+
+  let captureOlder!: (route: Route) => void;
+  const olderReload = new Promise<Route>((resolve) => {
+    captureOlder = resolve;
+  });
+  let requests = 0;
+  await page.route('**/api/users', async (route) => {
+    requests += 1;
+    if (requests === 1) {
+      captureOlder(route);
+      return;
+    }
+    await route.fulfill({
+      json: [{ id: 1, name: 'Newer team member', role: 'Engineer' }],
+    });
+  });
+
+  const reload = page.getByRole('button', { name: 'Force reload users' });
+  await reload.click();
+  const older = await olderReload;
+  await reload.click();
+  await expect(page.getByText('Newer team member')).toBeVisible();
+
+  const olderFinished = page.waitForEvent(
+    'requestfinished',
+    (request) => request === older.request()
+  );
+  await older.fulfill({
+    json: [{ id: 1, name: 'Older team member', role: 'Engineer' }],
+  });
+  await olderFinished;
+
+  await page.getByRole('link', { name: 'Request batch' }).click();
+  await expect(page).toHaveURL(/\/batch$/);
+  await page.getByRole('link', { name: 'Single request' }).click();
+  await expect(page).toHaveURL(/\/single$/);
+  await expect(page.getByText('Newer team member')).toBeVisible();
+  await expect(page.getByText('Older team member')).toHaveCount(0);
+  expect(requests).toBe(2);
 });

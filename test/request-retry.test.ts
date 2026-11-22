@@ -286,4 +286,40 @@ describe('automatic request retries', () => {
     expect(api.errorSelector(store.getState())).toBe(requestError);
     expect(isSomethingLoadingSelector(store.getState())).toBe(false);
   });
+
+  it('does not retry a successful request when a fulfilled callback throws', async () => {
+    const { recordedActions, store } = createRequestsTestStore();
+    const callbackError = new Error('fulfilled callback failed');
+    const request = jest.fn().mockResolvedValue('created');
+    const shouldRetry = jest.fn(() => true);
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'retry-fulfilled-callback',
+      retry: { maxRetries: 2, shouldRetry },
+      fulfilledActions: [
+        () => {
+          throw callbackError;
+        },
+      ],
+    });
+
+    const command = store.dispatch(api.doRequestAction());
+    expect(store.dispatch(api.loadDataAction())).toBe(command);
+    await expect(command).rejects.toBe(callbackError);
+
+    const cachedLoad = store.dispatch(api.loadDataAction());
+    await expect(cachedLoad).resolves.toBeUndefined();
+    expect(store.dispatch(api.loadDataAction())).toBe(cachedLoad);
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(shouldRetry).not.toHaveBeenCalled();
+    expect(api.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Success
+    );
+    expect(api.responseSelector(store.getState())).toBe('created');
+    expect(
+      actionsByType(recordedActions, CommonActionTypes.RequestError)
+    ).toHaveLength(0);
+    expect(isSomethingLoadingSelector(store.getState())).toBe(false);
+  });
 });

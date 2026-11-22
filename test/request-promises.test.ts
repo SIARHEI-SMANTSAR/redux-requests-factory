@@ -8,6 +8,51 @@ import {
 import { createDeferred, createRequestsTestStore } from './helpers';
 
 describe('request Promise lifecycle', () => {
+  it('shares the pending Promise with a load dispatched by a Redux subscriber', async () => {
+    const { store } = createRequestsTestStore();
+    const transport = createDeferred<string>();
+    const api = requestsFactory({
+      request: () => transport.promise,
+      stateRequestKey: 'subscriber-load',
+    });
+
+    let nestedPromise: Promise<void> | undefined;
+    const unsubscribe = store.subscribe(() => {
+      if (api.isLoadingSelector(store.getState()) && !nestedPromise) {
+        nestedPromise = store.dispatch(api.loadDataAction());
+      }
+    });
+    const promise = store.dispatch(api.loadDataAction());
+    unsubscribe();
+
+    expect(nestedPromise).toBe(promise);
+    transport.resolve('response');
+    await promise;
+  });
+
+  it('can cancel from a start subscriber before invoking the request', async () => {
+    const { store } = createRequestsTestStore();
+    const request = jest.fn().mockResolvedValue('unused');
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'subscriber-cancel',
+    });
+    const unsubscribe = store.subscribe(() => {
+      if (api.isLoadingSelector(store.getState())) {
+        unsubscribe();
+        void store.dispatch(api.cancelRequestAction());
+      }
+    });
+
+    await store.dispatch(api.loadDataAction());
+
+    expect(request).not.toHaveBeenCalled();
+    expect(api.requestStatusSelector(store.getState())).toBe(
+      RequestsStatuses.Canceled
+    );
+    expect(store.getState()[stateRequestsKey].global_loading.count).toBe(0);
+  });
+
   it('isolates in-flight Promises between middleware instances', async () => {
     const firstRequest = createDeferred<string>();
     const secondRequest = createDeferred<string>();
@@ -137,6 +182,57 @@ describe('request Promise lifecycle', () => {
     await Promise.all([firstPromise, forcedPromise]);
 
     expect(requestVersionSelector(store.getState())).toBe(2);
+  });
+
+  it.each(['resolve', 'reject'] as const)(
+    'keeps the newer reload in Redux when an older load ends with %s',
+    async (finish) => {
+      const { store } = createRequestsTestStore();
+      const olderRequest = createDeferred<string>();
+      const newerRequest = createDeferred<string>();
+      const api = requestsFactory({
+        request: jest
+          .fn()
+          .mockReturnValueOnce(olderRequest.promise)
+          .mockReturnValueOnce(newerRequest.promise),
+        stateRequestKey: 'older-load-finishes-last',
+      });
+
+      const older = store.dispatch(api.loadDataAction());
+      const newer = store.dispatch(api.forcedLoadDataAction());
+      newerRequest.resolve('current response');
+      await newer;
+      olderRequest[finish]('outdated result');
+      await older;
+
+      expect(api.responseSelector(store.getState())).toBe('current response');
+      expect(api.requestStatusSelector(store.getState())).toBe(
+        RequestsStatuses.Success
+      );
+    }
+  );
+
+  it('publishes each direct request in completion order', async () => {
+    const { store } = createRequestsTestStore();
+    const olderRequest = createDeferred<string>();
+    const newerRequest = createDeferred<string>();
+    const api = requestsFactory({
+      request: jest
+        .fn()
+        .mockReturnValueOnce(olderRequest.promise)
+        .mockReturnValueOnce(newerRequest.promise),
+      stateRequestKey: 'concurrent-direct-calls',
+    });
+
+    const older = store.dispatch(api.doRequestAction());
+    const newer = store.dispatch(api.doRequestAction());
+    newerRequest.resolve('second mutation');
+    await newer;
+    expect(api.responseSelector(store.getState())).toBe('second mutation');
+
+    olderRequest.resolve('first mutation');
+    await older;
+    expect(api.responseSelector(store.getState())).toBe('first mutation');
   });
 
   it('deduplicates each serialized key independently', async () => {
@@ -589,6 +685,32 @@ describe('request Promise lifecycle', () => {
       { id: 2 },
       { id: 1 },
     ]);
+  });
+
+  it('distinguishes hydration keys containing separators', async () => {
+    const { store } = createRequestsTestStore({
+      loadDataRetryStatuses: [],
+      loadDataHydratedRetryStatuses: [RequestsStatuses.Failed],
+    });
+    const request = jest.fn().mockRejectedValue(new Error('local failure'));
+    const api = requestsFactory({
+      request,
+      stateRequestKey: 'alpha_beta',
+      serializeRequestParameters: (key: string) => key,
+    });
+
+    await store.dispatch(api.loadDataAction('g'));
+    store.dispatch(
+      hydrateRequestsAction({
+        global_loading: { count: 0 },
+        responses: {
+          alpha: { beta_g: { status: RequestsStatuses.Success } },
+        },
+      })
+    );
+    await store.dispatch(api.loadDataAction('g'));
+
+    expect(request).toHaveBeenCalledTimes(1);
   });
 
   it('settles a canceled request Promise, releases deduplication, and ignores its late result', async () => {

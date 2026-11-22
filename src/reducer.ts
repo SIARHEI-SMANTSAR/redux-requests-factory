@@ -99,6 +99,13 @@ export const createRequestsReducer =
   (state = initialState, action) => {
     const factoryAction = action as Actions;
 
+    if (
+      typeof factoryAction.stateRequestsKey === 'string' &&
+      factoryAction.stateRequestsKey !== config.stateRequestsKey
+    ) {
+      return state;
+    }
+
     switch (factoryAction.type) {
       case CommonActionTypes.RequestStart: {
         const requestState = getRequestState(state, factoryAction.meta);

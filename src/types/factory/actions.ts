@@ -1,6 +1,5 @@
-import type { UnknownAction } from 'redux';
-
 import { RequestActionMeta } from '../actions';
+import type { ReduxAction } from '../redux-action';
 
 /** Public command and lifecycle action type identifiers. */
 export enum FactoryActionTypes {
@@ -25,7 +24,7 @@ export enum FactoryActionTypes {
 }
 
 /** Shared fields exposed by every generated action creator. */
-export interface RequestFactoryActionCommon extends UnknownAction {
+export interface RequestFactoryActionCommon extends ReduxAction {
   /** Redux action type generated for this request factory. */
   type: string;
   /** Returns the action creator's Redux type. */
@@ -35,7 +34,7 @@ export interface RequestFactoryActionCommon extends UnknownAction {
 }
 
 /** Factory command value for a request with serialized params. */
-export interface RequestFactoryActionCommonWithSerializeReturnType extends UnknownAction {
+export interface RequestFactoryActionCommonWithSerializeReturnType extends ReduxAction {
   /** Redux action type. */
   type: string;
   /** Request-state identity used by the middleware and reducer. */
@@ -52,7 +51,7 @@ export interface RequestFactoryActionCommonWithSerializeReturnType extends Unkno
 }
 
 /** Factory command value for a request without serialized params. */
-export interface RequestFactoryActionCommonWithoutSerializeReturnType extends UnknownAction {
+export interface RequestFactoryActionCommonWithoutSerializeReturnType extends ReduxAction {
   /** Redux action type. */
   type: string;
   /** Request-state identity used by the middleware and reducer. */

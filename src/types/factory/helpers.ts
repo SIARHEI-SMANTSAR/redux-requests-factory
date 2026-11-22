@@ -2,11 +2,9 @@
 export type ActiveRequestState = {
   abortController?: AbortController;
   canceled: boolean;
-  globalLoadingDecrementedAfterTimeout: boolean;
   globalLoadingTimeoutId?: ReturnType<typeof setTimeout>;
   cancel?: () => void;
   resolveCancellation: () => void;
-  silent: boolean;
 };
 
 /** Tracks active request executions by request key and request number. @internal */

@@ -1,5 +1,4 @@
-import type { UnknownAction } from 'redux';
-
+import type { ReduxAction } from './redux-action';
 import type { RequestsState } from './reducer';
 
 /** Internal action types consumed by `requestsReducer`. */
@@ -25,33 +24,33 @@ export type RequestActionMeta = {
 };
 
 /** Internal action dispatched when a request starts. */
-export type CommonRequestStartAction = UnknownAction & {
+export type CommonRequestStartAction = ReduxAction & {
   type: CommonActionTypes.RequestStart;
   meta: RequestActionMeta;
 };
 
 /** Internal action dispatched when a request succeeds. */
-export type CommonRequestSuccessAction = UnknownAction & {
+export type CommonRequestSuccessAction = ReduxAction & {
   type: CommonActionTypes.RequestSuccess;
   meta: RequestActionMeta;
   payload: { response: any; fulfilledAt?: number };
 };
 
 /** Internal action dispatched when a request fails. */
-export type CommonRequestErrorAction = UnknownAction & {
+export type CommonRequestErrorAction = ReduxAction & {
   type: CommonActionTypes.RequestError;
   meta: RequestActionMeta;
   payload: { error: any };
 };
 
 /** Internal action dispatched when an active request is marked as canceled. */
-export type CommonRequestCancelAction = UnknownAction & {
+export type CommonRequestCancelAction = ReduxAction & {
   type: CommonActionTypes.RequestCancel;
   meta: RequestActionMeta;
 };
 
 /** Internal action dispatched when request state is reset. */
-export type CommonRequestResetAction = UnknownAction & {
+export type CommonRequestResetAction = ReduxAction & {
   type: CommonActionTypes.RequestReset;
   meta: RequestActionMeta;
 };
@@ -75,22 +74,21 @@ export enum GlobalActionTypes {
 }
 
 /** Internal action that increments the global loading counter. */
-export type GlobalLoadingIncrementAction = UnknownAction & {
+export type GlobalLoadingIncrementAction = ReduxAction & {
   type: GlobalActionTypes.LoadingIncrement;
 };
 
 /** Internal action that decrements the global loading counter. */
-export type GlobalLoadingDecrementAction = UnknownAction & {
+export type GlobalLoadingDecrementAction = ReduxAction & {
   type: GlobalActionTypes.LoadingDecrement;
 };
 
 /** Action that merges a serialized requests slice into the matching factory. */
-export type HydrateRequestsAction<Key extends string = string> =
-  UnknownAction & {
-    type: GlobalActionTypes.HydrateRequests;
-    meta: { stateRequestsKey: Key };
-    payload: RequestsState;
-  };
+export type HydrateRequestsAction<Key extends string = string> = ReduxAction & {
+  type: GlobalActionTypes.HydrateRequests;
+  meta: { stateRequestsKey: Key };
+  payload: RequestsState;
+};
 
 /** Creates hydration actions scoped to one factory's `stateRequestsKey`. */
 export interface HydrateRequestsActionCreator<Key extends string> {

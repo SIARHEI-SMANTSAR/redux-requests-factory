@@ -85,7 +85,7 @@ export const getByPath =
 export const getRequestKey = ({
   key,
   serializedKey,
-}: RequestActionMeta): string => `${key}_${serializedKey || ''}`;
+}: RequestActionMeta): string => JSON.stringify([key, serializedKey]);
 
 export const getSerializedKey = <Resp, Err, Params, State, TransformedResp>(
   factoryConfig: RequestFactoryConfig<
@@ -266,15 +266,12 @@ export const setNewRequestToMap = (
   requestKey: string,
   requestNumber: number,
   abortController: AbortController | undefined,
-  resolveCancellation: () => void,
-  silent: boolean
+  resolveCancellation: () => void
 ): ActiveRequestState => {
   const requestState: ActiveRequestState = {
     abortController,
     canceled: false,
-    globalLoadingDecrementedAfterTimeout: false,
     resolveCancellation,
-    silent,
   };
 
   if (doRequestMapByKey.has(requestKey)) {
@@ -285,12 +282,6 @@ export const setNewRequestToMap = (
 
   return requestState;
 };
-
-export const isRequestCanceled = (
-  doRequestMapByKey: DoRequestMapByKey,
-  requestKey: string,
-  requestNumber: number
-) => doRequestMapByKey.get(requestKey)!.get(requestNumber)!.canceled;
 
 export const deleteRequestFromMap = (
   doRequestMapByKey: DoRequestMapByKey,

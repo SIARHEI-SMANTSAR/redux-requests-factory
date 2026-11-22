@@ -961,6 +961,9 @@ dispatches `requestRejectedAction` and `rejectedActions`. Global loading and
 the Promise returned by dispatch also cover the complete sequence rather than
 each attempt separately.
 
+If the request succeeds and a fulfilled callback throws, Redux retains the
+successful response and the dispatch Promise rejects with the callback error.
+
 ```ts
 const users = requestsFactory({
   stateRequestKey: 'users',
@@ -1057,6 +1060,10 @@ requestsFactory({
 | `requestFulfilledAction`                   | Plain action creator for subscriptions. Reading it enables fulfilled lifecycle dispatches. Payload is `{ params, response }`. |
 | `requestRejectedAction`                    | Plain action creator for subscriptions. Reading it enables rejected lifecycle dispatches. Payload is `{ params, error }`.     |
 
+When a newer load finishes and writes its result, an older load for the same
+key leaves that result intact. Concurrent `doRequestAction` calls can each
+publish their result in completion order.
+
 #### Lazy lifecycle actions
 
 `requestFulfilledAction` and `requestRejectedAction` are lazy. The factory
@@ -1077,6 +1084,9 @@ After this property access, successful requests and `setResponseAction`
 dispatch `requestFulfilledAction`. The flag remains enabled for the lifetime of
 that factory instance. The same behavior applies to `requestRejectedAction`,
 failed requests, and `setErrorAction`.
+
+Lifecycle action types for a custom `stateRequestsKey` include that key. Use the
+generated action creator's `type` or `getType()` in subscriptions.
 
 Do not spread the factory result. Spreading reads every enumerable property and
 therefore enables both lifecycle actions even if the copied properties are
@@ -1099,10 +1109,10 @@ pending and after it settles. This also applies when that request was started
 by a forced or direct request action. Forced and direct actions bypass the
 successful-response cache, request fresh work, and replace the Promise reused
 by later normal loads. A normal stale or configured retry also replaces it.
-When a new middleware receives already cached state without a runtime Promise,
-its first normal load creates one stable fulfilled Promise. When `useDebounce`
-is enabled, all three request-starting actions remain subject to the configured
-debounce behavior.
+Cache hits share a stable fulfilled Promise when no runtime Promise exists or
+when a fulfilled callback rejected the command Promise for a successful
+response. When `useDebounce` is enabled, all three request-starting actions
+remain subject to the configured debounce behavior.
 
 The stable latest Promise cache, cancellation bookkeeping, and debounce state
 belong to the middleware instance returned by
@@ -1334,6 +1344,7 @@ hydration action.
 
 Use the default export when you need more than one independent request factory,
 for example to store request states under different reducer keys.
+Mount each instance's middleware and reducer with its own `stateRequestsKey`.
 
 ```js
 import createReduxRequestsFactory from 'redux-requests-factory';

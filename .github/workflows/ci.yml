@@ -24,6 +24,40 @@ jobs:
       - run: node -e "require('redux-requests-factory')"
       - run: node --input-type=module -e "await import('redux-requests-factory')"
       - run: npm pack --dry-run
+      - name: Check packed types with Redux 4 and 5
+        run: |
+          archive="$(npm pack --ignore-scripts --silent --pack-destination "$RUNNER_TEMP")"
+          for redux_version in 4 5; do
+            consumer="$(mktemp -d "$RUNNER_TEMP/requests-factory.XXXXXXXX")"
+            (
+              cd "$consumer"
+              npm init -y >/dev/null
+              npm install --ignore-scripts "$RUNNER_TEMP/$archive" "redux@$redux_version"
+              cat > consumer.mts <<'EOF'
+          import { applyMiddleware, combineReducers, createStore } from 'redux';
+          import createFactory, {
+            requestsFactory,
+            type RequestsFactoryDispatch,
+          } from 'redux-requests-factory';
+
+          requestsFactory({ stateRequestKey: 'default', request: async () => 1 });
+          const factory = createFactory({ stateRequestsKey: 'api' });
+          const request = factory.requestsFactory({
+            stateRequestKey: 'custom',
+            request: async () => 1,
+          });
+          const { middleware } = factory.createRequestsFactoryMiddleware();
+          const store = createStore(
+            combineReducers({ api: factory.requestsReducer }),
+            applyMiddleware(middleware)
+          );
+          const dispatch = store.dispatch as RequestsFactoryDispatch & typeof store.dispatch;
+          const pending: Promise<void> = dispatch(request.loadDataAction());
+          EOF
+              cp consumer.mts consumer.cts
+              "$GITHUB_WORKSPACE/node_modules/.bin/tsc" --noEmit --strict --module NodeNext consumer.mts consumer.cts
+            )
+          done
 
   e2e-react-streaming-ssr:
     runs-on: ubuntu-latest

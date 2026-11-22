@@ -16,6 +16,7 @@ import { getRequestKey, isFactoryAction } from './factory/helpers';
 
 type RunnableFactoryAction = AsyncRequestFactoryAction & {
   forwardFactoryAction?: boolean;
+  stateRequestsKey?: string;
   type: string;
   (params: ActionPropsFromMiddleware<unknown>): void | Promise<void>;
 };
@@ -97,7 +98,11 @@ export const getCreateRequestsFactoryMiddleware =
         if (typeof action === 'function') {
           const factoryAction = action as RunnableFactoryAction;
 
-          if (!isFactoryAction(factoryAction.type)) {
+          if (
+            !isFactoryAction(factoryAction.type) ||
+            (factoryAction.stateRequestsKey !== undefined &&
+              factoryAction.stateRequestsKey !== config.stateRequestsKey)
+          ) {
             return next(action);
           }
 

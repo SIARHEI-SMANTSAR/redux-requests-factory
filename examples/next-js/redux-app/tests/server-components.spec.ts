@@ -177,6 +177,41 @@ test('a hydrated Server Component supports a forced client reload', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
+test('keeps server data visible after a failed reload and recovers on the next load', async ({
+  page,
+}) => {
+  const { apiRequests, runtimeErrors } = observeBrowser(page);
+  await page.goto('/server-redux');
+  const serverUser = page.getByText('Ada Lovelace', { exact: true });
+  await expect(serverUser).toBeVisible();
+  expect(apiRequests).toEqual([]);
+
+  await page.route(
+    '**/api/users',
+    (route) => route.fulfill({ status: 503, json: {} }),
+    { times: 1 }
+  );
+  await page.getByRole('button', { name: 'Force reload' }).click();
+  const error = page.getByText('Error: Failed to load users', { exact: true });
+  await expect(error).toBeVisible();
+  await expect(serverUser).toBeVisible();
+
+  await page.route('**/api/users', (route) =>
+    route.fulfill({
+      json: [{ id: 1, name: 'Client replacement user', role: 'Engineer' }],
+    })
+  );
+  const load = page.getByRole('button', { name: 'Try cached load' });
+  await load.click();
+  await expect(page.getByText('Client replacement user')).toBeVisible();
+  await expect(serverUser).toHaveCount(0);
+  await expect(error).toHaveCount(0);
+  await load.click();
+
+  expect(apiRequests).toEqual(['/api/users', '/api/users']);
+  expect(runtimeErrors).toEqual([]);
+});
+
 test('client navigation consumes RSC payloads and keeps hydrated requests', async ({
   page,
 }) => {

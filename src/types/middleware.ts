@@ -1,9 +1,10 @@
-import { Middleware, Dispatch, UnknownAction } from 'redux';
+import type { Middleware, Dispatch } from 'redux';
 
 import { MiddlewareConfig } from './config';
+import type { ReduxAction } from './redux-action';
 
 /** A runnable command action created by `requestsFactory`. */
-export interface AsyncRequestFactoryAction extends UnknownAction {
+export interface AsyncRequestFactoryAction extends ReduxAction {
   /** Converts the runnable command to the plain action forwarded to Redux. */
   toObject(): unknown;
 }

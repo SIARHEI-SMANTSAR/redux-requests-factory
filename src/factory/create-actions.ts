@@ -10,6 +10,7 @@ import {
   ExternalActions,
   DoRequestMapByKey,
   ActionOptions,
+  Actions,
   LoadDataRetryStatus,
   RequestsStatuses,
 } from '../types';
@@ -22,6 +23,7 @@ import {
   globalLoadingIncrementAction,
   globalLoadingDecrementAction,
 } from '../actions';
+import { DEFAULT_STATE_REQUESTS_KEY } from '../constants';
 import {
   actionToString,
   getRequestKey,
@@ -30,7 +32,6 @@ import {
   isNeedLoadData,
   identity,
   setNewRequestToMap,
-  isRequestCanceled,
   deleteRequestFromMap,
   cancelRequestInMap,
   actionToObject,
@@ -75,6 +76,9 @@ const createActions = <
 
   let isRequestFulfilledActionNeeded = false;
   let isRequestRejectedActionNeeded = false;
+
+  const dispatchStateAction = (dispatch: Dispatch, action: Actions) =>
+    dispatch({ ...action, stateRequestsKey: config.stateRequestsKey });
 
   const getDispatchExternalActions =
     <Data>(externalActions: ExternalActions<Data>) =>
@@ -129,6 +133,7 @@ const createActions = <
     }) => {
       (props: ActionPropsFromMiddleware<State>): void;
       forwardFactoryAction?: boolean;
+      stateRequestsKey?: string;
       type?: string;
       meta?: RequestActionMeta;
       payload?: Data;
@@ -176,6 +181,7 @@ const createActions = <
       action.meta = meta;
       action.payload = data;
       action.forwardFactoryAction = options?.forwardFactoryAction;
+      action.stateRequestsKey = config.stateRequestsKey;
 
       action.toString = actionToString;
       action.toJSON = actionToString;
@@ -199,13 +205,21 @@ const createActions = <
     return asyncAction;
   };
 
+  // The separate delimiter keeps custom types distinct from arbitrary default keys.
+  const lifecycleActionSuffix =
+    config.stateRequestsKey === DEFAULT_STATE_REQUESTS_KEY
+      ? `/${stateRequestKey}`
+      : `:${JSON.stringify([config.stateRequestsKey, stateRequestKey])}`;
+
   const requestFulfilledAction = createSyncAction(
-    `${FactoryActionTypes.RequestFulfilled}/${stateRequestKey}`
+    `${FactoryActionTypes.RequestFulfilled}${lifecycleActionSuffix}`
   );
 
   const requestRejectedAction = createSyncAction(
-    `${FactoryActionTypes.RequestRejected}/${stateRequestKey}`
+    `${FactoryActionTypes.RequestRejected}${lifecycleActionSuffix}`
   );
+
+  type RequestMode = 'load' | 'reload' | 'direct';
 
   type DoRequestArgs = {
     params: Params;
@@ -214,6 +228,7 @@ const createActions = <
     requestKey: string;
     getState: () => State;
     silent: boolean;
+    mode: RequestMode;
     includeInGlobalLoading: boolean;
     runtime: RequestRuntimeState;
     registerRequestCancellation: (cancel: () => void) => () => void;
@@ -226,7 +241,7 @@ const createActions = <
   type DoRequest = (args: DoRequestArgs) => Promise<void>;
 
   type LoadPromiseState = {
-    pending: boolean;
+    status: 'pending' | 'fulfilled' | 'rejected';
     promise: Promise<void>;
   };
 
@@ -237,6 +252,7 @@ const createActions = <
     // one retry for terminal state supplied through initial preloaded state.
     loadAttemptHydrationVersionByKey: Map<string, number>;
     lastRequestNumber: number;
+    completedRequestNumberByKey: Map<string, number>;
     // React use() requires the same thenable when a suspended component is
     // retried. Keep the latest Promise after settlement as well as in flight;
     // a real reload replaces the complete entry with a new Promise.
@@ -251,6 +267,7 @@ const createActions = <
     requestKey,
     getState,
     silent,
+    mode,
     includeInGlobalLoading,
     runtime,
     registerRequestCancellation,
@@ -277,11 +294,29 @@ const createActions = <
       requestKey,
       requestNumber,
       abortController,
-      resolveCancellation,
-      silent
+      resolveCancellation
     );
 
-    let unregisterRequestCancellation: () => void = () => undefined;
+    const completedRequestNumber = () =>
+      runtime.completedRequestNumberByKey.get(requestKey) ?? 0;
+    const canPublishResult = () =>
+      mode === 'direct' || requestNumber >= completedRequestNumber();
+    const publishResult = (action: Actions) => {
+      runtime.completedRequestNumberByKey.set(
+        requestKey,
+        Math.max(requestNumber, completedRequestNumber())
+      );
+      dispatchStateAction(dispatch, action);
+    };
+
+    let countedInGlobalLoading = false;
+    const stopGlobalLoading = () => {
+      if (countedInGlobalLoading) {
+        countedInGlobalLoading = false;
+        dispatchStateAction(dispatch, globalLoadingDecrementAction());
+      }
+    };
+
     let cancelRetryDelay: () => void = () => undefined;
     const cancelExecution = () => {
       if (activeRequest.canceled) {
@@ -293,17 +328,12 @@ const createActions = <
       activeRequest.abortController?.abort();
       cancelRetryDelay();
       activeRequest.resolveCancellation();
-
-      dispatch(commonRequestCancelAction(meta));
       clearTimeout(activeRequest.globalLoadingTimeoutId);
 
-      if (
-        includeInGlobalLoading &&
-        !activeRequest.silent &&
-        !activeRequest.globalLoadingDecrementedAfterTimeout
-      ) {
-        dispatch(globalLoadingDecrementAction());
+      if (canPublishResult()) {
+        dispatchStateAction(dispatch, commonRequestCancelAction(meta));
       }
+      stopGlobalLoading();
 
       if (useDebounce) {
         runtime.memoizedDoRequest = getMemoizedDoRequest();
@@ -311,32 +341,8 @@ const createActions = <
     };
 
     activeRequest.cancel = cancelExecution;
-    unregisterRequestCancellation =
+    const unregisterRequestCancellation =
       registerRequestCancellation(cancelExecution);
-
-    dispatch(commonRequestStartAction(meta));
-
-    if (includeInGlobalLoading && !silent) {
-      dispatch(globalLoadingIncrementAction());
-    }
-
-    if (globalLoadingTimeout) {
-      activeRequest.globalLoadingTimeoutId = setTimeout(() => {
-        if (
-          !isRequestCanceled(
-            runtime.doRequestMapByKey,
-            requestKey,
-            requestNumber
-          )
-        ) {
-          if (includeInGlobalLoading && !silent) {
-            activeRequest.globalLoadingDecrementedAfterTimeout = true;
-
-            dispatch(globalLoadingDecrementAction());
-          }
-        }
-      }, globalLoadingTimeout);
-    }
 
     const waitForRetry = (delay: number) => {
       if (delay <= 0) {
@@ -344,142 +350,96 @@ const createActions = <
       }
 
       return new Promise<boolean>((resolve) => {
-        let settled = false;
         const finish = (completed: boolean) => {
-          if (settled) {
-            return;
-          }
-
-          settled = true;
           clearTimeout(timeoutId);
           cancelRetryDelay = () => undefined;
           resolve(completed);
         };
         const timeoutId = setTimeout(() => finish(true), delay);
-
         cancelRetryDelay = () => finish(false);
       });
     };
 
     const requestLifecyclePromise = (async () => {
       try {
+        dispatchStateAction(dispatch, commonRequestStartAction(meta));
+
+        if (includeInGlobalLoading && !silent && !activeRequest.canceled) {
+          countedInGlobalLoading = true;
+          dispatchStateAction(dispatch, globalLoadingIncrementAction());
+          if (globalLoadingTimeout && countedInGlobalLoading) {
+            activeRequest.globalLoadingTimeoutId = setTimeout(
+              stopGlobalLoading,
+              globalLoadingTimeout
+            );
+          }
+        }
+
         const configuredMaxRetries = retry?.maxRetries ?? 0;
         const maxRetries = Number.isFinite(configuredMaxRetries)
           ? Math.max(0, Math.floor(configuredMaxRetries))
           : 0;
         let attempt = 0;
 
-        while (true) {
+        while (!activeRequest.canceled && canPublishResult()) {
           attempt += 1;
+          let response: Resp;
 
           try {
-            const response = await request(params, {
+            response = await request(params, {
               signal: abortController?.signal,
             });
-
-            clearTimeout(activeRequest.globalLoadingTimeoutId);
-
-            if (
-              !isRequestCanceled(
-                runtime.doRequestMapByKey,
-                requestKey,
-                requestNumber
-              )
-            ) {
-              dispatch(commonRequestSuccessAction(meta, response));
-              if (isRequestFulfilledActionNeeded) {
-                dispatch(requestFulfilledAction({ params, response }, meta));
-              }
-              dispatchFulfilledActions(dispatch, {
-                request: params,
-                response, // TODO use transform response
-                state: getState(),
-              });
-            }
-
-            break;
           } catch (error) {
-            if (
-              isRequestCanceled(
-                runtime.doRequestMapByKey,
-                requestKey,
-                requestNumber
-              )
-            ) {
+            if (activeRequest.canceled || !canPublishResult()) {
               break;
             }
 
             let transformedError: Err;
+            let retryDelay: number | undefined;
 
             try {
               transformedError = transformError<Err>(error);
-            } catch (retryPolicyError) {
-              // Preserve the original lifecycle guarantee even when user
-              // supplied error transformation cannot evaluate retry policy.
-              dispatch(commonRequestErrorAction(meta, error));
-              throw retryPolicyError;
-            }
+              const retriesUsed = attempt - 1;
+              const retryContext = {
+                error: transformedError,
+                params,
+                attempt,
+                retriesLeft: Math.max(0, maxRetries - retriesUsed),
+              };
 
-            const retriesUsed = attempt - 1;
-            const retryContext = {
-              error: transformedError,
-              params,
-              attempt,
-              retriesLeft: Math.max(0, maxRetries - retriesUsed),
-            };
-            let shouldRetry: boolean;
-
-            try {
-              shouldRetry =
+              if (
                 retriesUsed < maxRetries &&
-                (retry?.shouldRetry?.(retryContext) ?? true);
-            } catch (retryPolicyError) {
-              dispatch(commonRequestErrorAction(meta, error));
-              throw retryPolicyError;
-            }
-
-            if (shouldRetry) {
-              let configuredDelay: number;
-
-              try {
-                configuredDelay =
+                (retry?.shouldRetry?.(retryContext) ?? true)
+              ) {
+                const configuredDelay =
                   typeof retry?.delay === 'function'
                     ? retry.delay(retryContext)
                     : (retry?.delay ?? 0);
-              } catch (retryPolicyError) {
-                dispatch(commonRequestErrorAction(meta, error));
-                throw retryPolicyError;
+                retryDelay = Number.isFinite(configuredDelay)
+                  ? Math.max(0, configuredDelay)
+                  : 0;
               }
+            } catch (retryPolicyError) {
+              if (!activeRequest.canceled && canPublishResult()) {
+                publishResult(commonRequestErrorAction(meta, error));
+              }
+              throw retryPolicyError;
+            }
 
-              const retryDelay = Number.isFinite(configuredDelay)
-                ? Math.max(0, configuredDelay)
-                : 0;
-              const delayCompleted = await waitForRetry(retryDelay);
-
-              if (
-                delayCompleted &&
-                !isRequestCanceled(
-                  runtime.doRequestMapByKey,
-                  requestKey,
-                  requestNumber
-                )
-              ) {
+            if (activeRequest.canceled || !canPublishResult()) {
+              break;
+            }
+            if (retryDelay !== undefined) {
+              if (await waitForRetry(retryDelay)) {
                 continue;
               }
-
               break;
             }
 
-            dispatch(commonRequestErrorAction(meta, error));
+            publishResult(commonRequestErrorAction(meta, error));
             if (isRequestRejectedActionNeeded) {
               dispatch(
-                requestRejectedAction(
-                  {
-                    params,
-                    error: transformedError,
-                  },
-                  meta
-                )
+                requestRejectedAction({ params, error: transformedError }, meta)
               );
             }
             dispatchRejectedActions(dispatch, {
@@ -487,33 +447,35 @@ const createActions = <
               error: transformedError,
               state: getState(),
             });
-
             break;
           }
+
+          if (!activeRequest.canceled && canPublishResult()) {
+            publishResult(commonRequestSuccessAction(meta, response));
+            if (isRequestFulfilledActionNeeded) {
+              dispatch(requestFulfilledAction({ params, response }, meta));
+            }
+            dispatchFulfilledActions(dispatch, {
+              request: params,
+              response,
+              state: getState(),
+            });
+          }
+          break;
         }
       } finally {
         unregisterRequestCancellation();
         cancelRetryDelay = () => undefined;
         clearTimeout(activeRequest.globalLoadingTimeoutId);
-
-        if (
-          includeInGlobalLoading &&
-          !silent &&
-          !isRequestCanceled(
-            runtime.doRequestMapByKey,
-            requestKey,
-            requestNumber
-          ) &&
-          !activeRequest.globalLoadingDecrementedAfterTimeout
-        ) {
-          dispatch(globalLoadingDecrementAction());
-        }
-
         deleteRequestFromMap(
           runtime.doRequestMapByKey,
           requestKey,
           requestNumber
         );
+        if (!runtime.doRequestMapByKey.has(requestKey)) {
+          runtime.completedRequestNumberByKey.delete(requestKey);
+        }
+        stopGlobalLoading();
       }
     })();
 
@@ -540,12 +502,13 @@ const createActions = <
     doRequestMapByKey: new Map(),
     loadAttemptHydrationVersionByKey: new Map(),
     lastRequestNumber: 0,
+    completedRequestNumberByKey: new Map(),
     loadPromiseStateMapByKey: new Map(),
     memoizedDoRequest: getMemoizedDoRequest(),
   });
 
   const getDoRequestAction =
-    (isForced: boolean = true) =>
+    (mode: RequestMode) =>
     ({
       params,
       meta,
@@ -571,8 +534,9 @@ const createActions = <
       );
       const cachedLoadPromiseState =
         runtime.loadPromiseStateMapByKey.get(requestKey);
+      const isForced = mode !== 'load';
 
-      if (!isForced && cachedLoadPromiseState?.pending) {
+      if (!isForced && cachedLoadPromiseState?.status === 'pending') {
         return cachedLoadPromiseState.promise;
       }
 
@@ -616,30 +580,11 @@ const createActions = <
           hydrationVersion
         );
         const execution = { canceled: false, started: false };
-        let executionPromise: Promise<void>;
-
-        try {
-          executionPromise = Promise.resolve(
-            (useDebounce ? runtime.memoizedDoRequest : doRequest)({
-              params,
-              dispatch,
-              meta,
-              requestKey,
-              getState,
-              silent,
-              includeInGlobalLoading: resolvedIncludeInGlobalLoading,
-              runtime,
-              registerRequestCancellation,
-              execution,
-            })
-          );
-        } catch (error) {
-          executionPromise = Promise.reject(error);
-        }
-
-        let resolveCancellation!: () => void;
-        const cancellationPromise = new Promise<void>((resolve) => {
-          resolveCancellation = resolve;
+        let resolveRequest!: () => void;
+        let rejectRequest!: (error: unknown) => void;
+        const requestPromise = new Promise<void>((resolve, reject) => {
+          resolveRequest = resolve;
+          rejectRequest = reject;
         });
         const cancelPendingExecution = () => {
           if (execution.canceled) {
@@ -647,10 +592,10 @@ const createActions = <
           }
 
           execution.canceled = true;
-          resolveCancellation();
+          resolveRequest();
 
           if (!execution.started) {
-            dispatch(commonRequestCancelAction(meta));
+            dispatchStateAction(dispatch, commonRequestCancelAction(meta));
 
             if (useDebounce) {
               runtime.memoizedDoRequest = getMemoizedDoRequest();
@@ -660,36 +605,67 @@ const createActions = <
         const unregisterRequestCancellation = registerRequestCancellation(
           cancelPendingExecution
         );
-        const requestPromise = Promise.race([
-          executionPromise,
-          cancellationPromise,
-        ]);
         const loadPromiseState: LoadPromiseState = {
-          pending: true,
+          status: 'pending',
           promise: requestPromise,
         };
 
         runtime.loadPromiseStateMapByKey.set(requestKey, loadPromiseState);
 
-        const settlePromise = () => {
+        const settlePromise = (status: 'fulfilled' | 'rejected') => {
           unregisterRequestCancellation();
-
-          if (
-            runtime.loadPromiseStateMapByKey.get(requestKey) ===
-            loadPromiseState
-          ) {
-            loadPromiseState.pending = false;
-          }
+          loadPromiseState.status = status;
         };
 
-        requestPromise.then(settlePromise, settlePromise);
+        requestPromise.then(
+          () => settlePromise('fulfilled'),
+          () => settlePromise('rejected')
+        );
+
+        try {
+          Promise.resolve(
+            (useDebounce ? runtime.memoizedDoRequest : doRequest)({
+              params,
+              dispatch,
+              meta,
+              requestKey,
+              getState,
+              silent,
+              mode,
+              includeInGlobalLoading: resolvedIncludeInGlobalLoading,
+              runtime,
+              registerRequestCancellation,
+              execution,
+            })
+          ).then(resolveRequest, rejectRequest);
+        } catch (error) {
+          rejectRequest(error);
+        }
 
         return requestPromise;
-      } else if (
+      }
+
+      const dispatchCachedFulfilledActions =
         dispatchFulfilledActionForLoadedRequest &&
-        isRequestFulfilledActionNeeded &&
-        isRequestFulfilled(config, meta, getState())
-      ) {
+        isRequestFulfilledActionNeeded;
+      const cachedPromiseRejected =
+        cachedLoadPromiseState?.status === 'rejected';
+      const isFulfilled =
+        (dispatchCachedFulfilledActions || cachedPromiseRejected) &&
+        isRequestFulfilled(config, meta, getState());
+
+      let cachedPromise = cachedLoadPromiseState?.promise;
+      if (!cachedPromise || (cachedPromiseRejected && isFulfilled)) {
+        // A fulfilled callback can reject the command after Redux stores the
+        // response. Cache hits for that response use a stable fulfilled Promise.
+        cachedPromise = Promise.resolve();
+        runtime.loadPromiseStateMapByKey.set(requestKey, {
+          status: 'fulfilled',
+          promise: cachedPromise,
+        });
+      }
+
+      if (dispatchCachedFulfilledActions && isFulfilled) {
         const response = getResponse(config, meta, getState());
 
         dispatch(requestFulfilledAction({ params, response }, meta));
@@ -700,38 +676,24 @@ const createActions = <
         });
       }
 
-      if (cachedLoadPromiseState) {
-        return cachedLoadPromiseState.promise;
-      }
-
-      // Hydrated success or a terminal state excluded from retry has no
-      // Promise in this new middleware runtime. Create one stable fulfilled
-      // thenable and retain it so React can retry the render without receiving
-      // a fresh Promise on every dispatch.
-      const settledPromise = Promise.resolve();
-      runtime.loadPromiseStateMapByKey.set(requestKey, {
-        pending: false,
-        promise: settledPromise,
-      });
-
-      return settledPromise;
+      return cachedPromise;
     };
 
   return new Proxy(
     {
       doRequestAction: createAsyncAction(
         `${FactoryActionTypes.DoRequest}/${stateRequestKey}`,
-        getDoRequestAction(),
+        getDoRequestAction('direct'),
         identity
       ),
       forcedLoadDataAction: createAsyncAction(
         `${FactoryActionTypes.ForcedLoadData}/${stateRequestKey}`,
-        getDoRequestAction(),
+        getDoRequestAction('reload'),
         identity
       ),
       loadDataAction: createAsyncAction(
         `${FactoryActionTypes.LoadData}/${stateRequestKey}`,
-        getDoRequestAction(false),
+        getDoRequestAction('load'),
         identity
       ),
       cancelRequestAction: createAsyncAction(
@@ -752,7 +714,10 @@ const createActions = <
         `${FactoryActionTypes.SetError}/${stateRequestKey}`,
         ({ meta, data: { error }, params }) => {
           return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-            dispatch(commonRequestErrorAction(meta, error));
+            dispatchStateAction(
+              dispatch,
+              commonRequestErrorAction(meta, error)
+            );
             if (isRequestRejectedActionNeeded) {
               dispatch(requestRejectedAction({ params, error }, meta));
             }
@@ -764,7 +729,10 @@ const createActions = <
         `${FactoryActionTypes.SetResponse}/${stateRequestKey}`,
         ({ meta, data: { response }, params }) => {
           return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-            dispatch(commonRequestSuccessAction(meta, response));
+            dispatchStateAction(
+              dispatch,
+              commonRequestSuccessAction(meta, response)
+            );
             if (isRequestFulfilledActionNeeded) {
               dispatch(requestFulfilledAction({ params, response }, meta));
             }
@@ -776,7 +744,7 @@ const createActions = <
         `${FactoryActionTypes.ResetRequest}/${stateRequestKey}`,
         ({ meta }) => {
           return async ({ dispatch }: ActionPropsFromMiddleware<State>) => {
-            dispatch(commonRequestResetAction(meta));
+            dispatchStateAction(dispatch, commonRequestResetAction(meta));
           };
         },
         identity

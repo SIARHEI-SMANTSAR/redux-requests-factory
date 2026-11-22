@@ -5,14 +5,104 @@ import {
   type UnknownAction,
 } from 'redux';
 
-import {
+import createReduxRequestsFactory, {
   createRequestsFactoryMiddleware,
   requestsFactory,
   requestsReducer,
   stateRequestsKey,
 } from '../src';
+import { createDeferred } from './helpers';
 
 describe('Redux integration', () => {
+  it('routes commands, responses and global loading to their own factory', async () => {
+    const first = createReduxRequestsFactory({ stateRequestsKey: 'first' });
+    const second = createReduxRequestsFactory({ stateRequestsKey: 'second' });
+    const firstRuntime = first.createRequestsFactoryMiddleware({
+      globalLoadingEnabled: false,
+    });
+    const secondRuntime = second.createRequestsFactoryMiddleware();
+    const request = createDeferred<string>();
+    const firstApi = first.requestsFactory({
+      stateRequestKey: 'shared',
+      request: async () => 'response A',
+    });
+    const secondApi = second.requestsFactory({
+      stateRequestKey: 'shared',
+      request: () => request.promise,
+    });
+    const store = createStore(
+      combineReducers({
+        first: first.requestsReducer,
+        second: second.requestsReducer,
+      }),
+      applyMiddleware(firstRuntime.middleware, secondRuntime.middleware)
+    );
+
+    const secondPromise = store.dispatch(secondApi.loadDataAction());
+    expect(first.isSomethingLoadingSelector(store.getState())).toBe(false);
+    expect(second.isSomethingLoadingSelector(store.getState())).toBe(true);
+    await firstRuntime.cancelAllRequests();
+    request.resolve('response B');
+    await secondPromise;
+
+    expect(firstApi.responseSelector(store.getState())).toBeUndefined();
+    expect(secondApi.responseSelector(store.getState())).toBe('response B');
+    await store.dispatch(firstApi.loadDataAction());
+    expect(firstApi.responseSelector(store.getState())).toBe('response A');
+    expect(secondApi.responseSelector(store.getState())).toBe('response B');
+  });
+
+  it('isolates fulfilled and rejected subscriptions for matching request keys', async () => {
+    const first = createReduxRequestsFactory({ stateRequestsKey: 'first' });
+    const second = createReduxRequestsFactory({ stateRequestsKey: 'second' });
+    const firstApi = first.requestsFactory({
+      stateRequestKey: 'shared',
+      request: async () => 'response A',
+    });
+    const secondApi = second.requestsFactory({
+      stateRequestKey: 'shared',
+      request: jest
+        .fn()
+        .mockResolvedValueOnce('response B')
+        .mockRejectedValueOnce(new Error('second request failed')),
+    });
+    const firstTypes = [
+      firstApi.requestFulfilledAction.type,
+      firstApi.requestRejectedAction.type,
+    ];
+    const secondTypes = [
+      secondApi.requestFulfilledAction.type,
+      secondApi.requestRejectedAction.type,
+    ];
+    const record =
+      (types: string[]) =>
+      (state: string[] = [], action: UnknownAction) =>
+        types.includes(action.type) ? [...state, action.type] : state;
+    const store = createStore(
+      combineReducers({
+        first: first.requestsReducer,
+        second: second.requestsReducer,
+        firstEvents: record(firstTypes),
+        secondEvents: record(secondTypes),
+      }),
+      applyMiddleware(
+        first.createRequestsFactoryMiddleware().middleware,
+        second.createRequestsFactoryMiddleware().middleware
+      )
+    );
+
+    await store.dispatch(secondApi.loadDataAction());
+    await store.dispatch(secondApi.forcedLoadDataAction());
+    expect(store.getState().firstEvents).toEqual([]);
+    expect(store.getState().secondEvents).toEqual(secondTypes);
+
+    await store.dispatch(firstApi.loadDataAction());
+    expect(store.getState().firstEvents).toEqual([
+      firstApi.requestFulfilledAction.type,
+    ]);
+    expect(store.getState().secondEvents).toEqual(secondTypes);
+  });
+
   it.each([
     ['by default', undefined, undefined, 0],
     [
